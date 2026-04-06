@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./lib/supabase";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import SignPage from "./pages/SignPage";
@@ -37,13 +38,20 @@ export default function App() {
       <CookieBanner />
       {session && <BugReport session={session} />}
       <Routes>
+        {/* Public pages */}
+        <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
         <Route path="/sign/:token" element={<SignPage />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ForgotPassword />} />
-        <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/" replace />} />
-        <Route path="/*" element={session ? <Dashboard session={session} /> : <Navigate to="/auth" replace />} />
+
+        {/* Auth */}
+        <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/dashboard" replace />} />
+
+        {/* Protected */}
+        <Route path="/dashboard/*" element={session ? <Dashboard session={session} /> : <Navigate to="/auth" replace />} />
+        <Route path="/*" element={session ? <Dashboard session={session} /> : <Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
