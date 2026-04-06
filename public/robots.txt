@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+
+# Block app pages (no value for search engines)
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://flowdocs.app/sitemap.xml

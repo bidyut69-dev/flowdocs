@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { downloadPDF } from "../lib/pdf";
 import { sendSigningEmail } from "../lib/email";
+import UpgradeModal from "../components/UpgradeModal";
 
 // ── THEME ──────────────────────────────────────────────────────────────
 const C = {
@@ -51,7 +52,7 @@ const badge = (status) => {
 
 // ── TOAST ──────────────────────────────────────────────────────────────
 function Toast({ msg, onClose }) {
-  useEffect(() => { if (msg) { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); } }, [msg]);
+  useEffect(() => { if (msg) { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); } }, [msg, onClose]);
   if (!msg) return null;
   return (
     <div style={{
@@ -219,6 +220,8 @@ export default function Dashboard({ session }) {
   // ── Sign out ──
   const signOut = async () => { await supabase.auth.signOut(); };
 
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   // ── Derived stats ──
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
   const collected = documents.filter(d => d.status === "paid").reduce((s, d) => s + (d.amount || 0), 0);
@@ -282,20 +285,41 @@ export default function Dashboard({ session }) {
 
         <div style={{ marginTop: "auto" }}>
           <div style={{ padding: "0 20px 16px" }}>
-            <div style={{
-              background: C.goldDim, border: `1px solid ${C.gold}`, borderRadius: 8,
-              padding: "10px 14px", marginBottom: 12,
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace" }}>FREE PLAN</div>
-              <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>{documents.length} / 3 docs</div>
-            </div>
-            <div onClick={signOut} style={{
-              fontSize: 12, color: C.dim, cursor: "pointer", padding: "8px 0",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>⏏ Sign out</div>
+            {profile?.plan === "pro" ? (
+              <div style={{ background: C.goldDim, border: `1px solid ${C.gold}`, borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace" }}>⚡ PRO PLAN</div>
+                <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>Unlimited docs</div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, fontFamily: "'DM Mono', monospace" }}>FREE PLAN</div>
+                  <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>{documents.length} / 3 docs used</div>
+                  <div style={{ background: C.border, borderRadius: 4, height: 3, marginTop: 6 }}>
+                    <div style={{ width: `${Math.min((documents.length / 3) * 100, 100)}%`, height: "100%", background: documents.length >= 3 ? C.red : C.gold, borderRadius: 4 }} />
+                  </div>
+                </div>
+                <button onClick={() => setShowUpgrade(true)} style={{
+                  width: "100%", background: C.gold, color: "#0C0C0E", border: "none",
+                  borderRadius: 8, padding: "9px", fontSize: 12, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}>⚡ Upgrade to Pro</button>
+              </div>
+            )}
+            <div onClick={signOut} style={{ fontSize: 12, color: C.dim, cursor: "pointer", padding: "8px 0", display: "flex", alignItems: "center", gap: 8 }}>⏏ Sign out</div>
           </div>
         </div>
       </aside>
+
+      {/* ── UPGRADE MODAL ── */}
+      {showUpgrade && (
+        <UpgradeModal
+          session={session}
+          profile={profile}
+          onClose={() => setShowUpgrade(false)}
+          onUpgraded={() => { fetchAll(); setShowUpgrade(false); }}
+        />
+      )}
 
       {/* ── MAIN ── */}
       <main style={{ marginLeft: 220, flex: 1, padding: 32, minHeight: "100vh" }}>
@@ -464,7 +488,7 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
 }
 
 // ── DOCUMENTS TABLE ─────────────────────────────────────────────────────
-function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onNew,}) {
+function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onNew }) {
   const [filter, setFilter] = useState("All");
   const filtered = filter === "All" ? docs : docs.filter(d => d.type === filter || d.status === filter.toLowerCase());
 
