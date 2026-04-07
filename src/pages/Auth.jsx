@@ -123,7 +123,7 @@ export default function Auth() {
           {mode === "signup" && (
             <>
               <label style={S.label}>Your Name</label>
-              <input style={S.input} placeholder="Bidyut Kumar" value={form.name} onChange={set("name")} />
+              <input style={S.input} placeholder="Jhon Doe" value={form.name} onChange={set("name")} />
             </>
           )}
           <label style={S.label}>Email</label>
