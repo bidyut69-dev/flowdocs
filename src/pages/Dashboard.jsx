@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { downloadPDF } from "../lib/pdf";
 import { sendSigningEmail } from "../lib/email";
 import UpgradeModal from "../components/UpgradeModal";
+import AIDocModal from "../components/AIDocModal";
 
 // ── THEME ──────────────────────────────────────────────────────────────
 const C = {
@@ -221,6 +222,7 @@ export default function Dashboard({ session }) {
   const signOut = async () => { await supabase.auth.signOut(); };
 
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showAI, setShowAI] = useState(false);
 
   // ── Derived stats ──
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
@@ -321,6 +323,24 @@ export default function Dashboard({ session }) {
         />
       )}
 
+      {/* ── AI MODAL ── */}
+      {showAI && (
+        <AIDocModal
+          profile={profile}
+          onClose={() => setShowAI(false)}
+          onGenerated={(data) => {
+            if (data.type === "invoice_items") {
+              setDocForm(f => ({ ...f, type: "Invoice", title: data.title, client_id: clients.find(c => c.name === data.clientName)?.id || "" }));
+              setInvoiceItems(data.items.map(i => ({ description: i.description, qty: i.qty || 1, rate: i.rate || 0 })));
+              setShowAI(false);
+              setModal("newDoc");
+            } else {
+              setDocForm(f => ({ ...f, type: data.type === "nda" ? "NDA" : data.type === "contract" ? "Contract" : "Proposal", title: data.title, description: data.text, client_id: clients.find(c => c.name === data.clientName)?.id || "" }));
+            }
+          }}
+        />
+      )}
+
       {/* ── MAIN ── */}
       <main style={{ marginLeft: 220, flex: 1, padding: 32, minHeight: "100vh" }}>
 
@@ -336,7 +356,10 @@ export default function Dashboard({ session }) {
                   {pendingSign} pending signature{pendingSign !== 1 ? "s" : ""} · {overdue} overdue
                 </div>
               </div>
-              <button style={btn()} onClick={() => setModal("newDoc")}>+ New Document</button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button style={{ ...btn("ghost"), borderColor: "#60A5FA", color: "#60A5FA", background: "#60A5FA18" }} onClick={() => setShowAI(true)}>✨ AI Generate</button>
+                <button style={btn()} onClick={() => setModal("newDoc")}>+ New Document</button>
+              </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
