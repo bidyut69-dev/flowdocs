@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const C = {
@@ -137,6 +138,7 @@ const STEPS = [
 ];
 
 export default function Onboarding({ session, profile, onComplete }) {
+  const nav = useNavigate();
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(null);
   const [clientName, setClientName] = useState("");
@@ -268,7 +270,7 @@ export default function Onboarding({ session, profile, onComplete }) {
               }}>
               Continue →
             </button>
-            <button onClick={onComplete} style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+            <button onClick={async () => { await onComplete(); nav("/dashboard"); }} style={{ width: "100%", marginTop: 10, background: "none", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
               Skip — go to dashboard
             </button>
           </div>
@@ -369,7 +371,7 @@ export default function Onboarding({ session, profile, onComplete }) {
               )}
             </div>
 
-            <button onClick={onComplete} style={{ width: "100%", background: C.gold, color: "#0C0C0E", border: "none", borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+            <button onClick={async () => { await onComplete(); nav("/dashboard"); }} style={{ width: "100%", background: C.gold, color: "#0C0C0E", border: "none", borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
               Go to Dashboard →
             </button>
 
