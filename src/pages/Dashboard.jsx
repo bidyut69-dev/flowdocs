@@ -4,6 +4,7 @@ import { downloadPDF } from "../lib/pdf";
 import { sendSigningEmail } from "../lib/email";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
+import Templates from "./Templates";
 
 // ── THEME ──────────────────────────────────────────────────────────────
 const C = {
@@ -218,6 +219,27 @@ export default function Dashboard({ session }) {
     navigator.clipboard.writeText(url).then(() => showToast("✓ Signing link copied!"));
   };
 
+  // ── WhatsApp share ──
+  const shareWhatsApp = (doc) => {
+    const url = `${window.location.origin}/sign/${doc.sign_token}`;
+    const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+    const msg = `Hi ${client?.name || "there"}, please review and sign this document: *${doc.title}*\n\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  // ── Send bulk WhatsApp reminders for all pending docs ──
+  const sendBulkWhatsAppReminders = () => {
+    const pending = documents.filter(d => d.status === "pending" || d.status === "overdue");
+    if (pending.length === 0) return showToast("No pending documents!", false);
+    pending.forEach(doc => {
+      const url = `${window.location.origin}/sign/${doc.sign_token}`;
+      const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+      const msg = `Hi ${client?.name || "there"}, just a reminder to review *${doc.title}*. Please take action: ${url}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    });
+    showToast(`✓ Opened ${pending.length} WhatsApp reminder(s)!`);
+  };
+
   // ── Sign out ──
   const signOut = async () => { await supabase.auth.signOut(); };
 
@@ -266,9 +288,10 @@ export default function Dashboard({ session }) {
         {[
           { id: "dashboard", icon: "⊞", label: "Dashboard" },
           { id: "documents", icon: "◈", label: "Documents" },
+          { id: "templates", icon: "⬡", label: "Templates" },
           { id: "esign", icon: "✍", label: "eSign" },
-          { id: "invoices", icon: "⬡", label: "Invoices" },
-          { id: "clients", icon: "◎", label: "Clients" },
+          { id: "invoices", icon: "◎", label: "Invoices" },
+          { id: "clients", icon: "👤", label: "Clients" },
         ].map(n => (
           <div key={n.id}
             style={{
@@ -357,6 +380,11 @@ export default function Dashboard({ session }) {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
+                {(documents.filter(d => d.status === "pending" || d.status === "overdue").length > 0) && (
+                  <button style={{ ...btn("ghost"), borderColor: "#22C55E", color: "#22C55E", background: "#22C55E18", fontSize: 12 }} onClick={sendBulkWhatsAppReminders}>
+                    💬 WhatsApp Reminders ({documents.filter(d => d.status === "pending" || d.status === "overdue").length})
+                  </button>
+                )}
                 <button style={{ ...btn("ghost"), borderColor: "#60A5FA", color: "#60A5FA", background: "#60A5FA18" }} onClick={() => setShowAI(true)}>✨ AI Generate</button>
                 <button style={btn()} onClick={() => setModal("newDoc")}>+ New Document</button>
               </div>
@@ -370,7 +398,7 @@ export default function Dashboard({ session }) {
             </div>
 
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
-            <DocsTable docs={documents.slice(0, 6)} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.slice(0, 6)} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -378,11 +406,25 @@ export default function Dashboard({ session }) {
         {page === "documents" && (
           <>
             <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => setModal("newDoc")} btnLabel="+ New Document" />
-            <DocsTable docs={documents} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onNew={() => setModal("newDoc")} full />
+            <DocsTable docs={documents} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onNew={() => setModal("newDoc")} />
           </>
         )}
 
-        {/* ─── ESIGN ─── */}
+        {/* ─── TEMPLATES ─── */}
+        {page === "templates" && (
+          <>
+            <PageHeader title="Templates" sub="Ready-to-use proposals, contracts & NDAs" onNew={() => setModal("newDoc")} btnLabel="+ Blank Document" />
+            <Templates
+              session={session}
+              profile={profile}
+              onUse={(doc) => {
+                setDocuments(prev => [doc, ...prev]);
+                setPage("documents");
+                showToast("✓ Template added to documents!");
+              }}
+            />
+          </>
+        )}
         {page === "esign" && (
           <>
             <PageHeader title="eSign" sub="Track signature status in real-time" onNew={() => setModal("newDoc")} btnLabel="+ New Signing Request" />
@@ -394,7 +436,7 @@ export default function Dashboard({ session }) {
         {page === "invoices" && (
           <>
             <PageHeader title="Invoices" sub="Billing & payment tracking" onNew={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }} btnLabel="+ New Invoice" />
-            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onNew={() => setModal("newDoc")} full />
+            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -511,7 +553,7 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
 }
 
 // ── DOCUMENTS TABLE ─────────────────────────────────────────────────────
-function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onNew }) {
+function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, onNew }) {
   const [filter, setFilter] = useState("All");
   const filtered = filter === "All" ? docs : docs.filter(d => d.type === filter || d.status === filter.toLowerCase());
 
@@ -584,8 +626,12 @@ function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onNew }) {
                           onClick={() => onSend(doc)}>Send ↗</button>
                       )}
                       {doc.sign_token && (
-                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                          onClick={() => onCopyLink(doc)}>Copy Link</button>
+                        <>
+                          <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
+                            onClick={() => onCopyLink(doc)}>Copy Link</button>
+                          <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#22C55E", borderColor: "#22C55E", background: "#22C55E18" }}
+                            onClick={() => onWhatsApp(doc)}>💬</button>
+                        </>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
                         onClick={() => onDownload(doc)}>PDF ↓</button>

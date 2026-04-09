@@ -6,6 +6,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import SignPage from "./pages/SignPage";
 import ForgotPassword from "./pages/ForgotPassword";
+import Onboarding from "./pages/Onboarding";
 import { PrivacyPolicy, TermsOfService } from "./pages/Legal";
 import CookieBanner from "./components/CookieBanner";
 import BugReport from "./components/BugReport";
@@ -24,14 +25,37 @@ const Loader = () => (
 
 export default function App() {
   const [session, setSession] = useState(undefined);
+  const [profile, setProfile] = useState(null);
+
+  const fetchProfile = async (uid) => {
+    const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
+    if (data) setProfile(data);
+  };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) fetchProfile(session.user.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      if (s) fetchProfile(s.user.id);
+    });
     return () => subscription.unsubscribe();
   }, []);
 
   if (session === undefined) return <Loader />;
+
+  // Show onboarding for new users who haven't completed it
+  const needsOnboarding = session && profile && !profile.onboarding_completed;
+
+  const completeOnboarding = async () => {
+    await supabase.from("profiles").update({
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
+    }).eq("id", session.user.id);
+    setProfile(p => ({ ...p, onboarding_completed: true }));
+  };
 
   return (
     <BrowserRouter>
@@ -49,9 +73,28 @@ export default function App() {
         {/* Auth */}
         <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/dashboard" replace />} />
 
-        {/* Protected */}
-        <Route path="/dashboard/*" element={session ? <Dashboard session={session} /> : <Navigate to="/auth" replace />} />
-        <Route path="/*" element={session ? <Dashboard session={session} /> : <Navigate to="/" replace />} />
+        {/* Onboarding — show for new users */}
+        <Route path="/onboarding" element={
+          session
+            ? <Onboarding session={session} profile={profile} onComplete={completeOnboarding} />
+            : <Navigate to="/auth" replace />
+        } />
+
+        {/* Protected app */}
+        <Route path="/dashboard/*" element={
+          session
+            ? needsOnboarding
+              ? <Navigate to="/onboarding" replace />
+              : <Dashboard session={session} />
+            : <Navigate to="/auth" replace />
+        } />
+        <Route path="/*" element={
+          session
+            ? needsOnboarding
+              ? <Navigate to="/onboarding" replace />
+              : <Dashboard session={session} />
+            : <Navigate to="/" replace />
+        } />
       </Routes>
     </BrowserRouter>
   );

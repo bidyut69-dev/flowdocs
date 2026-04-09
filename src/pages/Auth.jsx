@@ -10,9 +10,7 @@ const C = {
 
 const S = {
   page: { minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif", padding: 16 },
-  wrap: { width: "100%", maxWidth: 420 },
   card: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "40px 36px" },
-  topBar: { height: 3, background: C.gold, borderRadius: "16px 16px 0 0" },
   logo: { fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: C.gold, marginBottom: 4 },
   logoSub: { fontSize: 10, color: C.dim, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 28 },
   heading: { fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 4 },
@@ -24,6 +22,11 @@ const S = {
   link: { color: C.gold, cursor: "pointer", fontWeight: 600 },
   alert: (ok) => ({ background: ok ? "#22C55E20" : "#EF444420", border: `1px solid ${ok ? C.green : C.red}`, borderRadius: 8, padding: "11px 14px", fontSize: 13, color: ok ? C.green : C.red, marginBottom: 12, marginTop: 4 }),
 };
+
+// Email validation
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+}
 
 // Google SVG icon
 const GoogleIcon = () => (
@@ -38,33 +41,50 @@ const GoogleIcon = () => (
 export default function Auth() {
   const nav = useNavigate();
   const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
-  // ── Email/Password login ──
-  const handleSubmit = async () => {
-    if (!form.email || !form.password) return setMsg({ text: "Please fill in all fields.", ok: false });
-    setLoading(true); setMsg(null);
+  const validate = () => {
+    if (!form.email) return "Email is required.";
+    if (!isValidEmail(form.email)) return "Please enter a valid email address.";
+    if (!form.password) return "Password is required.";
+    if (form.password.length < 6) return "Password must be at least 6 characters.";
     if (mode === "signup") {
-      if (!form.name) { setLoading(false); return setMsg({ text: "Please enter your name.", ok: false }); }
+      if (!form.name.trim()) return "Please enter your name.";
+      if (form.password !== form.confirmPassword) return "Passwords do not match.";
+    }
+    return null;
+  };
+
+  const handleSubmit = async () => {
+    const err = validate();
+    if (err) return setMsg({ text: err, ok: false });
+    setLoading(true); setMsg(null);
+
+    if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
-        email: form.email, password: form.password,
-        options: { data: { name: form.name } },
+        email: form.email.trim(),
+        password: form.password,
+        options: { data: { name: form.name.trim() } },
       });
       if (error) setMsg({ text: error.message, ok: false });
-      else setMsg({ text: "✓ Account created! Check your email to confirm.", ok: true });
+      else setMsg({ text: "✓ Account created! You can now sign in.", ok: true });
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email: form.email.trim(),
+        password: form.password,
+      });
       if (error) setMsg({ text: error.message, ok: false });
     }
     setLoading(false);
   };
 
-  // ── Google OAuth ──
   const handleGoogle = async () => {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -74,65 +94,107 @@ export default function Auth() {
         queryParams: { access_type: "offline", prompt: "consent" },
       },
     });
-    if (error) {
-      setMsg({ text: error.message, ok: false });
-      setGoogleLoading(false);
-    }
-    // On success, Supabase redirects to Google — no need to setLoading(false)
+    if (error) { setMsg({ text: error.message, ok: false }); setGoogleLoading(false); }
   };
+
+  const eyeBtn = { background: "none", border: "none", color: C.dim, cursor: "pointer", position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, padding: 0 };
 
   return (
     <div style={S.page}>
-      <div style={S.wrap}>
-        <div style={S.topBar} />
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        <div style={{ height: 3, background: C.gold, borderRadius: "16px 16px 0 0" }} />
         <div style={S.card}>
           <div style={S.logo}>⚡ FlowDocs</div>
           <div style={S.logoSub}>Freelancer Suite</div>
-          <div style={S.heading}>{mode === "login" ? "Welcome back" : "Get started"}</div>
-          <div style={S.sub}>{mode === "login" ? "Sign in to your workspace" : "Create your free account"}</div>
+          <div style={S.heading}>{mode === "login" ? "Welcome back" : "Get started free"}</div>
+          <div style={S.sub}>{mode === "login" ? "Sign in to your workspace" : "Create your account"}</div>
 
           {msg && <div style={S.alert(msg.ok)}>{msg.text}</div>}
 
-          {/* ── Google Button ── */}
-          <button
-            onClick={handleGoogle}
-            disabled={googleLoading}
-            style={{
-              width: "100%", background: C.surface2, color: C.text,
-              border: `1px solid ${C.border}`, borderRadius: 8, padding: "11px 14px",
-              fontSize: 14, fontWeight: 600, cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif", marginBottom: 4,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              transition: "border-color 0.15s", opacity: googleLoading ? 0.6 : 1,
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = C.mid}
-            onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
-          >
+          {/* Google */}
+          <button onClick={handleGoogle} disabled={googleLoading} style={{
+            width: "100%", background: C.surface2, color: C.text,
+            border: `1px solid ${C.border}`, borderRadius: 8, padding: "11px 14px",
+            fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            opacity: googleLoading ? 0.6 : 1,
+          }}>
             <GoogleIcon />
             {googleLoading ? "Redirecting..." : `${mode === "login" ? "Sign in" : "Sign up"} with Google`}
           </button>
 
-          {/* ── Divider ── */}
+          {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
             <div style={{ flex: 1, height: 1, background: C.border }} />
             <span style={{ fontSize: 12, color: C.dim }}>or continue with email</span>
             <div style={{ flex: 1, height: 1, background: C.border }} />
           </div>
 
-          {/* ── Email form ── */}
+          {/* Name — signup only */}
           {mode === "signup" && (
             <>
-              <label style={S.label}>Your Name</label>
-              <input style={S.input} placeholder="John Doe" value={form.name} onChange={set("name")} />
+              <label style={S.label}>Full Name *</label>
+              <input style={S.input} placeholder="Your full name" value={form.name} onChange={set("name")} />
             </>
           )}
-          <label style={S.label}>Email</label>
-          <input style={S.input} type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} />
-          <label style={S.label}>Password</label>
-          <input style={S.input} type="password" placeholder="••••••••" value={form.password} onChange={set("password")}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
 
-          {/* Forgot password link */}
+          {/* Email */}
+          <label style={S.label}>Email *</label>
+          <input
+            style={{
+              ...S.input,
+              borderColor: form.email && !isValidEmail(form.email) ? C.red : C.border,
+            }}
+            type="email"
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={set("email")}
+          />
+          {form.email && !isValidEmail(form.email) && (
+            <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Please enter a valid email address</div>
+          )}
+
+          {/* Password */}
+          <label style={S.label}>Password *</label>
+          <div style={{ position: "relative" }}>
+            <input
+              style={S.input}
+              type={showPass ? "text" : "password"}
+              placeholder="Min. 6 characters"
+              value={form.password}
+              onChange={set("password")}
+            />
+            <button style={eyeBtn} onClick={() => setShowPass(!showPass)}>{showPass ? "🙈" : "👁"}</button>
+          </div>
+          {form.password && form.password.length < 6 && (
+            <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Password must be at least 6 characters</div>
+          )}
+
+          {/* Confirm Password — signup only */}
+          {mode === "signup" && (
+            <>
+              <label style={S.label}>Confirm Password *</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  style={{
+                    ...S.input,
+                    borderColor: form.confirmPassword && form.password !== form.confirmPassword ? C.red : C.border,
+                  }}
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Re-enter your password"
+                  value={form.confirmPassword}
+                  onChange={set("confirmPassword")}
+                  onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                />
+                <button style={eyeBtn} onClick={() => setShowConfirm(!showConfirm)}>{showConfirm ? "🙈" : "👁"}</button>
+              </div>
+              {form.confirmPassword && form.password !== form.confirmPassword && (
+                <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Passwords do not match</div>
+              )}
+            </>
+          )}
+
+          {/* Forgot password */}
           {mode === "login" && (
             <div style={{ textAlign: "right", marginTop: 8 }}>
               <span style={{ fontSize: 12, color: C.gold, cursor: "pointer" }} onClick={() => nav("/forgot-password")}>
@@ -141,23 +203,27 @@ export default function Auth() {
             </div>
           )}
 
-          <button style={{ ...S.btn, opacity: loading ? 0.6 : 1 }} onClick={handleSubmit} disabled={loading}>
+          <button
+            style={{ ...S.btn, opacity: loading ? 0.6 : 1 }}
+            onClick={handleSubmit}
+            disabled={loading}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+          >
             {loading ? "Please wait..." : mode === "login" ? "Sign In →" : "Create Account →"}
           </button>
 
           <div style={S.toggle}>
             {mode === "login" ? "No account? " : "Already registered? "}
-            <span style={S.link} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMsg(null); }}>
+            <span style={S.link} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMsg(null); setForm({ name: "", email: "", password: "", confirmPassword: "" }); }}>
               {mode === "login" ? "Sign Up" : "Sign In"}
             </span>
           </div>
         </div>
 
-        {/* Footer links */}
         <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: C.dim }}>
-          <span style={{ cursor: "pointer", color: C.dim }} onClick={() => nav("/privacy")}>Privacy Policy</span>
+          <span style={{ cursor: "pointer" }} onClick={() => nav("/privacy")}>Privacy Policy</span>
           {" · "}
-          <span style={{ cursor: "pointer", color: C.dim }} onClick={() => nav("/terms")}>Terms of Service</span>
+          <span style={{ cursor: "pointer" }} onClick={() => nav("/terms")}>Terms of Service</span>
         </div>
       </div>
     </div>
