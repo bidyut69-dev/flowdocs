@@ -39,7 +39,7 @@ export default function UpgradeModal({ session, profile, onClose, onUpgraded }) 
           setSuccess(true);
           setTimeout(() => { onUpgraded?.(); onClose?.(); }, 2500);
         } else {
-          setError("Payment received but activation failed. Contact support@flowdocs.app");
+          setError("Payment received but activation failed. Contact support@flowdocs.co.in");
         }
       },
       onFailure: (msg) => {

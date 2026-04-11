@@ -10,4 +10,4 @@ Disallow: /sign/
 Disallow: /reset-password
 Disallow: /forgot-password
 
-Sitemap: https://flowdocs.app/sitemap.xml
+Sitemap: https://flowdocs.co.in/sitemap.xml

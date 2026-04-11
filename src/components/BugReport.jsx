@@ -110,7 +110,7 @@ export default function BugReport({ session }) {
               />
 
               <div style={{ fontSize: 11, color: C.dim, margin: "8px 0 14px" }}>
-                support@flowdocs.app · We reply within 24h
+                support@flowdocs.co.in · We reply within 24h
               </div>
 
               <button onClick={submit} disabled={loading || !message.trim()} style={{

@@ -245,6 +245,7 @@ export default function Dashboard({ session }) {
 
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Derived stats ──
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
@@ -268,10 +269,37 @@ export default function Dashboard({ session }) {
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: ${C.bg}; }
         ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
         button:hover { opacity: 0.88; }
+
+        /* ── Mobile Responsive ── */
+        @media (max-width: 768px) {
+          .fd-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+          .fd-sidebar.open { transform: translateX(0); }
+          .fd-main { margin-left: 0 !important; padding: 16px !important; }
+          .fd-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .fd-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px; }
+          .fd-header-btns { flex-wrap: wrap !important; width: 100%; }
+          .fd-header-btns button { font-size: 11px !important; padding: 7px 10px !important; }
+          .fd-grid2 { grid-template-columns: 1fr !important; }
+          .fd-table-wrap { overflow-x: auto; }
+          .fd-table td:nth-child(3), .fd-table th:nth-child(3),
+          .fd-table td:nth-child(5), .fd-table th:nth-child(5) { display: none; }
+          .fd-overlay { display: block !important; }
+        }
+        @media (max-width: 480px) {
+          .fd-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+        }
+        .fd-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9; }
+        .fd-mobile-header { display: none; }
+        @media (max-width: 768px) {
+          .fd-mobile-header { display: flex !important; align-items: center; justify-content: space-between; padding: 14px 16px; background: ${C.surface}; border-bottom: 1px solid ${C.border}; position: sticky; top: 0; z-index: 8; margin: -16px -16px 16px; }
+        }
       `}</style>
 
+      {/* Mobile overlay */}
+      <div className="fd-overlay" onClick={() => setSidebarOpen(false)} />
+
       {/* ── SIDEBAR ── */}
-      <aside style={{
+      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{
         width: 220, background: C.surface, borderRight: `1px solid ${C.border}`,
         display: "flex", flexDirection: "column", padding: "24px 0",
         position: "fixed", height: "100vh", zIndex: 10,
@@ -365,12 +393,18 @@ export default function Dashboard({ session }) {
       )}
 
       {/* ── MAIN ── */}
-      <main style={{ marginLeft: 220, flex: 1, padding: 32, minHeight: "100vh" }}>
+      <main className="fd-main" style={{ marginLeft: 220, flex: 1, padding: 32, minHeight: "100vh" }}>
+
+        {/* Mobile top bar */}
+        <div className="fd-mobile-header">
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: `1px solid ${C.border}`, color: C.mid, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 18 }}>☰</button>
+        </div>
 
         {/* ─── DASHBOARD ─── */}
         {page === "dashboard" && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+            <div className="fd-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
               <div>
                 <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: C.text }}>
                   Good morning, {profile?.name?.split(" ")[0] || "there"} 👋
@@ -379,7 +413,7 @@ export default function Dashboard({ session }) {
                   {pendingSign} pending signature{pendingSign !== 1 ? "s" : ""} · {overdue} overdue
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
+              <div className="fd-header-btns" style={{ display: "flex", gap: 10 }}>
                 {(documents.filter(d => d.status === "pending" || d.status === "overdue").length > 0) && (
                   <button style={{ ...btn("ghost"), borderColor: "#22C55E", color: "#22C55E", background: "#22C55E18", fontSize: 12 }} onClick={sendBulkWhatsAppReminders}>
                     💬 WhatsApp Reminders ({documents.filter(d => d.status === "pending" || d.status === "overdue").length})
@@ -390,7 +424,7 @@ export default function Dashboard({ session }) {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+            <div className="fd-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
               <StatCard label="Total Billed" value={`$${totalBilled.toLocaleString()}`} sub="All time" accent="gold" />
               <StatCard label="Collected" value={`$${collected.toLocaleString()}`} sub="Paid invoices" accent="green" />
               <StatCard label="Pending Sign" value={pendingSign} sub="Awaiting response" accent="blue" />
@@ -542,7 +576,7 @@ export default function Dashboard({ session }) {
 // ── PAGE HEADER ─────────────────────────────────────────────────────────
 function PageHeader({ title, sub, onNew, btnLabel }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+    <div className="fd-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
       <div>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: C.text }}>{title}</div>
         <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>{sub}</div>
@@ -575,8 +609,8 @@ function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, 
         </div>
       </div>
 
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="fd-table-wrap" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <table className="fd-table" style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               {["Document", "Type", "Status", "Amount", "Date", "Actions"].map(h => (
