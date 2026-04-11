@@ -39,26 +39,64 @@ export default function SignPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // Canvas setup
+  // Canvas setup — improved touch + DPI scaling
   useEffect(() => {
     if (!doc || doc.status === "signed") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Fix DPI for sharp rendering on mobile
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
     const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
     ctx.strokeStyle = "#F5A623";
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 3;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    ctx.shadowColor = "rgba(245, 166, 35, 0.3)";
+    ctx.shadowBlur = 2;
+
+    let lastX = 0, lastY = 0;
 
     const getPos = (e) => {
-      const rect = canvas.getBoundingClientRect();
+      const r = canvas.getBoundingClientRect();
       const src = e.touches ? e.touches[0] : e;
-      return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+      return {
+        x: (src.clientX - r.left),
+        y: (src.clientY - r.top),
+      };
     };
 
-    const start = (e) => { e.preventDefault(); isDrawing.current = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
-    const draw = (e) => { e.preventDefault(); if (!isDrawing.current) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-    const stop = () => { isDrawing.current = false; };
+    const start = (e) => {
+      e.preventDefault();
+      isDrawing.current = true;
+      const p = getPos(e);
+      lastX = p.x; lastY = p.y;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    };
+
+    const draw = (e) => {
+      e.preventDefault();
+      if (!isDrawing.current) return;
+      const p = getPos(e);
+      // Smooth curve through midpoint
+      ctx.quadraticCurveTo(lastX, lastY, (p.x + lastX) / 2, (p.y + lastY) / 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo((p.x + lastX) / 2, (p.y + lastY) / 2);
+      lastX = p.x; lastY = p.y;
+    };
+
+    const stop = () => {
+      if (!isDrawing.current) return;
+      isDrawing.current = false;
+      ctx.beginPath();
+    };
 
     canvas.addEventListener("mousedown", start);
     canvas.addEventListener("mousemove", draw);
@@ -67,6 +105,7 @@ export default function SignPage() {
     canvas.addEventListener("touchstart", start, { passive: false });
     canvas.addEventListener("touchmove", draw, { passive: false });
     canvas.addEventListener("touchend", stop);
+    canvas.addEventListener("touchcancel", stop);
 
     return () => {
       canvas.removeEventListener("mousedown", start);
@@ -76,6 +115,7 @@ export default function SignPage() {
       canvas.removeEventListener("touchstart", start);
       canvas.removeEventListener("touchmove", draw);
       canvas.removeEventListener("touchend", stop);
+      canvas.removeEventListener("touchcancel", stop);
     };
   }, [doc]);
 
@@ -256,23 +296,28 @@ export default function SignPage() {
 
             {/* Signature Canvas */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>
-                  Draw Your Signature *
-                </label>
-                <button onClick={clearCanvas} style={{ fontSize: 12, color: C.dim, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear</button>
-              </div>
+              <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", display: "block", marginBottom: 8 }}>
+                Draw Your Signature *
+              </label>
               <canvas
                 ref={canvasRef}
-                width={580}
-                height={150}
                 style={{
-                  width: "100%", height: 150, background: C.surface2,
-                  border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "crosshair",
-                  display: "block", touchAction: "none",
+                  width: "100%",
+                  height: 180,
+                  background: "#1C1C1F",
+                  border: `2px dashed ${C.gold}`,
+                  borderRadius: 12,
+                  cursor: "crosshair",
+                  display: "block",
+                  touchAction: "none",
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
                 }}
               />
-              <div style={{ fontSize: 11, color: C.dim, marginTop: 6 }}>Draw your signature in the box above using your mouse or finger</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: C.dim }}>✍ Draw with finger or mouse — take your time</div>
+                <button onClick={clearCanvas} style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Clear</button>
+              </div>
             </div>
 
             {/* Agreement */}

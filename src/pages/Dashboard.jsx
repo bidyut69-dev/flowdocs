@@ -691,6 +691,7 @@ function ESignPage({ docs, clients, onSend, onCopyLink }) {
       ) : signingDocs.map(doc => {
         const client = clients.find(c => c.id === doc.client_id) || doc.clients;
         const progress = doc.status === "signed" ? 100 : doc.status === "pending" ? 50 : 0;
+        const hasEmail = !!client?.email;
         return (
           <div key={doc.id} style={{ ...card, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
@@ -712,7 +713,7 @@ function ESignPage({ docs, clients, onSend, onCopyLink }) {
               <div style={{ width: `${progress}%`, height: "100%", background: C.gold, borderRadius: 4, transition: "width 0.5s" }} />
             </div>
 
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: 1, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {client && (
                   <div style={{
@@ -724,13 +725,38 @@ function ESignPage({ docs, clients, onSend, onCopyLink }) {
                   </div>
                 )}
               </div>
-              {doc.status === "draft" && (
-                <button style={{ ...btn(), fontSize: 12, padding: "7px 14px" }} onClick={() => onSend(doc)}>Send Request →</button>
-              )}
-              {doc.status === "pending" && (
-                <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }} onClick={() => onCopyLink(doc)}>Copy Link</button>
-              )}
+
+              <div style={{ display: "flex", gap: 8 }}>
+                {doc.status === "draft" && (
+                  <>
+                    {hasEmail ? (
+                      <button style={{ ...btn(), fontSize: 12, padding: "7px 14px" }} onClick={() => onSend(doc)}>
+                        📧 Send via Email →
+                      </button>
+                    ) : (
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 11, color: C.dim }}>No email — share link:</span>
+                        <button style={{ ...btn(), fontSize: 12, padding: "7px 14px" }} onClick={() => onSend(doc)}>
+                          Send & Get Link →
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+                {(doc.status === "pending" || doc.status === "draft") && doc.sign_token && (
+                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }} onClick={() => onCopyLink(doc)}>
+                    🔗 Copy Link
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* No email warning */}
+            {doc.status === "draft" && !hasEmail && (
+              <div style={{ marginTop: 10, background: C.goldDim, border: `1px solid ${C.gold}`, borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.gold }}>
+                ⚠️ Client email not added — you can still share the signing link via WhatsApp or manually.
+              </div>
+            )}
           </div>
         );
       })}
