@@ -282,39 +282,55 @@ export default function Dashboard({ session }) {
         button:hover { opacity: 0.88; }
 
         /* ── Mobile Responsive ── */
+        .fd-overlay { display: none !important; }
+        .fd-sidebar {
+          transition: transform 0.25s ease;
+        }
+        .fd-mobile-header { display: none; }
+
         @media (max-width: 768px) {
-          .fd-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
-          .fd-sidebar.open { transform: translateX(0); }
+          .fd-sidebar { transform: translateX(-100%); }
+          .fd-sidebar.open { transform: translateX(0) !important; }
+          .fd-overlay { display: block !important; }
           .fd-main { margin-left: 0 !important; padding: 16px !important; }
-          .fd-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .fd-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px; }
-          .fd-header-btns { flex-wrap: wrap !important; width: 100%; }
+          .fd-stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .fd-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .fd-header-btns { flex-wrap: wrap !important; width: 100% !important; }
           .fd-header-btns button { font-size: 11px !important; padding: 7px 10px !important; }
           .fd-grid2 { grid-template-columns: 1fr !important; }
-          .fd-table-wrap { overflow-x: auto; }
+          .fd-table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
           .fd-table td:nth-child(3), .fd-table th:nth-child(3),
-          .fd-table td:nth-child(5), .fd-table th:nth-child(5) { display: none; }
-          .fd-overlay { display: block !important; }
+          .fd-table td:nth-child(5), .fd-table th:nth-child(5) { display: none !important; }
+          .fd-mobile-header { display: flex !important; align-items: center; justify-content: space-between; padding: 14px 16px; background: ${C.surface}; border-bottom: 1px solid ${C.border}; position: sticky; top: 0; z-index: 8; margin: -16px -16px 16px; }
         }
         @media (max-width: 480px) {
           .fd-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
-        }
-        .fd-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9; }
-        .fd-mobile-header { display: none; }
-        @media (max-width: 768px) {
-          .fd-mobile-header { display: flex !important; align-items: center; justify-content: space-between; padding: 14px 16px; background: ${C.surface}; border-bottom: 1px solid ${C.border}; position: sticky; top: 0; z-index: 8; margin: -16px -16px 16px; }
+          .fd-header-btns button { font-size: 10px !important; padding: 6px 8px !important; }
         }
       `}</style>
 
       {/* Mobile overlay */}
-      <div className="fd-overlay" onClick={() => setSidebarOpen(false)} />
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+            zIndex: 9, display: "none",
+          }}
+          className="fd-overlay"
+        />
+      )}
 
       {/* ── SIDEBAR ── */}
-      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{
-        width: 220, background: C.surface, borderRight: `1px solid ${C.border}`,
-        display: "flex", flexDirection: "column", padding: "24px 0",
-        position: "fixed", height: "100vh", zIndex: 10,
-      }}>
+      <aside
+        className={sidebarOpen ? "fd-sidebar open" : "fd-sidebar"}
+        style={{
+          width: 220, background: C.surface, borderRight: `1px solid ${C.border}`,
+          display: "flex", flexDirection: "column", padding: "24px 0",
+          position: "fixed", height: "100vh", zIndex: 10,
+          overflowY: "auto",
+        }}
+      >
         <div style={{ padding: "0 20px 24px", borderBottom: `1px solid ${C.border}`, marginBottom: 16 }}>
           <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
           <div style={{ fontSize: 10, color: C.dim, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginTop: 2 }}>
@@ -341,7 +357,7 @@ export default function Dashboard({ session }) {
               borderLeft: `2px solid ${page === n.id ? C.gold : "transparent"}`,
               transition: "all 0.15s", fontWeight: page === n.id ? 600 : 400,
             }}
-            onClick={() => setPage(n.id)}
+            onClick={() => { setPage(n.id); setSidebarOpen(false); }}
           >
             <span style={{ width: 20, textAlign: "center", fontSize: 15 }}>{n.icon}</span> {n.label}
           </div>
