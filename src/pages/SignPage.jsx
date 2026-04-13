@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { sendSignedConfirmation } from "../lib/email";
+import { openInvoicePayment, markInvoicePaid } from "../lib/payment";
 
 const C = {
   bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
@@ -18,6 +19,9 @@ export default function SignPage() {
   const [signing, setSigning] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [name, setName] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const [payError, setPayError] = useState("");
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
 
@@ -266,13 +270,75 @@ export default function SignPage() {
 
         {/* ── SIGNED SUCCESS ── */}
         {signed ? (
-          <div style={{ background: C.surface, border: `1px solid ${C.green}`, borderRadius: 16, padding: "40px 28px", textAlign: "center" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 700, color: C.green, marginBottom: 8 }}>Document Signed!</div>
-            <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.7 }}>
-              Thank you. Your signature has been recorded and the document owner has been notified.
-              {doc.signed_at && <><br />Signed on {new Date(doc.signed_at).toLocaleString()}</>}
-            </div>
+          <div style={{ background: C.surface, border: `1px solid ${C.green}`, borderRadius: 16, padding: "32px 28px", textAlign: "center" }}>
+            {paid ? (
+              <>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 700, color: C.green, marginBottom: 8 }}>Payment Done!</div>
+                <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.7 }}>
+                  Your payment has been received. The document owner has been notified.
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 700, color: C.green, marginBottom: 8 }}>Document Signed!</div>
+                <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.7, marginBottom: 24 }}>
+                  Thank you. Your signature has been recorded.
+                  {doc.signed_at && <><br />Signed on {new Date(doc.signed_at).toLocaleString()}</>}
+                </div>
+
+                {/* Payment button — show for invoices or docs with amount */}
+                {doc.amount > 0 && doc.type === "Invoice" && (
+                  <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, color: C.dim, marginBottom: 6, fontFamily: "'DM Mono', monospace", letterSpacing: 1 }}>INVOICE AMOUNT</div>
+                    <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: C.gold, marginBottom: 16 }}>
+                      {doc.currency === "INR" ? "₹" : "$"}{Number(doc.amount).toFixed(2)}
+                    </div>
+                    {payError && (
+                      <div style={{ background: "#EF444420", border: "1px solid #EF4444", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#EF4444", marginBottom: 12 }}>
+                        {payError}
+                      </div>
+                    )}
+                    <button
+                      onClick={async () => {
+                        setPaying(true); setPayError("");
+                        await openInvoicePayment({
+                          invoice: doc,
+                          clientName: name,
+                          clientEmail: doc.clients?.email || "",
+                          onSuccess: async (response) => {
+                            await markInvoicePaid(supabase, doc.id, response.razorpay_payment_id);
+                            setPaid(true); setPaying(false);
+                          },
+                          onFailure: (msg) => { setPayError(msg); setPaying(false); },
+                        });
+                      }}
+                      disabled={paying}
+                      style={{
+                        width: "100%", background: paying ? C.surface2 : C.gold,
+                        color: paying ? C.dim : "#0C0C0E",
+                        border: "none", borderRadius: 10, padding: "14px",
+                        fontSize: 15, fontWeight: 700, cursor: paying ? "not-allowed" : "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      {paying ? "Opening payment..." : `Pay ${doc.currency === "INR" ? "₹" : "$"}${Number(doc.amount).toFixed(2)} Now →`}
+                    </button>
+                    <div style={{ fontSize: 11, color: C.dim, marginTop: 10 }}>
+                      🔒 Secured by Razorpay · UPI, Cards, Net Banking accepted
+                    </div>
+                  </div>
+                )}
+
+                {/* For proposals/contracts — no payment needed */}
+                {doc.type !== "Invoice" && doc.amount > 0 && (
+                  <div style={{ background: C.goldDim, border: `1px solid ${C.gold}`, borderRadius: 10, padding: "14px", fontSize: 13, color: C.gold }}>
+                    Project value: {doc.currency === "INR" ? "₹" : "$"}{Number(doc.amount).toFixed(2)} — Invoice will be sent separately.
+                  </div>
+                )}
+              </>
+            )}
           </div>
         ) : (
           /* ── SIGNING FORM ── */

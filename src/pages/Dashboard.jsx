@@ -213,6 +213,17 @@ export default function Dashboard({ session }) {
     showToast("✓ PDF downloaded!");
   };
 
+  // ── Mark as Paid manually ──
+  const markPaid = async (doc) => {
+    const { error } = await supabase.from("documents")
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", doc.id);
+    if (!error) {
+      setDocuments(documents.map(d => d.id === doc.id ? { ...d, status: "paid" } : d));
+      showToast("✓ Marked as paid!");
+    }
+  };
+
   // ── Copy signing link ──
   const copyLink = (doc) => {
     const url = `${window.location.origin}/sign/${doc.sign_token}`;
@@ -432,7 +443,7 @@ export default function Dashboard({ session }) {
             </div>
 
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
-            <DocsTable docs={documents.slice(0, 6)} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.slice(0, 6)} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -440,7 +451,7 @@ export default function Dashboard({ session }) {
         {page === "documents" && (
           <>
             <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => setModal("newDoc")} btnLabel="+ New Document" />
-            <DocsTable docs={documents} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -470,7 +481,7 @@ export default function Dashboard({ session }) {
         {page === "invoices" && (
           <>
             <PageHeader title="Invoices" sub="Billing & payment tracking" onNew={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }} btnLabel="+ New Invoice" />
-            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -587,7 +598,7 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
 }
 
 // ── DOCUMENTS TABLE ─────────────────────────────────────────────────────
-function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, onNew }) {
+function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, onMarkPaid, onNew }) {
   const [filter, setFilter] = useState("All");
   const filtered = filter === "All" ? docs : docs.filter(d => d.type === filter || d.status === filter.toLowerCase());
 
@@ -658,6 +669,10 @@ function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, 
                       {doc.status === "draft" && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }}
                           onClick={() => onSend(doc)}>Send ↗</button>
+                      )}
+                      {(doc.status === "pending" || doc.status === "overdue") && doc.type === "Invoice" && (
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.green, borderColor: C.green, background: C.greenDim }}
+                          onClick={() => onMarkPaid?.(doc)}>✓ Paid</button>
                       )}
                       {doc.sign_token && (
                         <>
