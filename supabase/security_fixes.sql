@@ -1,15 +1,12 @@
 -- ═══════════════════════════════════════════════════════════
--- FlowDocs Security Fixes
--- Run in Supabase SQL Editor → New Query → Run
--- Fixes: 1 Error + 9 Warnings from Security Advisor
+-- FlowDocs Security Fixes (CLEAN VERSION)
 -- ═══════════════════════════════════════════════════════════
 
--- ── FIX 1: Security Definer View (ERROR) ─────────────────
--- Recreate user_weekly_stats without SECURITY DEFINER
+-- ── FIX 1: Security Definer View ───────────────────────────
 drop view if exists user_weekly_stats;
 
 create view user_weekly_stats
-  with (security_invoker = true)
+with (security_invoker = true)
 as
 select
   user_id,
@@ -22,8 +19,8 @@ select
 from documents
 group by user_id;
 
--- ── FIX 2: Function Search Path Mutable (WARNINGS) ───────
--- Set search_path on all functions to prevent schema injection
+
+-- ── FIX 2: Secure Functions (LOCK SEARCH PATH) ─────────────
 
 create or replace function handle_new_user()
 returns trigger
@@ -43,6 +40,7 @@ begin
 end;
 $$;
 
+
 create or replace function update_updated_at()
 returns trigger
 language plpgsql
@@ -53,6 +51,7 @@ begin
   return new;
 end;
 $$;
+
 
 create or replace function is_pro(p_user_id uuid)
 returns boolean
@@ -68,6 +67,7 @@ as $$
   );
 $$;
 
+
 create or replace function auto_create_contract()
 returns trigger
 language plpgsql
@@ -75,24 +75,40 @@ security definer
 set search_path = public
 as $$
 begin
-  if NEW.status = 'signed' and NEW.type = 'Proposal' and NEW.auto_contract_created = false then
-    insert into public.documents (user_id, client_id, title, type, status, amount, content)
+  if NEW.status = 'signed'
+     and NEW.type = 'Proposal'
+     and NEW.auto_contract_created = false then
+
+    insert into public.documents (
+      user_id, client_id, title, type, status, amount, content
+    )
     values (
-      NEW.user_id, NEW.client_id,
+      NEW.user_id,
+      NEW.client_id,
       'Service Contract — ' || NEW.title,
-      'Contract', 'draft', NEW.amount,
+      'Contract',
+      'draft',
+      NEW.amount,
       jsonb_build_object(
         'description', 'Auto-generated from signed proposal: ' || NEW.title,
         'source_proposal_id', NEW.id
       )
     );
-    update public.documents set auto_contract_created = true where id = NEW.id;
+
+    update public.documents
+    set auto_contract_created = true
+    where id = NEW.id;
   end if;
+
   return NEW;
 end;
 $$;
 
-create or replace function mark_document_opened(doc_sign_token uuid, viewer_ip text default null)
+
+create or replace function mark_document_opened(
+  doc_sign_token uuid,
+  viewer_ip text default null
+)
 returns void
 language plpgsql
 security definer
@@ -101,70 +117,89 @@ as $$
 begin
   update public.documents
   set opened_at = coalesce(opened_at, now())
-  where sign_token = doc_sign_token and opened_at is null;
+  where sign_token = doc_sign_token
+    and opened_at is null;
 
   insert into public.audit_log (document_id, action, metadata)
   select id, 'opened', jsonb_build_object('ip', viewer_ip)
-  from public.documents where sign_token = doc_sign_token;
+  from public.documents
+  where sign_token = doc_sign_token;
 end;
 $$;
 
 grant execute on function mark_document_opened to anon;
 
--- ── FIX 3: RLS Policy Always True (WARNINGS) ─────────────
--- Fix overly permissive policies
 
--- audit_log: only authenticated users can insert their own
-drop policy if exists "insert_audit" on audit_log;
-create policy "insert_audit"
-  on audit_log for insert
-  with check (auth.uid() is not null);
+-- ── FIX 3: RLS POLICIES (REAL SECURITY, NOT FAKE) ─────────
 
--- documents: public sign update should be limited
-drop policy if exists "documents_public_sign" on documents;
-create policy "documents_public_sign"
-  on documents for update
-  using (sign_token is not null)
-  with check (sign_token is not null and status in ('signed'));
+-- 🔒 audit_log → BACKEND ONLY (logs must be trusted)
+drop policy if exists insert_audit on audit_log;
 
--- feedback: anyone can insert (intentional — no auth needed for bug reports)
--- This is acceptable — keep as is, just acknowledge it's intentional
+create policy insert_audit
+on audit_log
+for insert
+to service_role
+with check (true);
 
--- reminder_log: restrict to service role only
-drop policy if exists "service_role_only" on reminder_log;
-create policy "service_role_insert"
-  on reminder_log for insert
-  with check (auth.role() = 'service_role' or auth.uid() is not null);
 
--- ═══════════════════════════════════════════════════════════
--- Done! Refresh Security Advisor to verify fixes.
--- ═══════════════════════════════════════════════════════════
+-- 🔒 reminder_log → BACKEND ONLY (you already fixed this once)
+drop policy if exists service_role_insert on reminder_log;
 
--- ═══════════════════════════════════════════════════════
--- Signature Storage Security Fix
--- Run in Supabase SQL Editor
--- ═══════════════════════════════════════════════════════
+create policy service_role_insert
+on reminder_log
+for insert
+to service_role
+with check (true);
 
--- Remove public access to signatures bucket
+
+-- ⚠️ documents signing → controlled public update
+drop policy if exists documents_public_sign on documents;
+
+create policy documents_public_sign
+on documents
+for update
+using (sign_token is not null)
+with check (
+  sign_token is not null
+  and status = 'signed'
+);
+
+
+-- ⚠️ feedback → intentionally open (keep, but KNOW why)
+-- No change needed (public insert allowed)
+
+
+-- ── FIX 4: STORAGE SECURITY ──────────────────────────────
+
+-- Make signatures bucket private
 update storage.buckets
-  set public = false
+set public = false
 where id = 'signatures';
 
--- Only document owner can read signatures
-create policy "owner_read_signatures"
-  on storage.objects for select
-  using (
-    bucket_id = 'signatures'
-    and (
-      auth.uid() = (
-        select user_id from documents
-        where id::text = split_part(name, '-', 1)
-        limit 1
-      )
-    )
-  );
 
--- Anyone can upload (signing is public)
-create policy "public_upload_signatures"
-  on storage.objects for insert
-  with check (bucket_id = 'signatures');
+-- Only owner can READ signatures
+drop policy if exists owner_read_signatures on storage.objects;
+
+create policy owner_read_signatures
+on storage.objects
+for select
+using (
+  bucket_id = 'signatures'
+  and auth.uid() = (
+    select user_id
+    from documents
+    where id::text = split_part(name, '-', 1)
+    limit 1
+  )
+);
+
+
+-- ⚠️ Upload: STILL PUBLIC but restricted to bucket
+drop policy if exists public_upload_signatures on storage.objects;
+
+create policy public_upload_signatures
+on storage.objects
+for insert
+with check (
+  bucket_id = 'signatures'
+);
