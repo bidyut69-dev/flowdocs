@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { downloadPDF } from "../lib/pdf";
+import { downloadPDF, generateAuditTrail } from "../lib/pdf";
 import { sendSigningEmail } from "../lib/email";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
@@ -211,6 +211,19 @@ export default function Dashboard({ session }) {
     const client = clients.find(c => c.id === doc.client_id) || doc.clients;
     downloadPDF(doc, profile, client);
     showToast("✓ PDF downloaded!");
+  };
+
+  // ── Download Audit Trail ──
+  const handleAuditTrail = (doc) => {
+    const pdf = generateAuditTrail({
+      document: doc,
+      signerName: doc.signer_name || "—",
+      signerIp: doc.signer_ip || "—",
+      signedAt: doc.signed_at,
+      signatureUrl: doc.signature_url,
+    });
+    pdf.save(`AuditTrail-${doc.title.replace(/\s+/g, "-")}.pdf`);
+    showToast("✓ Audit trail downloaded!");
   };
 
   // ── Mark as Paid manually ──
@@ -459,7 +472,7 @@ export default function Dashboard({ session }) {
             </div>
 
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
-            <DocsTable docs={documents.slice(0, 6)} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.slice(0, 6)} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -467,7 +480,7 @@ export default function Dashboard({ session }) {
         {page === "documents" && (
           <>
             <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => setModal("newDoc")} btnLabel="+ New Document" />
-            <DocsTable docs={documents} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -497,7 +510,7 @@ export default function Dashboard({ session }) {
         {page === "invoices" && (
           <>
             <PageHeader title="Invoices" sub="Billing & payment tracking" onNew={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }} btnLabel="+ New Invoice" />
-            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -614,7 +627,7 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
 }
 
 // ── DOCUMENTS TABLE ─────────────────────────────────────────────────────
-function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, onMarkPaid, onNew }) {
+function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, onMarkPaid, onAuditTrail, onNew }) {
   const [filter, setFilter] = useState("All");
   const filtered = filter === "All" ? docs : docs.filter(d => d.type === filter || d.status === filter.toLowerCase());
 
@@ -697,6 +710,10 @@ function DocsTable({ docs, clients, onSend, onDownload, onCopyLink, onWhatsApp, 
                           <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#22C55E", borderColor: "#22C55E", background: "#22C55E18" }}
                             onClick={() => onWhatsApp(doc)}>💬</button>
                         </>
+                      )}
+                      {doc.status === "signed" && (
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
+                          onClick={() => onAuditTrail?.(doc)}>🔏 Audit</button>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
                         onClick={() => onDownload(doc)}>PDF ↓</button>
