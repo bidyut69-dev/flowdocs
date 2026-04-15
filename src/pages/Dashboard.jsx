@@ -187,22 +187,38 @@ export default function Dashboard({ session }) {
 
   // ── Send Document (email + status update) ──
   const sendDoc = async (doc) => {
-    const client = clients.find(c => c.id === doc.client_id);
-    if (!client?.email) return showToast("Add client email first", false);
+    const client = clients.find(c => c.id === doc.client_id) || doc.clients;
 
-    const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
-    const emailOk = await sendSigningEmail({
-      to: client.email,
-      clientName: client.name,
-      docTitle: doc.title,
-      signingUrl,
-      fromName: profile?.name || "FlowDocs User",
-    });
+    // Always update status to pending first
+    const { error } = await supabase
+      .from("documents")
+      .update({ status: "pending" })
+      .eq("id", doc.id);
 
-    const { error } = await supabase.from("documents").update({ status: "pending" }).eq("id", doc.id);
-    if (!error) {
-      setDocuments(documents.map(d => d.id === doc.id ? { ...d, status: "pending" } : d));
-      showToast(emailOk ? "✓ Document sent via email!" : "✓ Status updated! (Add Resend key for email)");
+    if (error) return showToast("Failed to update status", false);
+
+    setDocuments(documents.map(d =>
+      d.id === doc.id ? { ...d, status: "pending" } : d
+    ));
+
+    // Try email if client has email
+    if (client?.email) {
+      const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
+      const emailOk = await sendSigningEmail({
+        to: client.email,
+        clientName: client.name,
+        docTitle: doc.title,
+        signingUrl,
+        fromName: profile?.name || "FlowDocs User",
+      });
+      showToast(emailOk
+        ? "✓ Document sent via email!"
+        : "✓ Sent! Copy link to share manually.");
+    } else {
+      // No email — copy link automatically
+      const url = `${window.location.origin}/sign/${doc.sign_token}`;
+      navigator.clipboard.writeText(url).catch(() => {});
+      showToast("✓ Status updated! Signing link copied to clipboard.");
     }
   };
 

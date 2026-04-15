@@ -142,41 +142,61 @@ export default function SignPage() {
     if (isCanvasEmpty()) return alert("Please draw your signature.");
 
     setSigning(true);
-    const canvas = canvasRef.current;
-    const signatureDataUrl = canvas.toDataURL("image/png");
 
-    // Upload signature to Supabase Storage
-    const blob = await (await fetch(signatureDataUrl)).blob();
-    const fileName = `${doc.id}-${Date.now()}.png`;
-    const { error: uploadError } = await supabase.storage
-      .from("signatures")
-      .upload(fileName, blob, { contentType: "image/png" });
+    try {
+      const canvas = canvasRef.current;
+      const signatureDataUrl = canvas.toDataURL("image/png");
 
-    if (uploadError) { setSigning(false); return alert("Upload failed. Try again."); }
+      // Upload signature to Supabase Storage
+      let publicUrl = null;
+      try {
+        const blob = await (await fetch(signatureDataUrl)).blob();
+        const fileName = `${doc.id}-${Date.now()}.png`;
+        const { error: uploadError } = await supabase.storage
+          .from("signatures")
+          .upload(fileName, blob, { contentType: "image/png", upsert: true });
 
-    const { data: { publicUrl } } = supabase.storage.from("signatures").getPublicUrl(fileName);
+        if (!uploadError) {
+          const { data } = supabase.storage.from("signatures").getPublicUrl(fileName);
+          publicUrl = data?.publicUrl || null;
+        }
+        // If upload fails, continue without signature URL — still mark as signed
+      } catch {
+        // Storage error — continue anyway
+      }
 
-    // Update document
-    const { error: updateError } = await supabase.from("documents").update({
-      status: "signed",
-      signature_url: publicUrl,
-      signed_at: new Date().toISOString(),
-    }).eq("id", doc.id);
+      // Update document status
+      const { error: updateError } = await supabase
+        .from("documents")
+        .update({
+          status: "signed",
+          signature_url: publicUrl,
+          signed_at: new Date().toISOString(),
+        })
+        .eq("id", doc.id);
 
-    if (updateError) { setSigning(false); return alert("Signing failed. Try again."); }
+      if (updateError) {
+        setSigning(false);
+        alert("Signing failed: " + updateError.message + ". Please try again.");
+        return;
+      }
 
-    // Send notification email to document owner
-    if (doc.profiles?.email) {
-      await sendSignedConfirmation({
-        to: doc.profiles.email,
-        ownerName: doc.profiles.name || "there",
-        clientName: name,
-        docTitle: doc.title,
-      });
+      // Send notification email (don't block on this)
+      if (doc.profiles?.email) {
+        sendSignedConfirmation({
+          to: doc.profiles.email,
+          ownerName: doc.profiles.name || "there",
+          clientName: name,
+          docTitle: doc.title,
+        }).catch(() => {});
+      }
+
+      setSigned(true);
+    } catch (err) {
+      alert("Something went wrong: " + err.message);
+    } finally {
+      setSigning(false);
     }
-
-    setSigned(true);
-    setSigning(false);
   };
 
   if (loading) return (
@@ -412,16 +432,31 @@ export default function SignPage() {
 
             <button
               style={{
-                width: "100%", background: agreed ? C.gold : C.surface2, color: agreed ? "#0C0C0E" : C.dim,
-                border: "none", borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 700,
-                cursor: agreed ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif",
+                width: "100%",
+                background: signing ? C.surface2 : agreed ? C.gold : C.surface2,
+                color: signing ? C.gold : agreed ? "#0C0C0E" : C.dim,
+                border: signing ? `1px solid ${C.gold}` : "none",
+                borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 700,
+                cursor: (signing || !agreed) ? "not-allowed" : "pointer",
+                fontFamily: "'DM Sans', sans-serif",
                 transition: "all 0.2s",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
               }}
               onClick={handleSign}
               disabled={signing || !agreed}
             >
-              {signing ? "Signing document..." : "✍ Sign & Submit →"}
+              {signing ? (
+                <>
+                  <span style={{
+                    width: 16, height: 16, border: `2px solid ${C.dim}`,
+                    borderTopColor: C.gold, borderRadius: "50%",
+                    display: "inline-block", animation: "spin 0.8s linear infinite",
+                  }} />
+                  Saving your signature...
+                </>
+              ) : "✍ Sign & Submit →"}
             </button>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
 
