@@ -661,7 +661,7 @@ export default function Landing() {
           <div style={{ display: "flex", gap: 28, fontSize: 13, color: C.dim, flexWrap: "wrap" }}>
             <a href="/privacy" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>Privacy Policy</a>
             <a href="/terms" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>Terms of Service</a>
-            <a href="mailto:support@flowdocs.app" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>support@flowdocs.app</a>
+            <a href="mailto:support@flowdocs.co.in" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>support@flowdocs.app</a>
           </div>
           <div style={{ fontSize: 12, color: C.dim }}>© {new Date().getFullYear()} FlowDocs. Built with ❤️ for Indian Freelancers.</div>
         </div>
