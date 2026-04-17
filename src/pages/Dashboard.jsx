@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { downloadPDF } from "../lib/pdf";
+import { downloadPDF, generateAuditTrail } from "../lib/pdf";
 import { sendSigningEmail } from "../lib/email";
+import { markInvoicePaid } from "../lib/payment";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
 import Templates from "./Templates";
@@ -282,22 +283,46 @@ export default function Dashboard({ session }) {
 
   // ── Send Document (email + status update) ──
   const sendDoc = async (doc) => {
-    const client = clients.find(c => c.id === doc.client_id);
-    if (!client?.email) return showToast("Add client email first", false);
+    const client = clients.find(c => c.id === doc.client_id) || doc.clients;
 
-    const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
-    const emailOk = await sendSigningEmail({
-      to: client.email,
-      clientName: client.name,
-      docTitle: doc.title,
-      signingUrl,
-      fromName: profile?.name || "FlowDocs User",
-    });
+    // ALWAYS update status first — regardless of email
+    const { error } = await supabase
+      .from("documents")
+      .update({ status: "pending" })
+      .eq("id", doc.id);
 
-    const { error } = await supabase.from("documents").update({ status: "pending" }).eq("id", doc.id);
-    if (!error) {
-      setDocuments(documents.map(d => d.id === doc.id ? { ...d, status: "pending" } : d));
-      showToast(emailOk ? "✓ Document sent via email!" : "✓ Status updated! (Add Resend key for email)");
+    if (error) return showToast("Failed to send: " + error.message, false);
+
+    setDocuments(prev => prev.map(d =>
+      d.id === doc.id ? { ...d, status: "pending" } : d
+    ));
+
+    // Try email only if client has email AND Resend key exists
+    if (client?.email) {
+      const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
+      try {
+        const emailOk = await sendSigningEmail({
+          to: client.email,
+          clientName: client.name,
+          docTitle: doc.title,
+          signingUrl,
+          fromName: profile?.name || "FlowDocs User",
+        });
+        if (emailOk) {
+          showToast("✓ Sent via email! Link also copied.");
+        } else {
+          showToast("✓ Sent! No email (Resend key missing) — link copied.");
+        }
+      } catch {
+        showToast("✓ Status updated! Email failed — link copied.");
+      }
+      // Always copy link regardless
+      navigator.clipboard.writeText(signingUrl).catch(() => {});
+    } else {
+      // No email — copy link automatically
+      const url = `${window.location.origin}/sign/${doc.sign_token}`;
+      navigator.clipboard.writeText(url).catch(() => {});
+      showToast("✓ Status updated! Signing link copied — share via WhatsApp.");
     }
   };
 
@@ -314,12 +339,12 @@ export default function Dashboard({ session }) {
   };
 
   // ── Download PDF ──
-  const handleDownload = (doc) => {
+  const handleDownload = async (doc) => {
     try {
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-      const ok = downloadPDF(doc, profile, client);
-      if (ok) showToast("✓ PDF downloaded!");
-      else showToast("PDF generation failed. Check console.", false);
+      showToast("Generating PDF...", true);
+      await downloadPDF(doc, profile, client);
+      showToast("✓ PDF downloaded!");
     } catch (err) {
       console.error("Download error:", err);
       showToast("PDF download failed: " + (err.message || "Unknown error"), false);
@@ -332,19 +357,65 @@ export default function Dashboard({ session }) {
     navigator.clipboard.writeText(url).then(() => showToast("✓ Signing link copied!"));
   };
 
-  // ── Mark as Paid ──
+  // ── Mark as Paid (with confirmation) ──
   const markPaid = async (doc) => {
-    const { error } = await supabase.from("documents").update({
-      status: "paid", paid_at: new Date().toISOString()
-    }).eq("id", doc.id);
+    const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+    const confirmed = window.confirm(
+      `Mark this invoice as PAID?\n\n"${doc.title}"\nClient: ${client?.name || "—"}\nAmount: ${fmtCur(doc.amount, doc.currency || "INR")}\n\nThis cannot be undone easily.`
+    );
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("documents")
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", doc.id);
+
     if (!error) {
-      setDocuments(documents.map(d => d.id === doc.id ? { ...d, status: "paid" } : d));
-      showToast("✓ Marked as paid!");
+      setDocuments(prev => prev.map(d =>
+        d.id === doc.id ? { ...d, status: "paid", paid_at: new Date().toISOString() } : d
+      ));
+      showToast("✓ Invoice marked as paid! 💰");
+    } else {
+      showToast("Failed: " + error.message, false);
     }
   };
 
   // ── Sign out ──
   const signOut = async () => { await supabase.auth.signOut(); };
+
+  // ── Audit Trail Download ──
+  const handleAuditTrail = (doc) => {
+    try {
+      const pdf = generateAuditTrail({
+        document: doc,
+        signerName: doc.signer_name || "—",
+        signerIp: doc.signer_ip || "—",
+        signedAt: doc.signed_at,
+        signatureUrl: doc.signature_url,
+      });
+      pdf.save(`AuditTrail-${doc.title.replace(/\s+/g, "-")}.pdf`);
+      showToast("✓ Audit trail downloaded!");
+    } catch (err) {
+      showToast("Audit trail failed: " + err.message, false);
+    }
+  };
+
+  // ── Bulk WhatsApp Reminders ──
+  const sendBulkReminders = () => {
+    const pending = documents.filter(d =>
+      d.status === "pending" || d.status === "overdue"
+    );
+    if (pending.length === 0) return showToast("No pending documents!", false);
+    pending.forEach(doc => {
+      const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+      const url = `${window.location.origin}/sign/${doc.sign_token}`;
+      const msg = encodeURIComponent(
+        `Hi ${client?.name || "there"},\n\nJust a reminder — your ${doc.type} is waiting for action:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 ${url}\n\nPowered by FlowDocs`
+      );
+      window.open(`https://wa.me/?text=${msg}`, "_blank");
+    });
+    showToast(`✓ Opened ${pending.length} WhatsApp reminder(s)!`);
+  };
 
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAI, setShowAI] = useState(false);
@@ -531,6 +602,14 @@ export default function Dashboard({ session }) {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {(documents.filter(d => d.status === "pending" || d.status === "overdue").length > 0) && (
+                  <button
+                    style={{ ...btn("ghost"), borderColor: "#25D366", color: "#25D366", background: "#25D36618", fontSize: 12 }}
+                    onClick={sendBulkReminders}
+                  >
+                    💬 Remind All ({documents.filter(d => d.status === "pending" || d.status === "overdue").length})
+                  </button>
+                )}
                 <button style={{ ...btn("ghost"), borderColor: "#60A5FA", color: "#60A5FA", background: "#60A5FA18" }} onClick={() => setShowAI(true)}>✨ AI Generate</button>
                 <button style={btn()} onClick={() => setModal("newDoc")}>+ New Document</button>
               </div>
@@ -544,7 +623,7 @@ export default function Dashboard({ session }) {
             </div>
 
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
-            <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -552,7 +631,7 @@ export default function Dashboard({ session }) {
         {page === "documents" && (
           <>
             <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => setModal("newDoc")} btnLabel="+ New Document" />
-            <DocsTable docs={documents} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} full />
+            <DocsTable docs={documents} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} full />
           </>
         )}
 
@@ -582,7 +661,7 @@ export default function Dashboard({ session }) {
         {page === "invoices" && (
           <>
             <PageHeader title="Invoices" sub="Billing & payment tracking with GST" onNew={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }} btnLabel="+ New Invoice" />
-            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onNew={() => setModal("newDoc")} full />
+            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} full />
           </>
         )}
 
@@ -922,7 +1001,7 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
 }
 
 // ── DOCUMENTS TABLE ─────────────────────────────────────────────────────
-function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onWhatsApp, onEdit, onMarkPaid, onNew }) {
+function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onWhatsApp, onEdit, onMarkPaid, onAuditTrail, onNew }) {
   const [filter, setFilter] = useState("All");
   const filtered = filter === "All" ? docs : docs.filter(d => d.type === filter || d.status === filter.toLowerCase());
 
@@ -1021,6 +1100,10 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
                         onClick={() => onDownload(doc)}>PDF</button>
+                      {doc.status === "signed" && (
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
+                          onClick={() => onAuditTrail?.(doc)} title="Download Audit Trail">🔏</button>
+                      )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
                         onClick={() => onEdit(doc)}>✎</button>
                     </div>

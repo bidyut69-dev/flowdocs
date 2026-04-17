@@ -83,7 +83,8 @@ export default function UpgradeModal({ session, profile, onClose, onUpgraded }) 
           const ok = await activateProPlan(
             supabase,
             session.user.id,
-            response.razorpay_payment_id
+            response.razorpay_payment_id,
+            selectedPlan  // "solo" ya "pro" — sahi naam pass karo
           );
           setLoading(false);
           if (ok) {

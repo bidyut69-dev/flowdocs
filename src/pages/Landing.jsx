@@ -211,7 +211,7 @@ export default function Landing() {
             background: C.surface, borderTop: `1px solid ${C.border}`, padding: "20px 24px",
             display: "flex", flexDirection: "column", gap: 14,
           }}>
-            {["Features", "Pricing", "How it Works"].map(l => (
+            {["Features", "Pricing", "How it Works", "Testimonials"].map(l => (
               <a key={l} href={`#${l.toLowerCase().replace(/ /g, "-")}`}
                 onClick={() => setMobileMenu(false)}
                 style={{ fontSize: 15, color: C.mid, textDecoration: "none", padding: "8px 0" }}>

@@ -16,21 +16,27 @@ function loadRazorpay() {
 }
 
 // ── 1. Pro Plan Upgrade ───────────────────────────────────────────────
-export async function openRazorpayCheckout({ user, plan = "pro_monthly", onSuccess, onFailure }) {
+export async function openRazorpayCheckout({ user, plan = "pro_monthly", amount, onSuccess, onFailure }) {
   const loaded = await loadRazorpay();
   if (!loaded) return onFailure?.("Payment gateway failed to load.");
 
   const plans = {
+    solo_monthly:    { amount: 29900,  currency: "INR", desc: "FlowDocs Solo — Monthly (₹299/mo)" },
+    solo_annual:     { amount: 299000, currency: "INR", desc: "FlowDocs Solo — Annual (₹2,990/yr)" },
     pro_monthly:     { amount: 75000,  currency: "INR", desc: "FlowDocs Pro — Monthly (₹750/mo)" },
     pro_annual:      { amount: 750000, currency: "INR", desc: "FlowDocs Pro — Annual (₹7,500/yr)" },
     pro_monthly_usd: { amount: 900,    currency: "USD", desc: "FlowDocs Pro — Monthly ($9/mo)" },
   };
 
-  const selected = plans[plan] || plans.pro_monthly;
+  const selected = plans[plan];
+  if (!selected) return onFailure?.(`Unknown plan: ${plan}`);
+
+  // amount param se override karo agar explicitly pass kiya ho
+  const finalAmount = (typeof amount === "number" && amount > 0) ? amount : selected.amount;
 
   const options = {
     key: RAZORPAY_KEY,
-    amount: selected.amount,
+    amount: finalAmount,
     currency: selected.currency,
     name: "FlowDocs",
     description: selected.desc,
@@ -87,12 +93,13 @@ export async function openInvoicePayment({ invoice, clientName, clientEmail, onS
   rzp.open();
 }
 
-// ── Update pro plan after payment ────────────────────────────────────
-export async function activateProPlan(supabase, userId, paymentId) {
+// ── Update plan after payment ─────────────────────────────────────────
+export async function activateProPlan(supabase, userId, paymentId, planName = "pro") {
+  // planName: "solo" | "pro"
   const { error } = await supabase
     .from("profiles")
     .update({
-      plan: "pro",
+      plan: planName,
       plan_activated_at: new Date().toISOString(),
       razorpay_payment_id: paymentId,
     })
