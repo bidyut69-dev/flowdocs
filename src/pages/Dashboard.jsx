@@ -250,6 +250,7 @@ export default function Dashboard({ session }) {
     setEditDoc(doc);
     setEditForm({
       title: doc.title,
+      client_id: doc.client_id || "",
       description: doc.content?.description || "",
       amount: doc.amount || "",
       currency: doc.currency || "INR",
@@ -270,6 +271,7 @@ export default function Dashboard({ session }) {
 
     const { error } = await supabase.from("documents").update({
       title: editForm.title,
+      client_id: editForm.client_id || null,
       content: editDoc.type === "Invoice" ? editDoc.content : { description: editForm.description },
       amount: gst.total,
       subtotal,
@@ -417,10 +419,25 @@ export default function Dashboard({ session }) {
     try {
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
 
-      // signature_url directly documents table mein saved hota hai SignPage se
-      const signatureUrl = doc.signature_url || null;
+      // signature_url (public URL) ko base64 mein convert karo
+      let signatureDataUrl = null;
+      if (doc.signature_url) {
+        try {
+          const res = await fetch(doc.signature_url);
+          const blob = await res.blob();
+          signatureDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (e) {
+          console.warn("Signature image load failed:", e);
+          // Signature nahi aaya toh bhi PDF banao
+        }
+      }
 
-      const ok = downloadPDF(doc, profile, client, signatureUrl);
+      const ok = downloadPDF(doc, profile, client, signatureDataUrl);
       if (ok) showToast("✓ PDF downloaded!");
       else showToast("PDF generation failed. Check console.", false);
     } catch (err) {
@@ -915,6 +932,16 @@ export default function Dashboard({ session }) {
         <Modal title="Edit Document" sub={editDoc.title} onClose={() => { setModal(null); setEditDoc(null); }} width={560}>
           <label style={label}>Title</label>
           <input style={input} value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
+
+          <label style={label}>Client</label>
+          <select style={{ ...input, color: C.text }} value={editForm.client_id || ""}
+            onChange={e => setEditForm({ ...editForm, client_id: e.target.value })}>
+            <option value="">— Select Client —</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</option>)}
+          </select>
+          {!editForm.client_id && (
+            <div style={{ fontSize: 11, color: C.gold, marginTop: 4 }}>⚠ Client select karo taaki email + WhatsApp kaam kare</div>
+          )}
 
           <label style={label}>Status</label>
           <select style={{ ...input, color: C.text }} value={editForm.status}
