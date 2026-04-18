@@ -280,48 +280,49 @@ export default function Dashboard({ session }) {
     showToast("✓ Document updated!");
   };
 
-  // ── Send Document (email + status update) ──
+  // ── Send Document / Email Reminder ──
   const sendDoc = async (doc) => {
     const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+    const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
 
-    // ALWAYS update status first — regardless of email
-    const { error } = await supabase
-      .from("documents")
-      .update({ status: "pending" })
-      .eq("id", doc.id);
+    // Update status to pending if still draft
+    if (doc.status === "draft") {
+      const { error } = await supabase
+        .from("documents")
+        .update({ status: "pending" })
+        .eq("id", doc.id);
+      if (error) return showToast("Failed: " + error.message, false);
+      setDocuments(prev => prev.map(d =>
+        d.id === doc.id ? { ...d, status: "pending" } : d
+      ));
+    }
 
-    if (error) return showToast("Failed to send: " + error.message, false);
-
-    setDocuments(prev => prev.map(d =>
-      d.id === doc.id ? { ...d, status: "pending" } : d
-    ));
-
-    // Try email only if client has email AND Resend key exists
+    // Send email if client has email
     if (client?.email) {
-      const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
       try {
         const emailOk = await sendSigningEmail({
           to: client.email,
-          clientName: client.name,
+          clientName: client.name || "there",
           docTitle: doc.title,
           signingUrl,
           fromName: profile?.name || "FlowDocs User",
+          amount: doc.amount ? fmtCur(doc.amount, doc.currency || "INR") : null,
         });
         if (emailOk) {
-          showToast("✓ Sent via email! Link also copied.");
+          showToast("✓ Email sent to " + client.email + "!");
         } else {
-          showToast("✓ Sent! No email (Resend key missing) — link copied.");
+          // Email failed — copy link as fallback
+          navigator.clipboard.writeText(signingUrl).catch(() => {});
+          showToast("⚠️ Email failed — link copied! Share manually.", false);
         }
       } catch {
-        showToast("✓ Status updated! Email failed — link copied.");
+        navigator.clipboard.writeText(signingUrl).catch(() => {});
+        showToast("⚠️ Email error — link copied!", false);
       }
-      // Always copy link regardless
-      navigator.clipboard.writeText(signingUrl).catch(() => {});
     } else {
-      // No email — copy link automatically
-      const url = `${window.location.origin}/sign/${doc.sign_token}`;
-      navigator.clipboard.writeText(url).catch(() => {});
-      showToast("✓ Status updated! Signing link copied — share via WhatsApp.");
+      // No email — copy link
+      navigator.clipboard.writeText(signingUrl).catch(() => {});
+      showToast("✓ No email on client — signing link copied!");
     }
   };
 
@@ -1084,27 +1085,49 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {doc.status === "draft" && (
-                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }}
-                          onClick={() => onSend(doc)}>Send ↗</button>
+                        <>
+                          {/* Email send — only if client has email */}
+                          {(clients.find(c => c.id === doc.client_id) || doc.clients)?.email ? (
+                            <button
+                              style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }}
+                              onClick={() => onSend(doc)}
+                              title="Send via Email"
+                            >📧 Email</button>
+                          ) : (
+                            <button
+                              style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.dim, borderColor: C.border }}
+                              onClick={() => onSend(doc)}
+                              title="No email — link will be copied"
+                            >Send ↗</button>
+                          )}
+                        </>
+                      )}
+                      {/* Pending reminder via email */}
+                      {doc.status === "pending" && (clients.find(c => c.id === doc.client_id) || doc.clients)?.email && (
+                        <button
+                          style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
+                          onClick={() => onSend(doc)}
+                          title="Send reminder email"
+                        >📧 Remind</button>
                       )}
                       {(doc.status === "pending" || doc.status === "signed") && doc.type === "Invoice" && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.green, borderColor: C.green, background: C.greenDim }}
                           onClick={() => onMarkPaid(doc)}>✓ Paid</button>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#25D366", borderColor: "#25D366", background: "#25D36618" }}
-                        onClick={() => onWhatsApp(doc)} title="Share on WhatsApp">WA</button>
+                        onClick={() => onWhatsApp(doc)} title="Share on WhatsApp">💬 WA</button>
                       {doc.sign_token && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                          onClick={() => onCopyLink(doc)}>🔗</button>
+                          onClick={() => onCopyLink(doc)} title="Copy signing link">🔗</button>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
                         onClick={() => onDownload(doc)}>PDF</button>
                       {doc.status === "signed" && (
-                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#A78BFA", borderColor: "#A78BFA", background: "#A78BFA18" }}
                           onClick={() => onAuditTrail?.(doc)} title="Download Audit Trail">🔏</button>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                        onClick={() => onEdit(doc)}>✎</button>
+                        onClick={() => onEdit(doc)} title="Edit">✎</button>
                     </div>
                   </td>
                 </tr>
@@ -1161,13 +1184,41 @@ function ESignPage({ docs, clients, onSend, onCopyLink, onWhatsApp }) {
                 )}
               </div>
               {doc.status === "draft" && (
-                <button style={{ ...btn(), fontSize: 12, padding: "7px 14px" }} onClick={() => onSend(doc)}>Send Request →</button>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {client?.email ? (
+                    <button
+                      style={{ ...btn(), fontSize: 12, padding: "7px 14px" }}
+                      onClick={() => onSend(doc)}
+                    >📧 Send via Email →</button>
+                  ) : (
+                    <button
+                      style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }}
+                      onClick={() => onSend(doc)}
+                    >Send & Copy Link →</button>
+                  )}
+                  <button
+                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }}
+                    onClick={() => onWhatsApp(doc)}
+                  >💬 WhatsApp</button>
+                </div>
               )}
               {doc.status === "pending" && (
-                <>
-                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }} onClick={() => onWhatsApp(doc)}>📱 WhatsApp</button>
-                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }} onClick={() => onCopyLink(doc)}>Copy Link</button>
-                </>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {client?.email && (
+                    <button
+                      style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
+                      onClick={() => onSend(doc)}
+                    >📧 Email Reminder</button>
+                  )}
+                  <button
+                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }}
+                    onClick={() => onWhatsApp(doc)}
+                  >💬 WhatsApp</button>
+                  <button
+                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }}
+                    onClick={() => onCopyLink(doc)}
+                  >🔗 Copy Link</button>
+                </div>
               )}
             </div>
           </div>
