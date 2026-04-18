@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { downloadPDF, generateAuditTrail } from "../lib/pdf";
 import { sendSigningEmail } from "../lib/email";
-import { markInvoicePaid } from "../lib/payment";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
 import Templates from "./Templates";
@@ -718,8 +717,8 @@ export default function Dashboard({ session }) {
               <label style={label}>Currency</label>
               <select style={{ ...input, color: C.text, background: C.surface2 }}
                 value={docForm.currency} onChange={e => setDocForm({ ...docForm, currency: e.target.value })}>
-                {Object.entries(CURRENCIES).map(([code, { name, symbol }]) => (
-                  <option key={code} value={code}>{symbol} {code} — {name}</option>
+                {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (
+                  <option key={code} value={code}>{symbol} {code} — {currName}</option>
                 ))}
               </select>
             </div>
@@ -882,7 +881,7 @@ export default function Dashboard({ session }) {
               <label style={label}>Currency</label>
               <select style={{ ...input, color: C.text }} value={editForm.currency}
                 onChange={e => setEditForm({ ...editForm, currency: e.target.value })}>
-                {Object.entries(CURRENCIES).map(([code, { name, symbol }]) => (
+                {Object.entries(CURRENCIES).map(([code, { symbol }]) => (
                   <option key={code} value={code}>{symbol} {code}</option>
                 ))}
               </select>
@@ -1220,7 +1219,7 @@ function ClientsPage({ clients, documents, profile }) {
 }
 
 // ── ANALYTICS PAGE ──────────────────────────────────────────────────────
-function AnalyticsPage({ documents, clients, profile, monthlyRevenue, clientRevenue }) {
+function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
   const cur = profile?.default_currency || "INR";
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
   const totalPaid = documents.filter(d => d.status === "paid").reduce((s, d) => s + (d.amount || 0), 0);
@@ -1367,8 +1366,8 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
         <label style={label}>Default Currency</label>
         <select style={{ ...input, color: C.text }} value={form.default_currency}
           onChange={e => setForm({ ...form, default_currency: e.target.value })}>
-          {Object.entries(CURRENCIES).map(([code, { name, symbol }]) => (
-            <option key={code} value={code}>{symbol} {code} — {name}</option>
+          {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (
+            <option key={code} value={code}>{symbol} {code} — {currName}</option>
           ))}
         </select>
         <label style={label}>Address</label>
