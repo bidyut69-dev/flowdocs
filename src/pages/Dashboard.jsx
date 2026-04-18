@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { downloadPDF, generateAuditTrail } from "../lib/pdf";
-import { sendSigningEmail } from "../lib/email";
+import { downloadPDF } from "../lib/pdf";
+import { sendSigningEmail, sendReminderEmail } from "../lib/email";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
 import Templates from "./Templates";
@@ -14,6 +14,8 @@ const C = {
   redDim: "#EF444420", blue: "#60A5FA", blueDim: "#60A5FA20",
   purple: "#A78BFA", purpleDim: "#A78BFA20",
 };
+
+const APP_URL = import.meta.env.VITE_APP_URL?.replace(/\/$/, "") || window.location.origin;
 
 // ── CURRENCIES ─────────────────────────────────────────────────────────
 const CURRENCIES = {
@@ -183,6 +185,14 @@ export default function Dashboard({ session }) {
   const createDoc = async () => {
     if (!docForm.title) return showToast("Enter document title", false);
 
+    // Free plan limit check
+    if (profile?.plan !== "pro" && profile?.plan !== "solo" && documents.length >= 3) {
+      setModal(null);
+      setShowUpgrade(true);
+      showToast("Free plan mein sirf 3 documents — Pro upgrade karo!", false);
+      return;
+    }
+
     const invItems = invoiceItems.filter(i => i.description);
     const subtotal = docForm.type === "Invoice"
       ? invItems.reduce((s, i) => s + (i.qty || 1) * (i.rate || 0), 0)
@@ -280,56 +290,120 @@ export default function Dashboard({ session }) {
     showToast("✓ Document updated!");
   };
 
-  // ── Send Document / Email Reminder ──
+  // ── Send Document (email + status update) ──
   const sendDoc = async (doc) => {
-    const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-    const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
+    const client = clients.find(c => c.id === doc.client_id);
+    if (!client?.email) return showToast("Client ka email add karo pehle", false);
 
-    // Update status to pending if still draft
-    if (doc.status === "draft") {
-      const { error } = await supabase
-        .from("documents")
-        .update({ status: "pending" })
-        .eq("id", doc.id);
-      if (error) return showToast("Failed: " + error.message, false);
-      setDocuments(prev => prev.map(d =>
-        d.id === doc.id ? { ...d, status: "pending" } : d
-      ));
+    const signingUrl = `${APP_URL}/sign/${doc.sign_token}`;
+    let emailOk = false;
+    try {
+      emailOk = await sendSigningEmail({
+        to: client.email,
+        clientName: client.name,
+        docTitle: doc.title,
+        signingUrl,
+        fromName: profile?.name || "FlowDocs User",
+      });
+    } catch (e) {
+      console.error("Email error:", e);
     }
 
-    // Send email if client has email
-    if (client?.email) {
-      try {
-        const emailOk = await sendSigningEmail({
-          to: client.email,
-          clientName: client.name || "there",
-          docTitle: doc.title,
-          signingUrl,
-          fromName: profile?.name || "FlowDocs User",
-          amount: doc.amount ? fmtCur(doc.amount, doc.currency || "INR") : null,
-        });
-        if (emailOk) {
-          showToast("✓ Email sent to " + client.email + "!");
-        } else {
-          // Email failed — copy link as fallback
-          navigator.clipboard.writeText(signingUrl).catch(() => {});
-          showToast("⚠️ Email failed — link copied! Share manually.", false);
-        }
-      } catch {
-        navigator.clipboard.writeText(signingUrl).catch(() => {});
-        showToast("⚠️ Email error — link copied!", false);
-      }
+    const { error } = await supabase.from("documents").update({
+      status: "pending",
+    }).eq("id", doc.id);
+
+    if (error) return showToast("Status update failed: " + error.message, false);
+    setDocuments(documents.map(d => d.id === doc.id ? { ...d, status: "pending" } : d));
+    if (emailOk) {
+      showToast(`✓ Email sent to ${client.email}!`);
     } else {
-      // No email — copy link
-      navigator.clipboard.writeText(signingUrl).catch(() => {});
-      showToast("✓ No email on client — signing link copied!");
+      showToast("✓ Status → Pending! (Email bhejne ke liye Resend API key set karo)", true);
     }
+  };
+
+  // ── Send Reminder ──
+  const sendReminder = async (doc) => {
+    const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+    if (!client) return showToast("Client nahi mila", false);
+
+    const signingUrl = doc.sign_token
+      ? `${APP_URL}/sign/${doc.sign_token}`
+      : null;
+
+    // WhatsApp reminder (always works)
+    if (client.phone) {
+      const isInvoice = doc.type === "Invoice";
+      const cur = doc.currency || profile?.default_currency || "INR";
+      const msg = encodeURIComponent(
+        `Hi ${client.name},\n\n` +
+        (isInvoice
+          ? `Aapka invoice abhi tak unpaid hai:\n\n📄 *${doc.title}*\n💰 ${fmtCur(doc.amount, cur)}\n\nKindly payment kar dijiye. Reminder as requested.\n\n` +
+            (profile?.upi_id ? `UPI: ${profile.upi_id}\n` : "") +
+            (profile?.bank_account ? `Bank: ${profile.bank_name || ""} | A/C: ${profile.bank_account} | IFSC: ${profile.bank_ifsc || ""}\n` : "")
+          : `Aapne abhi tak sign nahi kiya:\n\n📄 *${doc.title}*\n\n👉 Sign karo: ${signingUrl}`) +
+        `\nPowered by FlowDocs`
+      );
+      const phone = client.phone.replace(/[^0-9]/g, "");
+      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    }
+
+    // Email reminder
+    let emailOk = false;
+    if (client.email) {
+      try {
+        emailOk = await sendReminderEmail({
+          to: client.email,
+          clientName: client.name,
+          docTitle: doc.title,
+          signingUrl: signingUrl || APP_URL,
+          fromName: profile?.name || "FlowDocs User",
+          amount: doc.amount,
+          currency: doc.currency || profile?.default_currency || "INR",
+          isInvoice: doc.type === "Invoice",
+          dueDate: doc.due_date,
+          upiId: profile?.upi_id,
+          bankName: profile?.bank_name,
+          bankAccount: profile?.bank_account,
+          bankIfsc: profile?.bank_ifsc,
+        });
+      } catch (e) {
+        console.error("Reminder email error:", e);
+      }
+    }
+
+    // Log reminder in DB
+    await supabase.from("reminder_log").insert({
+      document_id: doc.id,
+      type: "manual",
+      sent_at: new Date().toISOString(),
+    }).then(() => {});
+
+    showToast(
+      client.phone
+        ? `✓ WhatsApp reminder open hua${emailOk ? " + email bhi gaya!" : ""}`
+        : emailOk
+        ? "✓ Reminder email sent!"
+        : "Client ka phone/email add karo reminder ke liye",
+      !!(client.phone || emailOk)
+    );
+  };
+
+  // ── Bulk Remind (all pending/overdue) ──
+  const bulkRemind = async () => {
+    const targets = documents.filter(d => ["pending", "overdue"].includes(d.status));
+    if (targets.length === 0) return showToast("Koi pending/overdue document nahi", false);
+    for (const doc of targets) {
+      await sendReminder(doc);
+      await new Promise(r => setTimeout(r, 600));
+    }
+    showToast(`✓ ${targets.length} documents ke liye reminders bheje!`);
   };
 
   // ── WhatsApp Share ──
   const shareWhatsApp = (doc) => {
     const client = clients.find(c => c.id === doc.client_id);
-    const url = `${window.location.origin}/sign/${doc.sign_token}`;
+    const url = `${APP_URL}/sign/${doc.sign_token}`;
     const msg = encodeURIComponent(
       `Hi ${client?.name || ""},\n\n${profile?.name || "I"} has sent you a ${doc.type} to review and sign:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 View & Sign: ${url}\n\nPowered by FlowDocs`
     );
@@ -342,9 +416,13 @@ export default function Dashboard({ session }) {
   const handleDownload = async (doc) => {
     try {
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-      showToast("Generating PDF...", true);
-      await downloadPDF(doc, profile, client);
-      showToast("✓ PDF downloaded!");
+
+      // signature_url directly documents table mein saved hota hai SignPage se
+      const signatureUrl = doc.signature_url || null;
+
+      const ok = downloadPDF(doc, profile, client, signatureUrl);
+      if (ok) showToast("✓ PDF downloaded!");
+      else showToast("PDF generation failed. Check console.", false);
     } catch (err) {
       console.error("Download error:", err);
       showToast("PDF download failed: " + (err.message || "Unknown error"), false);
@@ -353,69 +431,35 @@ export default function Dashboard({ session }) {
 
   // ── Copy signing link ──
   const copyLink = (doc) => {
-    const url = `${window.location.origin}/sign/${doc.sign_token}`;
+    const url = `${APP_URL}/sign/${doc.sign_token}`;
     navigator.clipboard.writeText(url).then(() => showToast("✓ Signing link copied!"));
   };
 
-  // ── Mark as Paid (with confirmation) ──
+  // ── Mark as Paid ──
   const markPaid = async (doc) => {
     const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+    const cur = doc.currency || profile?.default_currency || "INR";
     const confirmed = window.confirm(
-      `Mark this invoice as PAID?\n\n"${doc.title}"\nClient: ${client?.name || "—"}\nAmount: ${fmtCur(doc.amount, doc.currency || "INR")}\n\nThis cannot be undone easily.`
+      `"${doc.title}" ko paid mark karna hai?\n` +
+      `Client: ${client?.name || "Unknown"}\n` +
+      `Amount: ${CURRENCIES[cur]?.symbol || "₹"}${Number(doc.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}\n\n` +
+      `Confirm karo ki payment actually receive ho gayi hai.`
     );
     if (!confirmed) return;
 
-    const { error } = await supabase
-      .from("documents")
-      .update({ status: "paid", paid_at: new Date().toISOString() })
-      .eq("id", doc.id);
-
+    const { error } = await supabase.from("documents").update({
+      status: "paid", paid_at: new Date().toISOString()
+    }).eq("id", doc.id);
     if (!error) {
-      setDocuments(prev => prev.map(d =>
-        d.id === doc.id ? { ...d, status: "paid", paid_at: new Date().toISOString() } : d
-      ));
-      showToast("✓ Invoice marked as paid! 💰");
+      setDocuments(documents.map(d => d.id === doc.id ? { ...d, status: "paid" } : d));
+      showToast("✓ Invoice marked as paid!");
     } else {
-      showToast("Failed: " + error.message, false);
+      showToast("Update failed: " + error.message, false);
     }
   };
 
   // ── Sign out ──
   const signOut = async () => { await supabase.auth.signOut(); };
-
-  // ── Audit Trail Download ──
-  const handleAuditTrail = (doc) => {
-    try {
-      const pdf = generateAuditTrail({
-        document: doc,
-        signerName: doc.signer_name || "—",
-        signerIp: doc.signer_ip || "—",
-        signedAt: doc.signed_at,
-        signatureUrl: doc.signature_url,
-      });
-      pdf.save(`AuditTrail-${doc.title.replace(/\s+/g, "-")}.pdf`);
-      showToast("✓ Audit trail downloaded!");
-    } catch (err) {
-      showToast("Audit trail failed: " + err.message, false);
-    }
-  };
-
-  // ── Bulk WhatsApp Reminders ──
-  const sendBulkReminders = () => {
-    const pending = documents.filter(d =>
-      d.status === "pending" || d.status === "overdue"
-    );
-    if (pending.length === 0) return showToast("No pending documents!", false);
-    pending.forEach(doc => {
-      const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-      const url = `${window.location.origin}/sign/${doc.sign_token}`;
-      const msg = encodeURIComponent(
-        `Hi ${client?.name || "there"},\n\nJust a reminder — your ${doc.type} is waiting for action:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 ${url}\n\nPowered by FlowDocs`
-      );
-      window.open(`https://wa.me/?text=${msg}`, "_blank");
-    });
-    showToast(`✓ Opened ${pending.length} WhatsApp reminder(s)!`);
-  };
 
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAI, setShowAI] = useState(false);
@@ -602,15 +646,8 @@ export default function Dashboard({ session }) {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {(documents.filter(d => d.status === "pending" || d.status === "overdue").length > 0) && (
-                  <button
-                    style={{ ...btn("ghost"), borderColor: "#25D366", color: "#25D366", background: "#25D36618", fontSize: 12 }}
-                    onClick={sendBulkReminders}
-                  >
-                    💬 Remind All ({documents.filter(d => d.status === "pending" || d.status === "overdue").length})
-                  </button>
-                )}
                 <button style={{ ...btn("ghost"), borderColor: "#60A5FA", color: "#60A5FA", background: "#60A5FA18" }} onClick={() => setShowAI(true)}>✨ AI Generate</button>
+                <button style={{ ...btn("ghost"), borderColor: C.gold, color: C.gold, background: C.goldDim }} onClick={bulkRemind}>📣 Remind All</button>
                 <button style={btn()} onClick={() => setModal("newDoc")}>+ New Document</button>
               </div>
             </div>
@@ -623,7 +660,7 @@ export default function Dashboard({ session }) {
             </div>
 
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
-            <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onRemind={sendReminder} onNew={() => setModal("newDoc")} />
           </>
         )}
 
@@ -631,7 +668,7 @@ export default function Dashboard({ session }) {
         {page === "documents" && (
           <>
             <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => setModal("newDoc")} btnLabel="+ New Document" />
-            <DocsTable docs={documents} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} full />
+            <DocsTable docs={documents} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onRemind={sendReminder} onNew={() => setModal("newDoc")} full />
           </>
         )}
 
@@ -657,11 +694,32 @@ export default function Dashboard({ session }) {
           </>
         )}
 
-        {/* ─── INVOICES ─── */}
         {page === "invoices" && (
           <>
-            <PageHeader title="Invoices" sub="Billing & payment tracking with GST" onNew={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }} btnLabel="+ New Invoice" />
-            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} full />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: C.text }}>Invoices</div>
+                <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>Billing & payment tracking with GST</div>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button style={{ ...btn("ghost"), borderColor: C.green, color: C.green, background: C.greenDim }}
+                  onClick={bulkRemind}>
+                  💸 Get Paid Faster
+                </button>
+                <button style={btn()} onClick={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }}>+ New Invoice</button>
+              </div>
+            </div>
+            {/* Get Paid Faster tip */}
+            {documents.filter(d => d.type === "Invoice" && ["pending", "overdue"].includes(d.status)).length > 0 && (
+              <div style={{ background: C.goldDim, border: `1px solid ${C.gold}50`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <div style={{ fontSize: 13, color: C.gold }}>
+                  💰 <strong>{documents.filter(d => d.type === "Invoice" && ["pending", "overdue"].includes(d.status)).length}</strong> unpaid invoice{documents.filter(d => d.type === "Invoice" && ["pending", "overdue"].includes(d.status)).length !== 1 ? "s" : ""} pending —{" "}
+                  {fmtCur(documents.filter(d => d.type === "Invoice" && ["pending", "overdue"].includes(d.status)).reduce((s, d) => s + (d.amount || 0), 0), defaultCur)} outstanding
+                </div>
+                <button style={{ ...btn(), fontSize: 12, padding: "7px 14px" }} onClick={bulkRemind}>Send All Reminders →</button>
+              </div>
+            )}
+            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onRemind={sendReminder} onNew={() => setModal("newDoc")} full />
           </>
         )}
 
@@ -718,8 +776,8 @@ export default function Dashboard({ session }) {
               <label style={label}>Currency</label>
               <select style={{ ...input, color: C.text, background: C.surface2 }}
                 value={docForm.currency} onChange={e => setDocForm({ ...docForm, currency: e.target.value })}>
-                {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (
-                  <option key={code} value={code}>{symbol} {code} — {currName}</option>
+                {Object.entries(CURRENCIES).map(([code, { name, symbol }]) => (
+                  <option key={code} value={code}>{symbol} {code} — {name}</option>
                 ))}
               </select>
             </div>
@@ -1001,7 +1059,7 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
 }
 
 // ── DOCUMENTS TABLE ─────────────────────────────────────────────────────
-function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onWhatsApp, onEdit, onMarkPaid, onAuditTrail, onNew }) {
+function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onWhatsApp, onEdit, onMarkPaid, onRemind, onNew }) {
   const [filter, setFilter] = useState("All");
   const filtered = filter === "All" ? docs : docs.filter(d => d.type === filter || d.status === filter.toLowerCase());
 
@@ -1085,49 +1143,27 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {doc.status === "draft" && (
-                        <>
-                          {/* Email send — only if client has email */}
-                          {(clients.find(c => c.id === doc.client_id) || doc.clients)?.email ? (
-                            <button
-                              style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }}
-                              onClick={() => onSend(doc)}
-                              title="Send via Email"
-                            >📧 Email</button>
-                          ) : (
-                            <button
-                              style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.dim, borderColor: C.border }}
-                              onClick={() => onSend(doc)}
-                              title="No email — link will be copied"
-                            >Send ↗</button>
-                          )}
-                        </>
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }}
+                          onClick={() => onSend(doc)}>Send ↗</button>
                       )}
-                      {/* Pending reminder via email */}
-                      {doc.status === "pending" && (clients.find(c => c.id === doc.client_id) || doc.clients)?.email && (
-                        <button
-                          style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
-                          onClick={() => onSend(doc)}
-                          title="Send reminder email"
-                        >📧 Remind</button>
+                      {(doc.status === "pending" || doc.status === "overdue") && (
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }}
+                          onClick={() => onRemind?.(doc)}>📣 Remind</button>
                       )}
                       {(doc.status === "pending" || doc.status === "signed") && doc.type === "Invoice" && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.green, borderColor: C.green, background: C.greenDim }}
                           onClick={() => onMarkPaid(doc)}>✓ Paid</button>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#25D366", borderColor: "#25D366", background: "#25D36618" }}
-                        onClick={() => onWhatsApp(doc)} title="Share on WhatsApp">💬 WA</button>
+                        onClick={() => onWhatsApp(doc)} title="Share on WhatsApp">WA</button>
                       {doc.sign_token && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                          onClick={() => onCopyLink(doc)} title="Copy signing link">🔗</button>
+                          onClick={() => onCopyLink(doc)}>🔗</button>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
                         onClick={() => onDownload(doc)}>PDF</button>
-                      {doc.status === "signed" && (
-                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#A78BFA", borderColor: "#A78BFA", background: "#A78BFA18" }}
-                          onClick={() => onAuditTrail?.(doc)} title="Download Audit Trail">🔏</button>
-                      )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                        onClick={() => onEdit(doc)} title="Edit">✎</button>
+                        onClick={() => onEdit(doc)}>✎</button>
                     </div>
                   </td>
                 </tr>
@@ -1184,41 +1220,13 @@ function ESignPage({ docs, clients, onSend, onCopyLink, onWhatsApp }) {
                 )}
               </div>
               {doc.status === "draft" && (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {client?.email ? (
-                    <button
-                      style={{ ...btn(), fontSize: 12, padding: "7px 14px" }}
-                      onClick={() => onSend(doc)}
-                    >📧 Send via Email →</button>
-                  ) : (
-                    <button
-                      style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }}
-                      onClick={() => onSend(doc)}
-                    >Send & Copy Link →</button>
-                  )}
-                  <button
-                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }}
-                    onClick={() => onWhatsApp(doc)}
-                  >💬 WhatsApp</button>
-                </div>
+                <button style={{ ...btn(), fontSize: 12, padding: "7px 14px" }} onClick={() => onSend(doc)}>Send Request →</button>
               )}
               {doc.status === "pending" && (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {client?.email && (
-                    <button
-                      style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
-                      onClick={() => onSend(doc)}
-                    >📧 Email Reminder</button>
-                  )}
-                  <button
-                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }}
-                    onClick={() => onWhatsApp(doc)}
-                  >💬 WhatsApp</button>
-                  <button
-                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }}
-                    onClick={() => onCopyLink(doc)}
-                  >🔗 Copy Link</button>
-                </div>
+                <>
+                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }} onClick={() => onWhatsApp(doc)}>📱 WhatsApp</button>
+                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }} onClick={() => onCopyLink(doc)}>Copy Link</button>
+                </>
               )}
             </div>
           </div>
@@ -1417,8 +1425,8 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
         <label style={label}>Default Currency</label>
         <select style={{ ...input, color: C.text }} value={form.default_currency}
           onChange={e => setForm({ ...form, default_currency: e.target.value })}>
-          {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (
-            <option key={code} value={code}>{symbol} {code} — {currName}</option>
+          {Object.entries(CURRENCIES).map(([code, { name, symbol }]) => (
+            <option key={code} value={code}>{symbol} {code} — {name}</option>
           ))}
         </select>
         <label style={label}>Address</label>
