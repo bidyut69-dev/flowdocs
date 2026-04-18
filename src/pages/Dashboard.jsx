@@ -678,10 +678,14 @@ export default function Dashboard({ session }) {
             <PageHeader title="Templates" sub="Ready-to-use proposals, contracts & NDAs" onNew={() => setModal("newDoc")} btnLabel="+ Blank Document" />
             <Templates
               session={session}
+              profile={profile}
+              docCount={documents.length}
               onUse={(doc) => {
                 setDocuments(prev => [doc, ...prev]);
+              }}
+              onEdit={(doc) => {
                 setPage("documents");
-                showToast("✓ Template added to documents!");
+                openEditDoc(doc);
               }}
             />
           </>

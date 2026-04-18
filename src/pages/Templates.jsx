@@ -1,266 +1,22 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { PROPOSAL_TEMPLATES } from "../lib/templates";
 
 const C = {
-  bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
   gold: "#F5A623", goldDim: "#F5A62318", text: "#F0EEE8", dim: "#7A7875",
   mid: "#B0ADA8", green: "#22C55E", greenDim: "#22C55E20",
 };
 
-const PROPOSAL_TEMPLATES = [
-  {
-    id: "web-design",
-    category: "Design",
-    icon: "🌐",
-    title: "Web Design Proposal",
-    type: "Proposal",
-    priceRange: "$500–$5,000",
-    defaultAmount: 1500,
-    tags: ["P0", "Most Popular"],
-    description: `I will design and develop a professional, modern website for your business.
-
-Scope of Work:
-• Custom homepage design (desktop + mobile)
-• Up to 5 inner pages (About, Services, Contact, Portfolio, Blog)
-• Responsive design for all devices
-• Contact form integration
-• Basic SEO setup (meta tags, sitemap)
-• 2 rounds of revisions included
-
-Timeline: 3–4 weeks from project kickoff
-
-What I need from you:
-• Brand assets (logo, colors, fonts)
-• Content (text, images)
-• Reference websites you like
-
-Payment Terms: 50% upfront, 50% on delivery.`,
-  },
-  {
-    id: "logo-branding",
-    category: "Design",
-    icon: "🎨",
-    title: "Logo Design & Branding",
-    type: "Proposal",
-    priceRange: "$200–$1,500",
-    defaultAmount: 500,
-    tags: ["P0"],
-    description: `I will create a professional logo and brand identity for your business.
-
-Deliverables:
-• 3 initial logo concepts
-• 2 rounds of revisions
-• Final files: PNG, SVG, PDF (all sizes)
-• Brand color palette + typography guide
-• Social media kit (profile picture, cover photo)
-
-Timeline: 1–2 weeks
-
-Payment Terms: Full payment upfront for projects under $500.`,
-  },
-  {
-    id: "seo-audit",
-    category: "Marketing",
-    icon: "🔍",
-    title: "SEO Audit & Strategy",
-    type: "Proposal",
-    priceRange: "$300–$2,000",
-    defaultAmount: 800,
-    tags: ["P0"],
-    description: `I will conduct a comprehensive SEO audit and build a strategy to improve your search rankings.
-
-Included:
-• Full technical SEO audit
-• Keyword research (50+ keywords)
-• Competitor analysis (top 3)
-• On-page SEO recommendations
-• Backlink profile analysis
-• 90-day content + SEO roadmap
-
-Deliverables:
-• Detailed audit report (PDF)
-• Priority action checklist
-• Monthly reporting template
-
-Timeline: 7–10 business days`,
-  },
-  {
-    id: "social-media",
-    category: "Marketing",
-    icon: "📱",
-    title: "Social Media Management",
-    type: "Proposal",
-    priceRange: "$500/month",
-    defaultAmount: 500,
-    tags: ["Retainer"],
-    description: `I will manage your social media presence to grow your audience and engagement.
-
-Monthly Deliverables:
-• 20 posts/month (Instagram + LinkedIn)
-• 4 Stories per week
-• Community management (comments + DMs)
-• Monthly performance report
-
-Platforms: Instagram, LinkedIn
-
-Minimum commitment: 3 months`,
-  },
-  {
-    id: "app-development",
-    category: "Development",
-    icon: "📱",
-    title: "Mobile App Development",
-    type: "Proposal",
-    priceRange: "$2,000–$20,000",
-    defaultAmount: 5000,
-    tags: ["P1"],
-    description: `I will design and develop a cross-platform mobile application for iOS and Android.
-
-Scope:
-• React Native (iOS + Android from one codebase)
-• Custom UI/UX design
-• Backend API integration
-• Push notifications
-• App Store + Play Store submission
-
-Payment Schedule:
-• 30% on project start
-• 40% at design approval
-• 30% on final delivery
-
-Timeline: 8–12 weeks`,
-  },
-  {
-    id: "content-writing",
-    category: "Content",
-    icon: "✍️",
-    title: "Content Writing Retainer",
-    type: "Proposal",
-    priceRange: "$300–$800/month",
-    defaultAmount: 400,
-    tags: ["Retainer"],
-    description: `I will create high-quality, SEO-optimized content for your business.
-
-Monthly Deliverables:
-• 8 blog posts (800–1,200 words each)
-• 2 long-form articles (2,000+ words)
-• Meta descriptions + title tags for all posts
-• 1 revision round per piece
-
-Content Types:
-• Blog posts, case studies, whitepapers
-• Email newsletters
-• Product descriptions
-
-Minimum commitment: 2 months`,
-  },
-  {
-    id: "consulting",
-    category: "Business",
-    icon: "💼",
-    title: "Business Consulting",
-    type: "Proposal",
-    priceRange: "$100–$300/hour",
-    defaultAmount: 1200,
-    tags: ["P2"],
-    description: `I will provide strategic consulting to help your business grow.
-
-Services:
-• Business strategy review + recommendations
-• Market research and analysis
-• Process optimization
-• Growth roadmap development
-
-Engagement Format:
-• 4 x 1-hour sessions per month
-• Written summary after each session
-• Email support between sessions
-• Monthly progress report
-
-Billing: Monthly retainer or per-session rate.`,
-  },
-  {
-    id: "freelance-contract",
-    category: "Legal",
-    icon: "📋",
-    title: "Freelance Service Contract",
-    type: "Contract",
-    priceRange: "Any project",
-    defaultAmount: 0,
-    tags: ["Legal"],
-    description: `FREELANCE SERVICE AGREEMENT
-
-This agreement is between the Service Provider and Client.
-
-1. SERVICES
-Service Provider agrees to provide the following services as discussed and agreed upon. Any changes to scope require written approval.
-
-2. PAYMENT TERMS
-• Invoice will be issued upon project milestones
-• Payment due within 14 days of invoice
-• Late payments: 2% monthly interest after 30 days
-• Projects on hold until outstanding balances are cleared
-
-3. INTELLECTUAL PROPERTY
-Upon full payment, all final deliverables become property of the Client. All preliminary work remains property of Service Provider.
-
-4. REVISIONS
-Project includes [X] rounds of revisions. Additional revisions billed at hourly rate.
-
-5. CONFIDENTIALITY
-Both parties agree to keep all project details confidential.
-
-6. TERMINATION
-Either party may terminate with 14 days written notice. Client pays for work completed to date.
-
-7. GOVERNING LAW
-This agreement is governed by the laws of India.`,
-  },
-  {
-    id: "nda",
-    category: "Legal",
-    icon: "🔒",
-    title: "Non-Disclosure Agreement",
-    type: "NDA",
-    priceRange: "Any project",
-    defaultAmount: 0,
-    tags: ["Legal"],
-    description: `NON-DISCLOSURE AGREEMENT (NDA)
-
-This NDA is entered into between the parties.
-
-1. CONFIDENTIAL INFORMATION
-"Confidential Information" means any information disclosed by either party that is marked confidential or would reasonably be understood to be confidential, including but not limited to: business plans, technical data, trade secrets, financial information, client lists.
-
-2. OBLIGATIONS
-The receiving party agrees to:
-• Keep all Confidential Information strictly confidential
-• Not disclose to any third party without prior written consent
-• Use Confidential Information only for the purpose of this engagement
-• Protect with at least the same degree of care as their own confidential information
-
-3. EXCLUSIONS
-This NDA does not apply to information that:
-• Is or becomes publicly known without breach
-• Was rightfully known before disclosure
-• Is independently developed without use of Confidential Information
-
-4. TERM
-This agreement remains in effect for 2 years from the date of signing.
-
-5. REMEDIES
-Breach of this NDA may cause irreparable harm. Both parties agree that injunctive relief is an appropriate remedy.`,
-  },
-];
-
 const CATEGORIES = ["All", "Design", "Development", "Marketing", "Content", "Business", "Legal"];
 
-export default function Templates({ session, onUse }) {
+export default function Templates({ session, onUse, onEdit, profile, docCount = 0 }) {
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState(null);
   const [creating, setCreating] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const isPaid = profile?.plan === "pro" || profile?.plan === "solo";
 
   const filtered = PROPOSAL_TEMPLATES.filter(t =>
     (category === "All" || t.category === category) &&
@@ -268,6 +24,12 @@ export default function Templates({ session, onUse }) {
   );
 
   const applyTemplate = async (template) => {
+    // Free plan limit check
+    if (!isPaid && docCount >= 3) {
+      alert("Free plan mein sirf 3 documents allowed hain. Pro upgrade karo!");
+      return;
+    }
+
     setCreating(true);
     const { data, error } = await supabase.from("documents").insert({
       user_id: session.user.id,
@@ -276,12 +38,17 @@ export default function Templates({ session, onUse }) {
       status: "draft",
       amount: template.defaultAmount || null,
       content: { description: template.description },
-    }).select().single();
+    }).select("*, clients(name, email, company)").single();
 
     setCreating(false);
     if (!error && data) {
       setSuccess(true);
-      setTimeout(() => { setSuccess(false); onUse?.(data); }, 1500);
+      onUse?.(data);           // Dashboard documents list mein add karo
+      setTimeout(() => {
+        setSuccess(false);
+        setPreview(null);
+        onEdit?.(data);         // Turant edit modal kholo
+      }, 600);
     }
   };
 
