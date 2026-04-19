@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 const GOLD    = [245, 166, 35];
 const DARK    = [12, 12, 14];
@@ -173,7 +173,7 @@ export function generatePDF({ document: doc, profile, client, signatureDataUrl =
     const taxRate  = doc.tax_rate || 18;
     const gst      = calcGST(subtotal, taxType, taxRate);
 
-    pdf.autoTable({
+    autoTable(pdf, {
       startY: y,
       head: [["#", "Description", "Qty", "Rate", "Amount"]],
       body: tableData,
