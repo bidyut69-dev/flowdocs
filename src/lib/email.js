@@ -9,7 +9,7 @@ export async function sendSigningEmail({ to, clientName, docTitle, signingUrl, f
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <onboarding@resend.dev>",
+      from: "FlowDocs <support@flowdocs.co.in>",
       to: [to],
       subject: `${fromName} sent you a document to sign: ${docTitle}`,
       html: `
@@ -71,7 +71,7 @@ export async function sendReminderEmail({
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <onboarding@resend.dev>",
+      from: "FlowDocs <support@flowdocs.co.in>",
       to: [to],
       subject,
       html: `
@@ -125,7 +125,7 @@ export async function sendSignedConfirmation({ to, ownerName, clientName, docTit
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <onboarding@resend.dev>",
+      from: "FlowDocs <support@flowdocs.co.in>",
       to: [to],
       subject: `✓ ${clientName} signed "${docTitle}"`,
       html: `
