@@ -68,22 +68,34 @@ export default function SignPage() {
   useEffect(() => {
     const fetchDoc = async () => {
       setLoading(true);
+
+      // profiles join hata diya — multiple rows error fix
       const { data, error: err } = await supabase
         .from("documents")
-        .select("*, clients(name, email, company), profiles(name, company, email)")
+        .select("*, clients(name, email, company)")
         .eq("sign_token", token)
         .single();
 
       if (err || !data) {
         setError("Document not found or link is invalid.");
-      } else {
-        setDoc(data);
-        // Restore state if already signed/paid
-        if (data.status === "paid") setStep("done");
-        else if (data.status === "signed") {
-          // Show pay step if has amount, else done
-          setStep(data.amount > 0 ? "pay" : "done");
-        }
+        setLoading(false);
+        return;
+      }
+
+      // Profile alag fetch karo user_id se
+      if (data.user_id) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("name, company, email")
+          .eq("id", data.user_id)
+          .maybeSingle();
+        data.profiles = profileData || null;
+      }
+
+      setDoc(data);
+      if (data.status === "paid") setStep("done");
+      else if (data.status === "signed") {
+        setStep(data.amount > 0 ? "pay" : "done");
       }
       setLoading(false);
     };
