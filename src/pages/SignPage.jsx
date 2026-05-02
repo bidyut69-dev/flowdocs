@@ -68,34 +68,22 @@ export default function SignPage() {
   useEffect(() => {
     const fetchDoc = async () => {
       setLoading(true);
-
-      // profiles join hata diya — multiple rows error fix
       const { data, error: err } = await supabase
         .from("documents")
-        .select("*, clients(name, email, company)")
+        .select("*, clients(name, email, company), profiles(name, company, email)")
         .eq("sign_token", token)
         .single();
 
       if (err || !data) {
         setError("Document not found or link is invalid.");
-        setLoading(false);
-        return;
-      }
-
-      // Profile alag fetch karo user_id se
-      if (data.user_id) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("name, company, email")
-          .eq("id", data.user_id)
-          .maybeSingle();
-        data.profiles = profileData || null;
-      }
-
-      setDoc(data);
-      if (data.status === "paid") setStep("done");
-      else if (data.status === "signed") {
-        setStep(data.amount > 0 ? "pay" : "done");
+      } else {
+        setDoc(data);
+        // Restore state if already signed/paid
+        if (data.status === "paid") setStep("done");
+        else if (data.status === "signed") {
+          // Show pay step if has amount, else done
+          setStep(data.amount > 0 ? "pay" : "done");
+        }
       }
       setLoading(false);
     };
@@ -105,71 +93,83 @@ export default function SignPage() {
   // ── Canvas setup ─────────────────────────────────────────────────────
   useEffect(() => {
     if (step !== "sign" || !doc) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    // Wait for canvas to render in DOM
+    const timer = setTimeout(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
-    ctx.strokeStyle = C.gold;
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.shadowColor = "rgba(245,166,35,0.3)";
-    ctx.shadowBlur = 3;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width) return; // not visible yet
 
-    let lastX = 0, lastY = 0;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
 
-    const getPos = (e) => {
-      const r = canvas.getBoundingClientRect();
-      const src = e.touches ? e.touches[0] : e;
-      return { x: src.clientX - r.left, y: src.clientY - r.top };
-    };
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.strokeStyle = C.gold;
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowColor = "rgba(245,166,35,0.3)";
+      ctx.shadowBlur = 3;
 
-    const start = (e) => {
-      e.preventDefault();
-      isDrawing.current = true;
-      const p = getPos(e);
-      lastX = p.x; lastY = p.y;
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-    };
+      let lastX = 0, lastY = 0;
 
-    const draw = (e) => {
-      e.preventDefault();
-      if (!isDrawing.current) return;
-      const p = getPos(e);
-      ctx.quadraticCurveTo(lastX, lastY, (p.x + lastX) / 2, (p.y + lastY) / 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo((p.x + lastX) / 2, (p.y + lastY) / 2);
-      lastX = p.x; lastY = p.y;
-    };
+      const getPos = (e) => {
+        const r = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return { x: src.clientX - r.left, y: src.clientY - r.top };
+      };
 
-    const stop = () => { isDrawing.current = false; ctx.beginPath(); };
+      const start = (e) => {
+        e.preventDefault();
+        isDrawing.current = true;
+        const p = getPos(e);
+        lastX = p.x; lastY = p.y;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+      };
 
-    canvas.addEventListener("mousedown", start);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseup", stop);
-    canvas.addEventListener("mouseleave", stop);
-    canvas.addEventListener("touchstart", start, { passive: false });
-    canvas.addEventListener("touchmove", draw, { passive: false });
-    canvas.addEventListener("touchend", stop);
-    canvas.addEventListener("touchcancel", stop);
+      const draw = (e) => {
+        e.preventDefault();
+        if (!isDrawing.current) return;
+        const p = getPos(e);
+        ctx.quadraticCurveTo(lastX, lastY, (p.x + lastX) / 2, (p.y + lastY) / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo((p.x + lastX) / 2, (p.y + lastY) / 2);
+        lastX = p.x; lastY = p.y;
+      };
+
+      const stop = () => { isDrawing.current = false; ctx.beginPath(); };
+
+      canvas.addEventListener("mousedown", start);
+      canvas.addEventListener("mousemove", draw);
+      canvas.addEventListener("mouseup", stop);
+      canvas.addEventListener("mouseleave", stop);
+      canvas.addEventListener("touchstart", start, { passive: false });
+      canvas.addEventListener("touchmove", draw, { passive: false });
+      canvas.addEventListener("touchend", stop);
+      canvas.addEventListener("touchcancel", stop);
+
+      // Store cleanup in ref
+      canvas._cleanup = () => {
+        canvas.removeEventListener("mousedown", start);
+        canvas.removeEventListener("mousemove", draw);
+        canvas.removeEventListener("mouseup", stop);
+        canvas.removeEventListener("mouseleave", stop);
+        canvas.removeEventListener("touchstart", start);
+        canvas.removeEventListener("touchmove", draw);
+        canvas.removeEventListener("touchend", stop);
+        canvas.removeEventListener("touchcancel", stop);
+      };
+    }, 100); // 100ms wait for DOM render
 
     return () => {
-      canvas.removeEventListener("mousedown", start);
-      canvas.removeEventListener("mousemove", draw);
-      canvas.removeEventListener("mouseup", stop);
-      canvas.removeEventListener("mouseleave", stop);
-      canvas.removeEventListener("touchstart", start);
-      canvas.removeEventListener("touchmove", draw);
-      canvas.removeEventListener("touchend", stop);
-      canvas.removeEventListener("touchcancel", stop);
+      clearTimeout(timer);
+      canvasRef.current?._cleanup?.();
     };
   }, [step, doc]);
 
