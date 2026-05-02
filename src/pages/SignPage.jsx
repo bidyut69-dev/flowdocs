@@ -96,12 +96,12 @@ export default function SignPage() {
 
     // Wait for canvas to render in DOM
     const timer = setTimeout(() => {
-      const canvas = canvasRef.current;
+      const canvas = canvasRef.current; // local copy — no ref in cleanup
       if (!canvas) return;
 
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
-      if (!rect.width) return; // not visible yet
+      if (!rect.width) return;
 
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -154,8 +154,8 @@ export default function SignPage() {
       canvas.addEventListener("touchend", stop);
       canvas.addEventListener("touchcancel", stop);
 
-      // Store cleanup in ref
-      canvas._cleanup = () => {
+      // Store cleanup on canvas element itself — uses local var not ref
+      canvas._evCleanup = () => {
         canvas.removeEventListener("mousedown", start);
         canvas.removeEventListener("mousemove", draw);
         canvas.removeEventListener("mouseup", stop);
@@ -165,11 +165,13 @@ export default function SignPage() {
         canvas.removeEventListener("touchend", stop);
         canvas.removeEventListener("touchcancel", stop);
       };
-    }, 100); // 100ms wait for DOM render
+    }, 100);
 
     return () => {
       clearTimeout(timer);
-      canvasRef.current?._cleanup?.();
+      // Use local snapshot — NOT canvasRef.current
+      const c = canvasRef.current;
+      if (c?._evCleanup) c._evCleanup();
     };
   }, [step, doc]);
 
@@ -196,35 +198,40 @@ export default function SignPage() {
 
     setSigning(true);
     try {
-      // Upload signature
+      const canvas = canvasRef.current;
+      // Get base64 directly from canvas — no URL, no CORS
+      const signatureBase64 = canvas.toDataURL("image/png");
+
+      // Also try to upload to storage (optional — for backup)
       let publicUrl = null;
       try {
-        const canvas = canvasRef.current;
-        const dataUrl = canvas.toDataURL("image/png");
-        const blob = await (await fetch(dataUrl)).blob();
+        const blob = await (await fetch(signatureBase64)).blob();
         const fileName = `${doc.id}-${Date.now()}.png`;
         const { error: upErr } = await supabase.storage
           .from("signatures")
           .upload(fileName, blob, { contentType: "image/png", upsert: true });
         if (!upErr) {
-          const { data: urlData } = supabase.storage.from("signatures").getPublicUrl(fileName);
+          const { data: urlData } = supabase.storage
+            .from("signatures")
+            .getPublicUrl(fileName);
           publicUrl = urlData?.publicUrl || null;
         }
-      } catch { /* continue without signature image */ }
+      } catch { /* storage upload failed — base64 still saved */ }
 
-      // Update document
+      // Save BOTH base64 and URL to documents
       const { error: updateErr } = await supabase
         .from("documents")
         .update({
           status: "signed",
-          signature_url: publicUrl,
+          signature_data: signatureBase64,  // ← base64 directly
+          signature_url: publicUrl,          // ← URL as backup
           signed_at: new Date().toISOString(),
         })
         .eq("id", doc.id);
 
       if (updateErr) return setSignError("Signing failed: " + updateErr.message);
 
-      // Notify owner
+      // Notify owner (non-blocking)
       if (doc.profiles?.email) {
         sendSignedConfirmation({
           to: doc.profiles.email,
@@ -234,8 +241,12 @@ export default function SignPage() {
         }).catch(() => {});
       }
 
-      // Go to pay step if has amount, else done
-      setDoc(prev => ({ ...prev, status: "signed", signature_url: publicUrl }));
+      setDoc(prev => ({
+        ...prev,
+        status: "signed",
+        signature_data: signatureBase64,
+        signature_url: publicUrl,
+      }));
       setStep(doc.amount > 0 ? "pay" : "done");
 
     } catch (err) {

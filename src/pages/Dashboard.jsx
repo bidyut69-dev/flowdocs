@@ -164,7 +164,7 @@ export default function Dashboard({ session }) {
 
     const [{ data: prof }, { data: docs }, { data: cls }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", uid).single(),
-      supabase.from("documents").select("*, clients(name, email, company)").eq("user_id", uid).order("created_at", { ascending: false }),
+      supabase.from("documents").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
       supabase.from("clients").select("*").eq("user_id", uid).order("name"),
     ]);
 
@@ -1052,6 +1052,8 @@ export default function Dashboard({ session }) {
         </Modal>
       )}
 
+      <Toast msg={toast} onClose={() => setToast(null)} />
+
       {/* ── MOBILE BOTTOM NAV ── */}
       <nav className="fd-bottom-nav" style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 13,
@@ -1083,8 +1085,6 @@ export default function Dashboard({ session }) {
           </div>
         ))}
       </nav>
-
-      <Toast msg={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
