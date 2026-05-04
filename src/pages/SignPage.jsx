@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { sendSignedConfirmation } from "../lib/email";
+import { sendSignedConfirmation, sendPaymentReceived } from "../lib/email";
 import { openInvoicePayment, markInvoicePaid } from "../lib/payment";
 
 const C = {
@@ -78,6 +78,13 @@ export default function SignPage() {
         setError("Document not found or link is invalid.");
       } else {
         setDoc(data);
+        // BUG-02 FIX: Track when client opens the document
+        if (!data.opened_at && data.status !== "signed" && data.status !== "paid") {
+          supabase.from("documents")
+            .update({ opened_at: new Date().toISOString() })
+            .eq("sign_token", token)
+            .then(() => {});
+        }
         // Restore state if already signed/paid
         if (data.status === "paid") setStep("done");
         else if (data.status === "signed") {
@@ -167,11 +174,11 @@ export default function SignPage() {
       };
     }, 100);
 
+    // BUG-07 FIX: snapshot ref value before cleanup runs
+    const canvasSnapshot = canvasRef.current;
     return () => {
       clearTimeout(timer);
-      // Use local snapshot — NOT canvasRef.current
-      const c = canvasRef.current;
-      if (c?._evCleanup) c._evCleanup();
+      if (canvasSnapshot?._evCleanup) canvasSnapshot._evCleanup();
     };
   }, [step, doc]);
 
@@ -218,7 +225,7 @@ export default function SignPage() {
         }
       } catch { /* storage upload failed — base64 still saved */ }
 
-      // Save BOTH base64 and URL to documents
+      // Save BOTH base64 and URL to documents + signer name
       const { error: updateErr } = await supabase
         .from("documents")
         .update({
@@ -226,6 +233,7 @@ export default function SignPage() {
           signature_data: signatureBase64,  // ← base64 directly
           signature_url: publicUrl,          // ← URL as backup
           signed_at: new Date().toISOString(),
+          signer_name: name.trim(),          // ← BUG-01 FIX
         })
         .eq("id", doc.id);
 
@@ -269,6 +277,15 @@ export default function SignPage() {
       clientEmail: doc.clients?.email || "",
       onSuccess: async (response) => {
         await markInvoicePaid(supabase, doc.id, response.razorpay_payment_id);
+        // BUG-03 FIX: Notify freelancer of payment
+        if (doc.profiles?.email) {
+          sendPaymentReceived({
+            to: doc.profiles.email,
+            docTitle: doc.title,
+            amount: fmt(depositAmount),
+            clientName: doc.clients?.name || name,
+          }).catch(() => {});
+        }
         setStep("done");
         setPaying(false);
       },
