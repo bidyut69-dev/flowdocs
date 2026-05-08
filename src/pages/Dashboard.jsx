@@ -15,6 +15,9 @@ const C = {
   purple: "#A78BFA", purpleDim: "#A78BFA20",
 };
 
+// ── APP URL ────────────────────────────────────────────────────────────
+const APP_URL = import.meta.env.VITE_APP_URL?.replace(/\/$/, "") || window.location.origin;
+
 // ── CURRENCIES ─────────────────────────────────────────────────────────
 const CURRENCIES = {
   INR: { symbol: "₹", name: "Indian Rupee" },
@@ -287,7 +290,7 @@ export default function Dashboard({ session }) {
   // ── Send Document / Email Reminder ──
   const sendDoc = async (doc) => {
     const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-    const signingUrl = `${window.location.origin}/sign/${doc.sign_token}`;
+    const signingUrl = `${APP_URL}/sign/${doc.sign_token}`;
 
     // Update status to pending if still draft
     if (doc.status === "draft") {
@@ -333,7 +336,7 @@ export default function Dashboard({ session }) {
   // ── WhatsApp Share ──
   const shareWhatsApp = (doc) => {
     const client = clients.find(c => c.id === doc.client_id);
-    const url = `${window.location.origin}/sign/${doc.sign_token}`;
+    const url = `${APP_URL}/sign/${doc.sign_token}`;
     const msg = encodeURIComponent(
       `Hi ${client?.name || ""},\n\n${profile?.name || "I"} has sent you a ${doc.type} to review and sign:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 View & Sign: ${url}\n\nPowered by FlowDocs`
     );
@@ -348,7 +351,7 @@ export default function Dashboard({ session }) {
       showToast("Generating PDF...");
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
 
-      // Always fetch fresh signature_data from DB — don't rely on state
+      // Fresh signature_data DB se fetch karo
       let freshDoc = doc;
       if (doc.status === "signed") {
         const { data } = await supabase
@@ -356,13 +359,15 @@ export default function Dashboard({ session }) {
           .select("signature_data, signature_url, signed_at, signer_name")
           .eq("id", doc.id)
           .single();
-        if (data) {
-          freshDoc = { ...doc, ...data };
-        }
+        if (data) freshDoc = { ...doc, ...data };
       }
 
-      await downloadPDF(freshDoc, profile, client);
-      showToast("✓ PDF downloaded!");
+      // signature_data ya signature_url — jo bhi available ho
+      const signatureDataUrl = freshDoc.signature_data || freshDoc.signature_url || null;
+
+      const ok = downloadPDF(freshDoc, profile, client, signatureDataUrl);
+      if (ok) showToast("✓ PDF downloaded!");
+      else showToast("PDF generation failed.", false);
     } catch (err) {
       console.error("Download error:", err);
       showToast("PDF failed: " + (err.message || "Unknown error"), false);
@@ -371,7 +376,7 @@ export default function Dashboard({ session }) {
 
   // ── Copy signing link ──
   const copyLink = (doc) => {
-    const url = `${window.location.origin}/sign/${doc.sign_token}`;
+    const url = `${APP_URL}/sign/${doc.sign_token}`;
     navigator.clipboard.writeText(url).then(() => showToast("✓ Signing link copied!"));
   };
 
@@ -426,7 +431,7 @@ export default function Dashboard({ session }) {
     if (pending.length === 0) return showToast("No pending documents!", false);
     pending.forEach(doc => {
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-      const url = `${window.location.origin}/sign/${doc.sign_token}`;
+      const url = `${APP_URL}/sign/${doc.sign_token}`;
       const msg = encodeURIComponent(
         `Hi ${client?.name || "there"},\n\nJust a reminder — your ${doc.type} is waiting for action:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 ${url}\n\nPowered by FlowDocs`
       );
