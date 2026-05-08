@@ -43,10 +43,7 @@ export default function Landing() {
         @keyframes float3 { 0%,100% { transform: translateY(-4px); } 50% { transform: translateY(8px); } }
         @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes gradGlow {
-          0%,100% { opacity: 0.3; }
-          50% { opacity: 0.7; }
-        }
+        @keyframes gradGlow { 0%,100% { opacity: 0.3; } 50% { opacity: 0.7; } }
 
         .anim-up { animation: fadeUp 0.8s ease both; }
         .anim-up-1 { animation: fadeUp 0.8s ease 0.1s both; }
@@ -205,7 +202,6 @@ export default function Landing() {
           }}>{mobileMenu ? "✕" : "☰"}</button>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenu && (
           <div style={{
             background: C.surface, borderTop: `1px solid ${C.border}`, padding: "20px 24px",
@@ -225,7 +221,6 @@ export default function Landing() {
 
       {/* ────── HERO ────── */}
       <section ref={heroRef} style={{ maxWidth: 1200, margin: "0 auto", padding: "140px 24px 80px", position: "relative" }}>
-        {/* Background glow orbs */}
         <div style={{ position: "absolute", top: -100, left: -200, width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle, ${C.goldGlow} 0%, transparent 70%)`, filter: "blur(80px)", animation: "gradGlow 6s ease-in-out infinite", pointerEvents: "none" }} />
         <div style={{ position: "absolute", top: 100, right: -100, width: 400, height: 400, borderRadius: "50%", background: `radial-gradient(circle, ${C.accentGlow} 0%, transparent 70%)`, filter: "blur(80px)", animation: "gradGlow 6s ease-in-out 3s infinite", pointerEvents: "none" }} />
 
@@ -239,7 +234,7 @@ export default function Landing() {
               color: C.gold, fontFamily: "'JetBrains Mono', monospace", marginBottom: 28,
             }}>
               <span style={{ background: C.green, width: 7, height: 7, borderRadius: "50%", animation: "pulse 2s ease infinite" }} />
-              India's #1 Freelancer Toolkit
+              For Indian Freelancers Billing Globally
             </div>
 
             <h1 className="anim-up-1" style={{
@@ -247,18 +242,17 @@ export default function Landing() {
               fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2px",
               color: C.text, marginBottom: 24,
             }}>
-              Proposal bhejo.<br />
-              Sign karwao.<br />
-              <span className="gradient-text">Payment lo.</span>
+              One Link.<br />
+              Signed Contract.<br />
+              <span className="gradient-text">Paid Deposit.</span>
             </h1>
 
             <p className="anim-up-2" style={{
               fontSize: 18, color: C.mid, lineHeight: 1.8, marginBottom: 36, maxWidth: 520,
               fontWeight: 400,
             }}>
-              GST invoices, eSignatures, proposals, contracts — sab ek jagah.
-              WhatsApp pe share karo. UPI se payment lo.{" "}
-              <strong style={{ color: C.text }}>DocuSign se 10x sasta.</strong>
+              Send your international client one link — they sign the contract and pay the deposit.{" "}
+              <strong style={{ color: C.text }}>No WhatsApp back-and-forth. No chasing. No drama.</strong>
             </p>
 
             {/* Email CTA */}
@@ -285,7 +279,7 @@ export default function Landing() {
               {[
                 { icon: "✓", label: "Free forever plan" },
                 { icon: "✓", label: "No credit card" },
-                { icon: "✓", label: "GST ready" },
+                { icon: "✓", label: "USD · EUR · GBP ready" },
               ].map((f, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid }}>
                   <span style={{ color: C.green, fontWeight: 700, fontSize: 12 }}>{f.icon}</span> {f.label}
@@ -307,16 +301,16 @@ export default function Landing() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <div>
                   <div style={{ fontSize: 11, color: C.gold, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }}>TOTAL BILLED</div>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, color: C.text, marginTop: 4 }}>₹8,45,000</div>
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, color: C.text, marginTop: 4 }}>$12,400</div>
                   <div style={{ fontSize: 12, color: C.green, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>↑ 34% this month</div>
                 </div>
                 <div style={{ width: 40, height: 40, borderRadius: 12, background: C.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
               </div>
               <div style={{ height: 1, background: C.border, margin: "0 0 16px" }} />
               {[
-                { name: "TechServe Pvt Ltd", type: "Invoice", status: "paid", color: C.green, amount: "₹2,50,000" },
-                { name: "StartupXYZ", type: "Proposal", status: "signed", color: C.green, amount: "₹1,85,000" },
-                { name: "DesignHub", type: "Contract", status: "pending", color: C.gold, amount: "₹75,000" },
+                { name: "Acme Corp (US)", type: "Contract + Deposit", status: "paid", color: C.green, amount: "$3,500" },
+                { name: "Studio Berlin", type: "Proposal", status: "signed", color: C.green, amount: "€2,200" },
+                { name: "TechBase UK", type: "Invoice", status: "pending", color: C.gold, amount: "£1,800" },
               ].map((d, i) => (
                 <div key={i} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -335,51 +329,51 @@ export default function Landing() {
               ))}
             </div>
 
-            {/* Floating: Signed notification */}
+            {/* Floating: Signed + Paid notification */}
             <div style={{
               animation: "float2 5s ease-in-out infinite",
               position: "absolute", top: -10, right: -30,
               background: C.surface, border: `1px solid ${C.green}40`,
-              borderRadius: 14, padding: "14px 18px", width: 190,
+              borderRadius: 14, padding: "14px 18px", width: 200,
               boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: C.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✍️</div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.green }}>Document Signed!</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.green }}>Signed + Paid!</div>
                   <div style={{ fontSize: 10, color: C.dim }}>just now</div>
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: C.mid }}>TechServe Pvt Ltd</div>
+              <div style={{ fontSize: 11, color: C.mid }}>Acme Corp · $1,750 deposit</div>
             </div>
 
-            {/* Floating: GST Invoice badge */}
+            {/* Floating: One link badge */}
             <div style={{
               animation: "float3 7s ease-in-out infinite",
               position: "absolute", bottom: 40, right: 10,
               background: C.surface, border: `1px solid ${C.gold}30`,
-              borderRadius: 14, padding: "16px 20px", width: 170,
+              borderRadius: 14, padding: "16px 20px", width: 180,
               boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
             }}>
-              <div style={{ fontSize: 10, color: C.gold, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1, marginBottom: 6 }}>GST INVOICE</div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 800, color: C.text }}>₹1,47,500</div>
-              <div style={{ fontSize: 10, color: C.dim, marginTop: 3 }}>CGST + SGST @18%</div>
-              <div style={{ fontSize: 10, color: C.green, marginTop: 2 }}>✓ Paid via UPI</div>
+              <div style={{ fontSize: 10, color: C.gold, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1, marginBottom: 6 }}>ONE LINK SENT</div>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700, color: C.text }}>flowdocs.co.in/s/...</div>
+              <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>Contract · Signature · Payment</div>
+              <div style={{ fontSize: 10, color: C.green, marginTop: 2 }}>✓ Completed in 8 min</div>
             </div>
 
-            {/* Floating: WhatsApp badge */}
+            {/* Floating: Currency badge */}
             <div style={{
               animation: "float2 8s ease-in-out 1s infinite",
               position: "absolute", bottom: -10, left: -20,
-              background: C.surface, border: `1px solid #25D366`,
+              background: C.surface, border: `1px solid ${C.accent}40`,
               borderRadius: 12, padding: "10px 16px",
               boxShadow: "0 12px 36px rgba(0,0,0,0.4)",
               display: "flex", alignItems: "center", gap: 8,
             }}>
-              <span style={{ fontSize: 18 }}>📱</span>
+              <span style={{ fontSize: 18 }}>🌍</span>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#25D366" }}>WhatsApp Sent!</div>
-                <div style={{ fontSize: 10, color: C.dim }}>Signing link shared</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.accent }}>Multi-Currency</div>
+                <div style={{ fontSize: 10, color: C.dim }}>USD · EUR · GBP · INR</div>
               </div>
             </div>
           </div>
@@ -394,14 +388,12 @@ export default function Landing() {
           border: `1px solid ${C.border}`,
         }}>
           {[
-            { value: "₹0", label: "Setup cost", icon: "💰" },
-            { value: "2 min", label: "Send first proposal", icon: "⚡" },
-            { value: "100%", label: "Legal eSignatures", icon: "✍️" },
+            { value: "1 Link", label: "Sign + Pay, one flow", icon: "🔗" },
+            { value: "2 min", label: "Send first contract", icon: "⚡" },
+            { value: "8 FX", label: "Currencies supported", icon: "🌍" },
             { value: "10x", label: "Cheaper than DocuSign", icon: "📉" },
           ].map((s, i) => (
-            <div key={i} style={{
-              background: C.surface, padding: "32px 24px", textAlign: "center",
-            }}>
+            <div key={i} style={{ background: C.surface, padding: "32px 24px", textAlign: "center" }}>
               <div style={{ fontSize: 24, marginBottom: 12 }}>{s.icon}</div>
               <div className="counter" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: C.gold, marginBottom: 6 }}>{s.value}</div>
               <div style={{ fontSize: 13, color: C.dim, fontWeight: 500 }}>{s.label}</div>
@@ -415,21 +407,21 @@ export default function Landing() {
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Features</div>
           <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px", marginBottom: 12 }}>
-            Everything Indian freelancers need
+            Everything you need to bill internationally
           </h2>
           <p style={{ fontSize: 16, color: C.mid, maxWidth: 560, margin: "0 auto" }}>
-            No more juggling between invoicing apps, signing tools, and WhatsApp. One platform. Done.
+            Indian freelancer. Global clients. One platform that handles the entire flow — contract to cash.
           </p>
         </div>
 
         <div className="features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {[
-            { icon: "🧾", title: "GST Invoices", desc: "CGST/SGST/IGST auto-calculation. HSN/SAC codes. GSTIN validation. E-invoice ready. Fully compliant.", tag: "India First", tagColor: C.gold },
-            { icon: "✍️", title: "Legal eSignatures", desc: "IT Act 2000 compliant. Draw signature on any device. Legally binding. Audit trail included.", tag: "IT Act 2000", tagColor: C.green },
-            { icon: "📱", title: "WhatsApp Sharing", desc: "Share signing links instantly on WhatsApp. 90% open rate vs 20% for email. India ka default.", tag: "90% Open Rate", tagColor: "#25D366" },
-            { icon: "💳", title: "UPI + Razorpay", desc: "Add UPI ID and bank details on invoices. Clients pay with one tap. Payment tracking built-in.", tag: "Instant Pay", tagColor: C.blue },
-            { icon: "📄", title: "Smart Proposals", desc: "AI-powered proposals in 30 seconds. Professional templates. Multi-currency support. Edit anytime.", tag: "AI Powered", tagColor: C.accent },
-            { icon: "📊", title: "Revenue Analytics", desc: "Track billings, collections, overdue. Client-wise breakdown. Tax reports. Export to CSV.", tag: "Insights", tagColor: C.gold },
+            { icon: "🔗", title: "One-Link Flow", desc: "Client opens one link — reads the contract, signs it, and pays the deposit. No account needed. Works on any device.", tag: "Core Feature", tagColor: C.gold },
+            { icon: "✍️", title: "Legal eSignatures", desc: "IT Act 2000 compliant. Draw signature on any device. Legally binding. Full audit trail with IP + timestamp.", tag: "IT Act 2000", tagColor: C.green },
+            { icon: "💳", title: "International Payments", desc: "Stripe, Wise, Razorpay. Clients pay in USD/EUR/GBP. You receive in INR or keep in foreign currency.", tag: "Multi-Currency", tagColor: C.blue },
+            { icon: "📄", title: "Smart Contracts", desc: "AI-powered proposals and contracts in 30 seconds. Professional templates. Multi-currency. Edit anytime.", tag: "AI Powered", tagColor: C.accent },
+            { icon: "🧾", title: "GST Invoices", desc: "CGST/SGST/IGST auto-calculation. HSN/SAC codes. GSTIN validation. For domestic clients too.", tag: "India First", tagColor: C.gold },
+            { icon: "📊", title: "Revenue Analytics", desc: "Track billings, collections, overdue. Client-wise breakdown. FX conversion rates. Export to CSV.", tag: "Insights", tagColor: C.gold },
           ].map((f, i) => (
             <div key={i} className="feature-card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -454,16 +446,19 @@ export default function Landing() {
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Process</div>
           <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px", marginBottom: 12 }}>
-            Proposal se payment tak, 4 steps
+            Contract signed. Deposit paid. 4 steps.
           </h2>
+          <p style={{ fontSize: 16, color: C.mid, maxWidth: 500, margin: "0 auto" }}>
+            From "interested" to "signed and paid" — without a single WhatsApp follow-up.
+          </p>
         </div>
 
         <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {[
-            { n: "01", title: "Document Banao", desc: "Proposal, Contract, Invoice, or NDA — 2 minute mein ready. AI se auto-generate karo.", icon: "📝" },
-            { n: "02", title: "Client Add Karo", desc: "Name, email, phone, GSTIN — sab save hota hai. Baar baar type nahi karna padta.", icon: "👤" },
-            { n: "03", title: "WhatsApp pe Bhejo", desc: "Signing link WhatsApp, email — kahin bhi bhejo. Client phone pe sign kare, done.", icon: "📲" },
-            { n: "04", title: "Payment Lo", desc: "Invoice pe UPI/bank details dikhta hai. Mark as paid. Revenue automatic track hota hai.", icon: "💸" },
+            { n: "01", title: "Contract Banao", desc: "Proposal ya contract — 2 minute mein AI se ready. Client ka name, scope, amount, deadline sab add karo.", icon: "📝" },
+            { n: "02", title: "One Link Generate Karo", desc: "FlowDocs ek signing link banata hai jisme contract + signature + payment sab ek jagah hota hai.", icon: "🔗" },
+            { n: "03", title: "Client Ko Bhejo", desc: "Email ya WhatsApp pe link bhejo. Client kisi bhi device pe open kare, sign kare, deposit pay kare.", icon: "📲" },
+            { n: "04", title: "Confirmed. Done.", desc: "Signed contract aur payment confirmation — dono tujhe automatically milte hain. Kaam shuru karo.", icon: "✅" },
           ].map((s, i) => (
             <div key={i} style={{
               background: C.surface, border: `1px solid ${C.border}`,
@@ -472,10 +467,7 @@ export default function Landing() {
             }}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${C.gold}, transparent)` }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: C.gold,
-                  letterSpacing: 2, fontWeight: 600,
-                }}>{s.n}</div>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: C.gold, letterSpacing: 2, fontWeight: 600 }}>{s.n}</div>
                 <div style={{ fontSize: 24 }}>{s.icon}</div>
               </div>
               <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: C.text, marginBottom: 8 }}>{s.title}</div>
@@ -501,11 +493,8 @@ export default function Landing() {
             <div style={{ fontSize: 12, color: C.dim, letterSpacing: 2, fontFamily: "'JetBrains Mono', monospace", marginBottom: 16, fontWeight: 600 }}>FREE</div>
             <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 48, fontWeight: 900, color: C.text, marginBottom: 4 }}>₹0</div>
             <div style={{ fontSize: 14, color: C.dim, marginBottom: 32 }}>Forever free to start</div>
-            {["3 documents/month", "eSignature collection", "PDF download", "Email notifications", "1 currency"].map((f, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 10, alignItems: "center", padding: "10px 0",
-                borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid,
-              }}>
+            {["3 one-link flows/month", "eSignature collection", "PDF download", "Email notifications", "1 currency"].map((f, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid }}>
                 <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>✓</span> {f}
               </div>
             ))}
@@ -532,16 +521,13 @@ export default function Landing() {
               <span style={{ color: C.gold, fontWeight: 600 }}>₹7,490/yr</span>
             </div>
             {[
-              "Unlimited documents", "Unlimited eSignatures",
-              "GST invoicing (CGST/SGST/IGST)", "8 currencies (INR, USD, EUR...)",
-              "WhatsApp sharing", "Recurring invoices",
+              "Unlimited one-link flows", "Unlimited eSignatures",
+              "8 currencies (INR, USD, EUR, GBP...)", "Stripe + Wise + Razorpay",
+              "GST invoicing (CGST/SGST/IGST)", "Deposit + milestone payments",
               "Revenue analytics", "Payment reminders",
-              "AI document generation", "Priority support",
+              "AI contract generation", "Priority support",
             ].map((f, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 10, alignItems: "center", padding: "9px 0",
-                borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid,
-              }}>
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid }}>
                 <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>✓</span> {f}
               </div>
             ))}
@@ -564,10 +550,7 @@ export default function Landing() {
               "API access", "Custom templates",
               "Dedicated account manager",
             ].map((f, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 10, alignItems: "center", padding: "10px 0",
-                borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid,
-              }}>
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid }}>
                 <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>✓</span> {f}
               </div>
             ))}
@@ -589,14 +572,13 @@ export default function Landing() {
 
         <div className="testimonials-row" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           {[
-            { quote: "Mera poora invoicing ab FlowDocs pe hai. GST invoices 2 minute mein ban jaata hai. Clients ko WhatsApp pe bhejta hoon, 10 min mein sign ho jaata hai.", name: "Arjun M.", role: "Web Developer, Bangalore", stars: 5 },
-            { quote: "DocuSign ke liye $30/month deta tha. Ab FlowDocs se proposal, contract, invoice — sab ₹749 mein. Best investment for my freelance business.", name: "Priya S.", role: "UI/UX Designer, Mumbai", stars: 5 },
-            { quote: "Finally ek tool jo Indian freelancers ke liye bana hai. GSTIN, SAC code, CGST/SGST — sab support karta hai. Even my CA is impressed!", name: "Rohan K.", role: "Content Agency, Delhi", stars: 5 },
+            { quote: "US client ko ek link bheja — 20 minute mein contract signed aur $500 deposit account mein. Pehle WhatsApp pe 3 din lagte the. FlowDocs game changer hai.", name: "Arjun M.", role: "Full-Stack Developer, Bangalore", stars: 5 },
+            { quote: "DocuSign ke liye $30/month deta tha. Ab FlowDocs se proposal, contract, international payment — sab ₹749 mein. Aur client experience bahut smooth hai.", name: "Priya S.", role: "UI/UX Designer, Mumbai", stars: 5 },
+            { quote: "UK agency ke saath kaam karta hoon. Pehle PDF email, phir sign scan, phir SWIFT transfer ka wait. Ab sab ek link mein — signed aur paid same day.", name: "Rohan K.", role: "Brand Consultant, Delhi", stars: 5 },
           ].map((t, i) => (
             <div key={i} style={{
               background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 16, padding: 28, flex: 1, minWidth: 280,
-              transition: "all 0.3s",
+              borderRadius: 16, padding: 28, flex: 1, minWidth: 280, transition: "all 0.3s",
             }}>
               <div style={{ display: "flex", gap: 2, marginBottom: 14 }}>
                 {Array(t.stars).fill(0).map((_, j) => (
@@ -630,16 +612,16 @@ export default function Landing() {
           position: "relative", overflow: "hidden",
         }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${C.gold}, transparent)` }} />
-          {/* Glow */}
           <div style={{ position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)", width: 400, height: 200, borderRadius: "50%", background: `radial-gradient(circle, ${C.goldGlow} 0%, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none" }} />
 
           <div style={{ position: "relative", zIndex: 1 }}>
             <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, fontFamily: "'JetBrains Mono', monospace", marginBottom: 20, fontWeight: 600 }}>GET STARTED TODAY</div>
             <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 900, color: C.text, letterSpacing: "-1px", marginBottom: 16 }}>
-              Payment lena ho fast?<br /><span className="gradient-text">FlowDocs use karo.</span>
+              One link bhejo.<br />
+              <span className="gradient-text">Signed. Paid. Done.</span>
             </h2>
             <p style={{ fontSize: 17, color: C.mid, marginBottom: 40, maxWidth: 520, margin: "0 auto 40px" }}>
-              10,000+ freelancers already trust FlowDocs for proposals, invoices, and eSignatures.
+              Indian freelancers already use FlowDocs to close international clients faster — without the back-and-forth.
             </p>
             <button className="glow-btn" style={{ fontSize: 17, padding: "18px 48px" }} onClick={goAuth}>
               Start Free — No Credit Card →
@@ -656,7 +638,7 @@ export default function Landing() {
               <span style={{ width: 24, height: 24, background: `linear-gradient(135deg, ${C.gold}, #E8941A)`, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#0A0A0F", fontWeight: 900 }}>F</span>
               FlowDocs
             </div>
-            <div style={{ fontSize: 13, color: C.dim }}>India ka #1 Freelancer Toolkit</div>
+            <div style={{ fontSize: 13, color: C.dim }}>One Link. Signed Contract. Paid Deposit.</div>
           </div>
           <div style={{ display: "flex", gap: 28, fontSize: 13, color: C.dim, flexWrap: "wrap" }}>
             <a href="/privacy" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>Privacy Policy</a>
