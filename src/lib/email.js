@@ -9,7 +9,7 @@ export async function sendSigningEmail({ to, clientName, docTitle, signingUrl, f
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <support@flowdocs.co.in>",
+      from: "FlowDocs <onboarding@resend.dev>",
       to: [to],
       subject: `${fromName} sent you a document to sign: ${docTitle}`,
       html: `
@@ -71,7 +71,7 @@ export async function sendReminderEmail({
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <support@flowdocs.co.in>",
+      from: "FlowDocs <onboarding@resend.dev>",
       to: [to],
       subject,
       html: `
@@ -125,7 +125,7 @@ export async function sendSignedConfirmation({ to, ownerName, clientName, docTit
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <support@flowdocs.co.in>",
+      from: "FlowDocs <onboarding@resend.dev>",
       to: [to],
       subject: `✓ ${clientName} signed "${docTitle}"`,
       html: `
@@ -140,4 +140,33 @@ export async function sendSignedConfirmation({ to, ownerName, clientName, docTit
       `,
     }),
   });
+}
+
+export async function sendPaymentReceived({ to, ownerName, clientName, docTitle, amount, currency = "INR" }) {
+  const key = import.meta.env.VITE_RESEND_API_KEY;
+  if (!key) return false;
+
+  const symbols = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+  const sym = symbols[currency] || "₹";
+
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      from: "FlowDocs <support@flowdocs.co.in>",
+      to: [to],
+      subject: `💰 Payment received for "${docTitle}"`,
+      html: `
+        <div style="font-family: sans-serif; background: #0C0C0E; color: #F0EEE8; padding: 40px; max-width: 520px; margin: 0 auto; border-radius: 12px;">
+          <div style="color: #F5A623; font-size: 22px; font-weight: 800; margin-bottom: 24px;">FlowDocs</div>
+          <div style="background: #22C55E20; border: 1px solid #22C55E; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
+            <div style="color: #22C55E; font-weight: 700; font-size: 16px; margin-bottom: 6px;">💰 Payment Received!</div>
+            <div style="color: #B0ADA8;">${clientName} has paid <strong style="color: #F0EEE8;">${sym}${Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong> for ${docTitle}.</div>
+          </div>
+          <p style="color: #B0ADA8;">Hi ${ownerName}, the payment has been recorded in FlowDocs.</p>
+        </div>
+      `,
+    }),
+  });
+  return true;
 }
