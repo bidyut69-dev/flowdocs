@@ -801,11 +801,30 @@ export default function Dashboard({ session }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={label}>Client</label>
-              <select style={{ ...input, color: C.text, background: C.surface2 }}
-                value={docForm.client_id} onChange={e => setDocForm({ ...docForm, client_id: e.target.value })}>
-                <option value="">— Select Client —</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              {clients.length === 0 ? (
+                <div style={{ background: C.goldDim, border: `1px solid ${C.gold}40`, borderRadius: 8, padding: "10px 14px" }}>
+                  <div style={{ fontSize: 12, color: C.gold, marginBottom: 6 }}>⚠ Pehle ek client add karo</div>
+                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }}
+                    onClick={() => { setModal(null); setPage("clients"); setTimeout(() => setModal("newClient"), 100); }}>
+                    + Add Client →
+                  </button>
+                </div>
+              ) : (
+                <select style={{ ...input, color: C.text, background: C.surface2 }}
+                  value={docForm.client_id} onChange={e => setDocForm({ ...docForm, client_id: e.target.value })}>
+                  <option value="">— Select Client —</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</option>)}
+                  <option value="__new__">+ Add New Client...</option>
+                </select>
+              )}
+              {docForm.client_id === "__new__" && (
+                <div style={{ marginTop: 6 }}>
+                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }}
+                    onClick={() => { setModal("newClient"); }}>
+                    + Add New Client →
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <label style={label}>Currency</label>
