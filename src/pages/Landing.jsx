@@ -25,7 +25,13 @@ export default function Landing() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const goAuth = () => nav("/auth");
+  const goAuth = (e) => {
+    if (email && email.includes("@")) {
+      nav("/auth", { state: { email } });
+    } else {
+      nav("/auth");
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', 'DM Sans', system-ui, sans-serif", color: C.text, overflowX: "hidden" }}>
@@ -418,10 +424,10 @@ export default function Landing() {
           {[
             { icon: "🔗", title: "One-Link Flow", desc: "Client opens one link — reads the contract, signs it, and pays the deposit. No account needed. Works on any device.", tag: "Core Feature", tagColor: C.gold },
             { icon: "✍️", title: "Legal eSignatures", desc: "IT Act 2000 compliant. Draw signature on any device. Legally binding. Full audit trail with IP + timestamp.", tag: "IT Act 2000", tagColor: C.green },
-            { icon: "💳", title: "International Payments", desc: "Stripe, Wise, Razorpay. Clients pay in USD/EUR/GBP. You receive in INR or keep in foreign currency.", tag: "Multi-Currency", tagColor: C.blue },
+            { icon: "💳", title: "International Payments", desc: "Razorpay integrated. Clients pay in USD/EUR/GBP/INR. Secure checkout. Payment confirmation automatic.", tag: "Multi-Currency", tagColor: C.blue },
             { icon: "📄", title: "Smart Contracts", desc: "AI-powered proposals and contracts in 30 seconds. Professional templates. Multi-currency. Edit anytime.", tag: "AI Powered", tagColor: C.accent },
             { icon: "🧾", title: "GST Invoices", desc: "CGST/SGST/IGST auto-calculation. HSN/SAC codes. GSTIN validation. For domestic clients too.", tag: "India First", tagColor: C.gold },
-            { icon: "📊", title: "Revenue Analytics", desc: "Track billings, collections, overdue. Client-wise breakdown. FX conversion rates. Export to CSV.", tag: "Insights", tagColor: C.gold },
+            { icon: "📊", title: "Revenue Analytics", desc: "Track billings, collections, overdue payments. Client-wise revenue breakdown. FX currency tracking.", tag: "Insights", tagColor: C.gold },
           ].map((f, i) => (
             <div key={i} className="feature-card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -564,40 +570,29 @@ export default function Landing() {
       {/* ────── TESTIMONIALS ────── */}
       <section id="testimonials" style={{ maxWidth: 1200, margin: "0 auto 100px", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Reviews</div>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px" }}>
-            Freelancers love FlowDocs
+          <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Early Access</div>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px", marginBottom: 16 }}>
+            Be among the first freelancers
           </h2>
+          <p style={{ fontSize: 16, color: C.mid, maxWidth: 520, margin: "0 auto 48px" }}>
+            FlowDocs is newly launched — built by an Indian developer, for Indian freelancers. Join free and help shape the product.
+          </p>
         </div>
 
-        <div className="testimonials-row" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
           {[
-            { quote: "US client ko ek link bheja — 20 minute mein contract signed aur $500 deposit account mein. Pehle WhatsApp pe 3 din lagte the. FlowDocs game changer hai.", name: "Arjun M.", role: "Full-Stack Developer, Bangalore", stars: 5 },
-            { quote: "DocuSign ke liye $30/month deta tha. Ab FlowDocs se proposal, contract, international payment — sab ₹749 mein. Aur client experience bahut smooth hai.", name: "Priya S.", role: "UI/UX Designer, Mumbai", stars: 5 },
-            { quote: "UK agency ke saath kaam karta hoon. Pehle PDF email, phir sign scan, phir SWIFT transfer ka wait. Ab sab ek link mein — signed aur paid same day.", name: "Rohan K.", role: "Brand Consultant, Delhi", stars: 5 },
-          ].map((t, i) => (
+            { icon: "🎯", title: "Free forever plan", desc: "3 documents/month, eSign + PDF — no credit card needed." },
+            { icon: "💬", title: "Direct founder access", desc: "Talk directly with the builder. Your feedback shapes features." },
+            { icon: "🔒", title: "Founding member price", desc: "Lock in ₹299/mo Pro pricing before it increases." },
+          ].map((c, i) => (
             <div key={i} style={{
               background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 16, padding: 28, flex: 1, minWidth: 280, transition: "all 0.3s",
+              borderRadius: 16, padding: 28, flex: 1, minWidth: 260,
+              display: "flex", flexDirection: "column", gap: 12,
             }}>
-              <div style={{ display: "flex", gap: 2, marginBottom: 14 }}>
-                {Array(t.stars).fill(0).map((_, j) => (
-                  <span key={j} style={{ color: C.gold, fontSize: 14 }}>★</span>
-                ))}
-              </div>
-              <p style={{ fontSize: 14.5, color: C.mid, lineHeight: 1.9, marginBottom: 20 }}>"{t.quote}"</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 10,
-                  background: `linear-gradient(135deg, ${C.gold}40, ${C.accent}40)`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "'Outfit'", fontSize: 16, fontWeight: 700, color: C.gold,
-                }}>{t.name[0]}</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: C.dim }}>{t.role}</div>
-                </div>
-              </div>
+              <div style={{ fontSize: 32 }}>{c.icon}</div>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: C.text }}>{c.title}</div>
+              <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.8 }}>{c.desc}</div>
             </div>
           ))}
         </div>
@@ -621,7 +616,7 @@ export default function Landing() {
               <span className="gradient-text">Signed. Paid. Done.</span>
             </h2>
             <p style={{ fontSize: 17, color: C.mid, marginBottom: 40, maxWidth: 520, margin: "0 auto 40px" }}>
-              Indian freelancers already use FlowDocs to close international clients faster — without the back-and-forth.
+              Built by an Indian developer for Indian freelancers. Free to start — close your next international client in under 2 minutes.
             </p>
             <button className="glow-btn" style={{ fontSize: 17, padding: "18px 48px" }} onClick={goAuth}>
               Start Free — No Credit Card →
