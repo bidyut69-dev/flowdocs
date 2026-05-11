@@ -1,647 +1,486 @@
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 
-// ── THEME ──
-const C = {
-  bg: "#06060A", surface: "#0E0E14", surface2: "#16161E", surface3: "#1E1E28",
-  border: "#24243A", borderHover: "#3A3A5C",
-  gold: "#F5A623", goldDim: "#F5A62315", goldGlow: "#F5A62340",
-  accent: "#6C63FF", accentDim: "#6C63FF18", accentGlow: "#6C63FF40",
-  text: "#F0EEF6", dim: "#6B6B80", mid: "#9B9BB0",
-  green: "#22C55E", greenDim: "#22C55E18",
-  red: "#EF4444", blue: "#60A5FA",
-};
+const gold = "#F5A623";
+const green = "#22C55E";
+const accent = "#6C63FF";
 
-export default function Landing() {
-  const nav = useNavigate();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [email, setEmail] = useState("");
-  const [mobileMenu, setMobileMenu] = useState(false);
-  const heroRef = useRef(null);
+function useInView(ref, threshold = 0.15) {
+  const [v, setV] = useState(false);
+  useEffect(() => {
+    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true); }, { threshold });
+    if (ref.current) o.observe(ref.current);
+    return () => o.disconnect();
+  }, []);
+  return v;
+}
+
+function Reveal({ children, delay = 0, y = 30 }) {
+  const ref = useRef();
+  const v = useInView(ref);
+  return (
+    <div ref={ref} style={{
+      opacity: v ? 1 : 0,
+      transform: v ? "none" : `translateY(${y}px)`,
+      transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`,
+    }}>{children}</div>
+  );
+}
+
+function Typewriter({ words }) {
+  const [i, setI] = useState(0);
+  const [ci, setCi] = useState(0);
+  const [del, setDel] = useState(false);
+  const [txt, setTxt] = useState("");
+  useEffect(() => {
+    const w = words[i];
+    const t = setTimeout(() => {
+      if (!del && ci <= w.length) { setTxt(w.slice(0, ci)); setCi(c => c + 1); }
+      else if (!del && ci > w.length) { setTimeout(() => setDel(true), 1600); }
+      else if (del && ci > 0) { setTxt(w.slice(0, ci)); setCi(c => c - 1); }
+      else { setDel(false); setI(x => (x + 1) % words.length); }
+    }, del ? 35 : 85);
+    return () => clearTimeout(t);
+  }, [ci, del, i, words]);
+  return <span style={{ color: gold }}>{txt}<span style={{ borderRight: `2.5px solid ${gold}`, animation: "blink 1s infinite" }}> </span></span>;
+}
+
+function CountUp({ to, suffix = "" }) {
+  const ref = useRef();
+  const v = useInView(ref);
+  const [n, setN] = useState(0);
+  const done = useRef(false);
+  useEffect(() => {
+    if (v && !done.current) {
+      done.current = true;
+      let cur = 0;
+      const step = to / 50;
+      const t = setInterval(() => {
+        cur += step;
+        if (cur >= to) { setN(to); clearInterval(t); } else setN(Math.floor(cur));
+      }, 30);
+    }
+  }, [v, to]);
+  return <span ref={ref}>{n}{suffix}</span>;
+}
+
+const STEPS = [
+  { icon: "📝", title: "Contract banao", body: "AI se 2 min mein — scope, amount, timeline ready.", color: gold },
+  { icon: "🔗", title: "Ek link generate karo", body: "Contract + signature + payment — sab ek jagah.", color: accent },
+  { icon: "📲", title: "Client ko bhejo", body: "Email ya WhatsApp pe. Koi bhi device pe kholega.", color: "#60A5FA" },
+  { icon: "✅", title: "Signed & Paid", body: "Confirmation tujhe aayega. Kaam shuru karo.", color: green },
+];
+
+export default function App() {
+  const [step, setStep] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const t = setInterval(() => setStep(s => (s + 1) % 4), 2800);
+    return () => clearInterval(t);
   }, []);
 
-  const goAuth = (e) => {
-    if (email && email.includes("@")) {
-      nav("/auth", { state: { email } });
-    } else {
-      nav("/auth");
-    }
-  };
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  const notifications = [
+    { top: "12%", right: "-2px", icon: "✍️", title: "Contract Signed!", sub: "Acme Corp · just now", border: green },
+    { top: "52%", right: "-2px", icon: "💸", title: "$1,750 received", sub: "Deposit paid", border: gold },
+    { top: "78%", left: "-2px", icon: "🌍", title: "USD · EUR · GBP", sub: "Multi-currency", border: accent },
+  ];
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', 'DM Sans', system-ui, sans-serif", color: C.text, overflowX: "hidden" }}>
+    <div style={{ background: "#06060A", color: "#F0EEF6", fontFamily: "Inter,system-ui,sans-serif", overflowX: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: ${C.bg}; }
-        ::selection { background: ${C.goldGlow}; color: ${C.text}; }
-
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
-        @keyframes float1 { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-14px) rotate(1deg); } }
-        @keyframes float2 { 0%,100% { transform: translateY(0) rotate(1deg); } 50% { transform: translateY(-10px) rotate(-1deg); } }
-        @keyframes float3 { 0%,100% { transform: translateY(-4px); } 50% { transform: translateY(8px); } }
-        @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes gradGlow { 0%,100% { opacity: 0.3; } 50% { opacity: 0.7; } }
-
-        .anim-up { animation: fadeUp 0.8s ease both; }
-        .anim-up-1 { animation: fadeUp 0.8s ease 0.1s both; }
-        .anim-up-2 { animation: fadeUp 0.8s ease 0.2s both; }
-        .anim-up-3 { animation: fadeUp 0.8s ease 0.3s both; }
-
-        .feature-card {
-          background: ${C.surface};
-          border: 1px solid ${C.border};
-          border-radius: 16px;
-          padding: 32px;
-          transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-          position: relative;
-          overflow: hidden;
-        }
-        .feature-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, ${C.gold}, transparent);
-          opacity: 0;
-          transition: opacity 0.3s;
-        }
-        .feature-card:hover {
-          border-color: ${C.borderHover};
-          transform: translateY(-4px);
-          box-shadow: 0 16px 48px rgba(0,0,0,0.4);
-        }
-        .feature-card:hover::before { opacity: 1; }
-
-        .glow-btn {
-          background: linear-gradient(135deg, ${C.gold}, #E8941A);
-          color: #0A0A0F;
-          border: none;
-          padding: 16px 36px;
-          border-radius: 12px;
-          font-size: 15px;
-          font-weight: 700;
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
-          transition: all 0.3s;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-          position: relative;
-          overflow: hidden;
-        }
-        .glow-btn::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1), transparent);
-          opacity: 0;
-          transition: opacity 0.3s;
-        }
-        .glow-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 32px ${C.goldGlow};
-        }
-        .glow-btn:hover::after { opacity: 1; }
-
-        .ghost-btn {
-          background: transparent;
-          color: ${C.mid};
-          border: 1px solid ${C.border};
-          padding: 14px 28px;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
-          transition: all 0.25s;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-        .ghost-btn:hover { border-color: ${C.gold}; color: ${C.gold}; }
-
-        .pricing-card {
-          background: ${C.surface};
-          border: 1px solid ${C.border};
-          border-radius: 20px;
-          padding: 36px;
-          flex: 1;
-          transition: all 0.3s;
-          position: relative;
-        }
-        .pricing-card.featured {
-          border-color: ${C.gold};
-          background: linear-gradient(160deg, #1A180F 0%, ${C.surface} 50%);
-        }
-        .pricing-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 16px 48px rgba(0,0,0,0.3);
-        }
-
-        .counter { font-variant-numeric: tabular-nums; }
-        .gradient-text {
-          background: linear-gradient(135deg, ${C.gold} 0%, #FFD700 50%, ${C.gold} 100%);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: shimmer 4s linear infinite;
-        }
-
-        @media (max-width: 768px) {
-          .hero-grid { flex-direction: column !important; }
-          .hero-visual { display: none !important; }
-          .features-grid { grid-template-columns: 1fr !important; }
-          .pricing-grid { flex-direction: column !important; }
-          .stats-row { grid-template-columns: repeat(2, 1fr) !important; }
-          .steps-grid { grid-template-columns: 1fr !important; }
-          .testimonials-row { flex-direction: column !important; }
-          .nav-links { display: none !important; }
-          .footer-grid { flex-direction: column !important; gap: 24px !important; text-align: center !important; }
-          .mob-menu { display: flex !important; }
-        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes gradGlow{0%,100%{opacity:.25}50%{opacity:.55}}
+        @keyframes pulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+        @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+        @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+        @keyframes notifIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes badgePop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+        .glow{background:linear-gradient(135deg,${gold},#e8941a);color:#0a0a0f;border:none;padding:15px 32px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .2s,box-shadow .2s;display:inline-flex;align-items:center;gap:8px}
+        .glow:hover{transform:translateY(-2px);box-shadow:0 8px 28px ${gold}50}
+        .ghost{background:transparent;color:#9B9BB0;border:1px solid #24243A;padding:13px 26px;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
+        .ghost:hover{border-color:${gold};color:${gold}}
+        .gtext{background:linear-gradient(135deg,${gold} 0%,#FFD700 50%,${gold} 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 3s linear infinite}
+        .step-item{background:#0E0E14;border:1px solid #24243A;border-radius:14px;padding:18px 20px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+        .step-item.active{border-color:${gold};background:linear-gradient(135deg,#1A180F,#0E0E14);transform:scale(1.01)}
+        .step-item:hover{border-color:#3A3A5C}
+        .notif{background:#0E0E14;border-radius:12px;padding:11px 14px;position:absolute;width:170px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:notifIn .5s ease both}
+        .stat-card{background:#0E0E14;border:1px solid #24243A;border-radius:16px;padding:24px 20px;text-align:center;transition:all .3s}
+        .stat-card:hover{border-color:${gold}40;transform:translateY(-3px)}
+        .feat-card{background:#0E0E14;border:1px solid #24243A;border-radius:16px;padding:24px;transition:all .3s;position:relative;overflow:hidden}
+        .feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,${gold},transparent);opacity:0;transition:opacity .3s}
+        .feat-card:hover{border-color:#3A3A5C;transform:translateY(-3px)}
+        .feat-card:hover::before{opacity:1}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-track{background:#06060A}
+        ::-webkit-scrollbar-thumb{background:${gold}40;border-radius:2px}
       `}</style>
 
-      {/* ────── NAVBAR ────── */}
-      <nav style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-        background: isScrolled ? "rgba(6,6,10,0.92)" : "transparent",
-        backdropFilter: isScrolled ? "blur(20px) saturate(180%)" : "none",
-        borderBottom: isScrolled ? `1px solid ${C.border}` : "1px solid transparent",
-        transition: "all 0.3s",
-      }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", height: 64, padding: "0 24px", gap: 40 }}>
-          <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 20, fontWeight: 800, color: C.gold, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-            <span style={{ width: 28, height: 28, background: `linear-gradient(135deg, ${C.gold}, #E8941A)`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#0A0A0F", fontWeight: 900 }}>F</span>
+      {/* NAV */}
+      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: scrolled ? "rgba(6,6,10,.95)" : "transparent", backdropFilter: scrolled ? "blur(20px)" : "none", borderBottom: scrolled ? "1px solid #24243A" : "1px solid transparent", transition: "all .3s" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 20px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 17, color: gold }}>
+            <div style={{ width: 26, height: 26, background: `linear-gradient(135deg,${gold},#e8941a)`, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", color: "#0a0a0f", fontWeight: 900, fontSize: 13 }}>F</div>
             FlowDocs
           </div>
-
-          <div className="nav-links" style={{ display: "flex", gap: 32, flex: 1 }}>
-            {["Features", "Pricing", "How it Works", "Testimonials"].map(l => (
-              <a key={l} href={`#${l.toLowerCase().replace(/ /g, "-")}`}
-                style={{ fontSize: 14, color: C.dim, textDecoration: "none", transition: "color 0.2s", fontWeight: 500 }}
-                onMouseEnter={e => e.target.style.color = C.text}
-                onMouseLeave={e => e.target.style.color = C.dim}>
-                {l}
-              </a>
-            ))}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="ghost" style={{ padding: "8px 16px", fontSize: 13 }}>Log In</button>
+            <button className="glow" style={{ padding: "8px 18px", fontSize: 13 }}>Start Free</button>
           </div>
-
-          <div style={{ display: "flex", gap: 10, marginLeft: "auto", alignItems: "center" }}>
-            <button className="ghost-btn" style={{ padding: "9px 20px", fontSize: 13 }} onClick={goAuth}>Log In</button>
-            <button className="glow-btn" style={{ padding: "9px 20px", fontSize: 13 }} onClick={goAuth}>Start Free</button>
-          </div>
-
-          <button className="mob-menu" onClick={() => setMobileMenu(!mobileMenu)} style={{
-            display: "none", background: "none", border: "none", color: C.gold, cursor: "pointer",
-            fontSize: 22, padding: 4, marginLeft: "auto",
-          }}>{mobileMenu ? "✕" : "☰"}</button>
         </div>
-
-        {mobileMenu && (
-          <div style={{
-            background: C.surface, borderTop: `1px solid ${C.border}`, padding: "20px 24px",
-            display: "flex", flexDirection: "column", gap: 14,
-          }}>
-            {["Features", "Pricing", "How it Works", "Testimonials"].map(l => (
-              <a key={l} href={`#${l.toLowerCase().replace(/ /g, "-")}`}
-                onClick={() => setMobileMenu(false)}
-                style={{ fontSize: 15, color: C.mid, textDecoration: "none", padding: "8px 0" }}>
-                {l}
-              </a>
-            ))}
-            <button className="glow-btn" style={{ width: "100%", justifyContent: "center", marginTop: 8 }} onClick={goAuth}>Start Free →</button>
-          </div>
-        )}
       </nav>
 
-      {/* ────── HERO ────── */}
-      <section ref={heroRef} style={{ maxWidth: 1200, margin: "0 auto", padding: "140px 24px 80px", position: "relative" }}>
-        <div style={{ position: "absolute", top: -100, left: -200, width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle, ${C.goldGlow} 0%, transparent 70%)`, filter: "blur(80px)", animation: "gradGlow 6s ease-in-out infinite", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: 100, right: -100, width: 400, height: 400, borderRadius: "50%", background: `radial-gradient(circle, ${C.accentGlow} 0%, transparent 70%)`, filter: "blur(80px)", animation: "gradGlow 6s ease-in-out 3s infinite", pointerEvents: "none" }} />
+      {/* HERO */}
+      <section style={{ minHeight: "100svh", display: "flex", alignItems: "center", padding: "80px 20px 60px", position: "relative", overflow: "hidden" }}>
+        {/* BG orbs */}
+        <div style={{ position: "absolute", top: "15%", left: "5%", width: 340, height: 340, borderRadius: "50%", background: `radial-gradient(circle,${gold}18 0%,transparent 70%)`, filter: "blur(60px)", animation: "gradGlow 7s ease-in-out infinite", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "10%", right: "0%", width: 280, height: 280, borderRadius: "50%", background: `radial-gradient(circle,${accent}18 0%,transparent 70%)`, filter: "blur(60px)", animation: "gradGlow 7s ease-in-out 3.5s infinite", pointerEvents: "none" }} />
+        {/* Grid */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(#24243A28 1px,transparent 1px),linear-gradient(90deg,#24243A28 1px,transparent 1px)`, backgroundSize: "50px 50px", pointerEvents: "none" }} />
 
-        <div className="hero-grid" style={{ display: "flex", gap: 64, alignItems: "center", position: "relative", zIndex: 1 }}>
-          {/* Left */}
-          <div style={{ flex: 1.2 }}>
-            <div className="anim-up" style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              background: C.goldDim, border: `1px solid ${C.gold}30`,
-              borderRadius: 100, padding: "6px 16px 6px 8px", fontSize: 12.5,
-              color: C.gold, fontFamily: "'JetBrains Mono', monospace", marginBottom: 28,
-            }}>
-              <span style={{ background: C.green, width: 7, height: 7, borderRadius: "50%", animation: "pulse 2s ease infinite" }} />
+        <div style={{ maxWidth: 1100, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: 48, alignItems: "center", position: "relative", zIndex: 1 }}>
+
+          {/* TOP — text */}
+          <div style={{ textAlign: "center", maxWidth: 700 }}>
+            {/* Badge */}
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: `${gold}18`, border: `1px solid ${gold}35`, borderRadius: 100, padding: "5px 16px 5px 8px", fontSize: 12, color: gold, marginBottom: 28 }}>
+              <span style={{ background: green, width: 7, height: 7, borderRadius: "50%", animation: "pulse 2s ease infinite" }} />
               For Indian Freelancers Billing Globally
             </div>
 
-            <h1 className="anim-up-1" style={{
-              fontFamily: "'Outfit', sans-serif", fontSize: "clamp(40px, 5.5vw, 64px)",
-              fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2px",
-              color: C.text, marginBottom: 24,
-            }}>
-              One Link.<br />
-              Signed Contract.<br />
-              <span className="gradient-text">Paid Deposit.</span>
+            <h1 style={{ fontSize: "clamp(38px,8vw,76px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2.5px", marginBottom: 24 }}>
+              <span style={{ display: "block" }}>One Link.</span>
+              <span style={{ display: "block" }}>Signed Contract.</span>
+              <span className="gtext" style={{ display: "block" }}>Paid Deposit.</span>
             </h1>
 
-            <p className="anim-up-2" style={{
-              fontSize: 18, color: C.mid, lineHeight: 1.8, marginBottom: 36, maxWidth: 520,
-              fontWeight: 400,
-            }}>
-              Send your international client one link — they sign the contract and pay the deposit.{" "}
-              <strong style={{ color: C.text }}>No WhatsApp back-and-forth. No chasing. No drama.</strong>
+            <p style={{ fontSize: "clamp(16px,2.5vw,19px)", color: "#9B9BB0", lineHeight: 1.75, marginBottom: 12 }}>
+              Send one link to your{" "}
+              <Typewriter words={["US client.", "UK agency.", "EU startup.", "international client."]} />
+            </p>
+            <p style={{ fontSize: "clamp(15px,2vw,17px)", color: "#6B6B80", lineHeight: 1.7, marginBottom: 36 }}>
+              They sign the contract. They pay the deposit.<br />
+              <strong style={{ color: "#F0EEF6" }}>You start the work. Zero chasing.</strong>
             </p>
 
-            {/* Email CTA */}
-            <div className="anim-up-3" style={{ display: "flex", gap: 10, marginBottom: 24, maxWidth: 480, flexWrap: "wrap" }}>
-              <input
-                style={{
-                  flex: 1, minWidth: 220, background: C.surface2, border: `1px solid ${C.border}`,
-                  borderRadius: 12, padding: "14px 18px", fontSize: 14.5, color: C.text,
-                  fontFamily: "'Inter', sans-serif", outline: "none", transition: "border-color 0.2s",
-                }}
-                placeholder="Enter your email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onFocus={e => e.target.style.borderColor = C.gold}
-                onBlur={e => e.target.style.borderColor = C.border}
-                onKeyDown={e => e.key === "Enter" && goAuth()}
-              />
-              <button className="glow-btn" style={{ padding: "14px 28px" }} onClick={goAuth}>
-                Start Free →
-              </button>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
+              <button className="glow" style={{ fontSize: 15, padding: "15px 36px" }}>Start Free — No Card →</button>
+              <button className="ghost">See How It Works</button>
             </div>
 
-            <div className="anim-up-3" style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              {[
-                { icon: "✓", label: "Free forever plan" },
-                { icon: "✓", label: "No credit card" },
-                { icon: "✓", label: "USD · EUR · GBP ready" },
-              ].map((f, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid }}>
-                  <span style={{ color: C.green, fontWeight: 700, fontSize: 12 }}>{f.icon}</span> {f.label}
-                </div>
+            <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
+              {["✓ Free forever plan", "✓ IT Act 2000 eSign", "✓ USD · EUR · GBP"].map((t, i) => (
+                <span key={i} style={{ fontSize: 13, color: "#6B6B80" }}>
+                  <span style={{ color: green }}>{t[0]}</span>{t.slice(1)}
+                </span>
               ))}
             </div>
           </div>
 
-          {/* Right — Dashboard Preview */}
-          <div className="hero-visual" style={{ flex: 1, position: "relative", minHeight: 400 }}>
-            {/* Main card */}
-            <div style={{
-              animation: "float1 6s ease-in-out infinite",
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 20, padding: 24, width: 300,
-              boxShadow: "0 32px 80px rgba(0,0,0,0.6)", position: "relative",
-            }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${C.gold}, ${C.accent})`, borderRadius: "20px 20px 0 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          {/* BOTTOM — hero card visual */}
+          <div style={{ position: "relative", width: "100%", maxWidth: 360, height: 400 }}>
+            {/* Main floating card */}
+            <div style={{ animation: "float 5s ease-in-out infinite", background: "#0E0E14", border: "1px solid #24243A", borderRadius: 20, padding: 22, width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,.7)", position: "relative" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${gold},${accent})`, borderRadius: "20px 20px 0 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: C.gold, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }}>TOTAL BILLED</div>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 800, color: C.text, marginTop: 4 }}>$12,400</div>
-                  <div style={{ fontSize: 12, color: C.green, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>↑ 34% this month</div>
+                  <div style={{ fontSize: 10, color: gold, fontFamily: "monospace", letterSpacing: 1.5, marginBottom: 4 }}>TOTAL EARNED</div>
+                  <div style={{ fontSize: 30, fontWeight: 900 }}>$12,400</div>
+                  <div style={{ fontSize: 12, color: green, marginTop: 3 }}>↑ 34% this month</div>
                 </div>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: C.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: `${green}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
               </div>
-              <div style={{ height: 1, background: C.border, margin: "0 0 16px" }} />
+              <div style={{ height: 1, background: "#24243A", margin: "0 0 14px" }} />
               {[
-                { name: "Acme Corp (US)", type: "Contract + Deposit", status: "paid", color: C.green, amount: "$3,500" },
-                { name: "Studio Berlin", type: "Proposal", status: "signed", color: C.green, amount: "€2,200" },
-                { name: "TechBase UK", type: "Invoice", status: "pending", color: C.gold, amount: "£1,800" },
-              ].map((d, i) => (
-                <div key={i} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "10px 0", borderBottom: i < 2 ? `1px solid ${C.border}` : "none",
-                }}>
+                { name: "Acme Corp (US)", type: "Contract + Deposit", status: "paid", amt: "$3,500", c: green },
+                { name: "Studio Berlin", type: "Proposal", status: "signed", amt: "€2,200", c: green },
+                { name: "TechBase UK", type: "Invoice", status: "pending", amt: "£1,800", c: gold },
+              ].map((r, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < 2 ? "1px solid #24243A" : "none" }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{d.name}</div>
-                    <div style={{ fontSize: 11, color: C.dim }}>{d.type} · {d.amount}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</div>
+                    <div style={{ fontSize: 11, color: "#6B6B80" }}>{r.type} · {r.amt}</div>
                   </div>
-                  <div style={{
-                    fontSize: 10, color: d.color, background: d.color + "18",
-                    borderRadius: 8, padding: "3px 10px",
-                    fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
-                  }}>{d.status}</div>
+                  <div style={{ fontSize: 10, color: r.c, background: r.c + "18", borderRadius: 6, padding: "3px 9px", fontFamily: "monospace", fontWeight: 700 }}>{r.status}</div>
                 </div>
               ))}
             </div>
 
-            {/* Floating: Signed + Paid notification */}
-            <div style={{
-              animation: "float2 5s ease-in-out infinite",
-              position: "absolute", top: -10, right: -30,
-              background: C.surface, border: `1px solid ${C.green}40`,
-              borderRadius: 14, padding: "14px 18px", width: 200,
-              boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: C.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✍️</div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.green }}>Signed + Paid!</div>
-                  <div style={{ fontSize: 10, color: C.dim }}>just now</div>
+            {/* Floating notifications */}
+            {notifications.map((n, i) => (
+              <div key={i} className="notif" style={{
+                top: n.top, right: n.right, left: n.left,
+                border: `1px solid ${n.border}40`,
+                animationDelay: `${i * 0.2}s`,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: n.border + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{n.icon}</div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: n.border }}>{n.title}</div>
+                    <div style={{ fontSize: 10, color: "#6B6B80" }}>{n.sub}</div>
+                  </div>
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: C.mid }}>Acme Corp · $1,750 deposit</div>
-            </div>
-
-            {/* Floating: One link badge */}
-            <div style={{
-              animation: "float3 7s ease-in-out infinite",
-              position: "absolute", bottom: 40, right: 10,
-              background: C.surface, border: `1px solid ${C.gold}30`,
-              borderRadius: 14, padding: "16px 20px", width: 180,
-              boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
-            }}>
-              <div style={{ fontSize: 10, color: C.gold, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1, marginBottom: 6 }}>ONE LINK SENT</div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700, color: C.text }}>flowdocs.co.in/s/...</div>
-              <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>Contract · Signature · Payment</div>
-              <div style={{ fontSize: 10, color: C.green, marginTop: 2 }}>✓ Completed in 8 min</div>
-            </div>
-
-            {/* Floating: Currency badge */}
-            <div style={{
-              animation: "float2 8s ease-in-out 1s infinite",
-              position: "absolute", bottom: -10, left: -20,
-              background: C.surface, border: `1px solid ${C.accent}40`,
-              borderRadius: 12, padding: "10px 16px",
-              boxShadow: "0 12px 36px rgba(0,0,0,0.4)",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <span style={{ fontSize: 18 }}>🌍</span>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: C.accent }}>Multi-Currency</div>
-                <div style={{ fontSize: 10, color: C.dim }}>USD · EUR · GBP · INR</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ────── STATS ────── */}
-      <section style={{ maxWidth: 1200, margin: "0 auto 100px", padding: "0 24px" }}>
-        <div className="stats-row" style={{
-          display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1,
-          background: C.border, borderRadius: 20, overflow: "hidden",
-          border: `1px solid ${C.border}`,
-        }}>
-          {[
-            { value: "1 Link", label: "Sign + Pay, one flow", icon: "🔗" },
-            { value: "2 min", label: "Send first contract", icon: "⚡" },
-            { value: "8 FX", label: "Currencies supported", icon: "🌍" },
-            { value: "10x", label: "Cheaper than DocuSign", icon: "📉" },
-          ].map((s, i) => (
-            <div key={i} style={{ background: C.surface, padding: "32px 24px", textAlign: "center" }}>
-              <div style={{ fontSize: 24, marginBottom: 12 }}>{s.icon}</div>
-              <div className="counter" style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 800, color: C.gold, marginBottom: 6 }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: C.dim, fontWeight: 500 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ────── FEATURES ────── */}
-      <section id="features" style={{ maxWidth: 1200, margin: "0 auto 100px", padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Features</div>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px", marginBottom: 12 }}>
-            Everything you need to bill internationally
-          </h2>
-          <p style={{ fontSize: 16, color: C.mid, maxWidth: 560, margin: "0 auto" }}>
-            Indian freelancer. Global clients. One platform that handles the entire flow — contract to cash.
-          </p>
-        </div>
-
-        <div className="features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          {[
-            { icon: "🔗", title: "One-Link Flow", desc: "Client opens one link — reads the contract, signs it, and pays the deposit. No account needed. Works on any device.", tag: "Core Feature", tagColor: C.gold },
-            { icon: "✍️", title: "Legal eSignatures", desc: "IT Act 2000 compliant. Draw signature on any device. Legally binding. Full audit trail with IP + timestamp.", tag: "IT Act 2000", tagColor: C.green },
-            { icon: "💳", title: "International Payments", desc: "Razorpay integrated. Clients pay in USD/EUR/GBP/INR. Secure checkout. Payment confirmation automatic.", tag: "Multi-Currency", tagColor: C.blue },
-            { icon: "📄", title: "Smart Contracts", desc: "AI-powered proposals and contracts in 30 seconds. Professional templates. Multi-currency. Edit anytime.", tag: "AI Powered", tagColor: C.accent },
-            { icon: "🧾", title: "GST Invoices", desc: "CGST/SGST/IGST auto-calculation. HSN/SAC codes. GSTIN validation. For domestic clients too.", tag: "India First", tagColor: C.gold },
-            { icon: "📊", title: "Revenue Analytics", desc: "Track billings, collections, overdue payments. Client-wise revenue breakdown. FX currency tracking.", tag: "Insights", tagColor: C.gold },
-          ].map((f, i) => (
-            <div key={i} className="feature-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                <div style={{ fontSize: 32 }}>{f.icon}</div>
-                {f.tag && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 600, padding: "3px 10px", borderRadius: 8,
-                    background: f.tagColor + "15", color: f.tagColor,
-                    fontFamily: "'JetBrains Mono', monospace",
-                  }}>{f.tag}</span>
-                )}
-              </div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 8 }}>{f.title}</div>
-              <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.8 }}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ────── HOW IT WORKS ────── */}
-      <section id="how-it-works" style={{ maxWidth: 1200, margin: "0 auto 100px", padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Process</div>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px", marginBottom: 12 }}>
-            Contract signed. Deposit paid. 4 steps.
-          </h2>
-          <p style={{ fontSize: 16, color: C.mid, maxWidth: 500, margin: "0 auto" }}>
-            From "interested" to "signed and paid" — without a single WhatsApp follow-up.
-          </p>
-        </div>
-
-        <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-          {[
-            { n: "01", title: "Contract Banao", desc: "Proposal ya contract — 2 minute mein AI se ready. Client ka name, scope, amount, deadline sab add karo.", icon: "📝" },
-            { n: "02", title: "One Link Generate Karo", desc: "FlowDocs ek signing link banata hai jisme contract + signature + payment sab ek jagah hota hai.", icon: "🔗" },
-            { n: "03", title: "Client Ko Bhejo", desc: "Email ya WhatsApp pe link bhejo. Client kisi bhi device pe open kare, sign kare, deposit pay kare.", icon: "📲" },
-            { n: "04", title: "Confirmed. Done.", desc: "Signed contract aur payment confirmation — dono tujhe automatically milte hain. Kaam shuru karo.", icon: "✅" },
-          ].map((s, i) => (
-            <div key={i} style={{
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 16, padding: 28, position: "relative", overflow: "hidden",
-              transition: "all 0.3s",
-            }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${C.gold}, transparent)` }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: C.gold, letterSpacing: 2, fontWeight: 600 }}>{s.n}</div>
-                <div style={{ fontSize: 24 }}>{s.icon}</div>
-              </div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: C.text, marginBottom: 8 }}>{s.title}</div>
-              <div style={{ fontSize: 13.5, color: C.mid, lineHeight: 1.8 }}>{s.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ────── PRICING ────── */}
-      <section id="pricing" style={{ maxWidth: 1200, margin: "0 auto 100px", padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Pricing</div>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px", marginBottom: 12 }}>
-            Seedha pricing. No hidden fees.
-          </h2>
-          <p style={{ fontSize: 16, color: C.mid }}>DocuSign = ₹2,500+/month. FlowDocs = ₹0 se shuru.</p>
-        </div>
-
-        <div className="pricing-grid" style={{ display: "flex", gap: 20, alignItems: "stretch" }}>
-          {/* Free */}
-          <div className="pricing-card">
-            <div style={{ fontSize: 12, color: C.dim, letterSpacing: 2, fontFamily: "'JetBrains Mono', monospace", marginBottom: 16, fontWeight: 600 }}>FREE</div>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 48, fontWeight: 900, color: C.text, marginBottom: 4 }}>₹0</div>
-            <div style={{ fontSize: 14, color: C.dim, marginBottom: 32 }}>Forever free to start</div>
-            {["3 one-link flows/month", "eSignature collection", "PDF download", "Email notifications", "1 currency"].map((f, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid }}>
-                <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>✓</span> {f}
-              </div>
             ))}
-            <button className="ghost-btn" style={{ width: "100%", justifyContent: "center", marginTop: 28 }} onClick={goAuth}>
-              Start Free
-            </button>
           </div>
+        </div>
+      </section>
 
-          {/* Pro — Featured */}
-          <div className="pricing-card featured">
-            <div style={{
-              position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)",
-              background: `linear-gradient(135deg, ${C.gold}, #E8941A)`, color: "#0A0A0F",
-              fontSize: 11, fontWeight: 700, padding: "5px 20px", borderRadius: 20,
-              fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap",
-            }}>⚡ MOST POPULAR</div>
-            <div style={{ fontSize: 12, color: C.gold, letterSpacing: 2, fontFamily: "'JetBrains Mono', monospace", marginBottom: 16, fontWeight: 600 }}>PRO</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 48, fontWeight: 900, color: C.text }}>₹749</div>
-              <div style={{ fontSize: 15, color: C.dim }}>/month</div>
-            </div>
-            <div style={{ fontSize: 14, color: C.dim, marginBottom: 32 }}>
-              Save 17% with annual →{" "}
-              <span style={{ color: C.gold, fontWeight: 600 }}>₹7,490/yr</span>
-            </div>
+      {/* STATS */}
+      <section style={{ padding: "0 20px 80px" }}>
+        <Reveal>
+          <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
             {[
-              "Unlimited one-link flows", "Unlimited eSignatures",
-              "8 currencies (INR, USD, EUR, GBP...)", "Stripe + Wise + Razorpay",
-              "GST invoicing (CGST/SGST/IGST)", "Deposit + milestone payments",
-              "Revenue analytics", "Payment reminders",
-              "AI contract generation", "Priority support",
-            ].map((f, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid }}>
-                <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>✓</span> {f}
+              { val: 10, suf: "x", label: "Cheaper than DocuSign", icon: "📉" },
+              { val: 2, suf: " min", label: "Send first contract", icon: "⚡" },
+              { val: 8, suf: " FX", label: "Currencies supported", icon: "🌍" },
+              { val: 100, suf: "%", label: "Legally binding eSign", icon: "✍️" },
+            ].map((s, i) => (
+              <div key={i} className="stat-card">
+                <div style={{ fontSize: 22, marginBottom: 8 }}>{s.icon}</div>
+                <div style={{ fontSize: 30, fontWeight: 900, color: gold, marginBottom: 4 }}>
+                  <CountUp to={s.val} suffix={s.suf} />
+                </div>
+                <div style={{ fontSize: 12, color: "#6B6B80" }}>{s.label}</div>
               </div>
             ))}
-            <button className="glow-btn" style={{ width: "100%", justifyContent: "center", marginTop: 28 }} onClick={goAuth}>
-              Start 7-Day Free Trial →
-            </button>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section style={{ padding: "0 20px 80px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={{ fontSize: 11, color: gold, letterSpacing: 3, fontFamily: "monospace", fontWeight: 600, marginBottom: 10 }}>HOW IT WORKS</div>
+              <h2 style={{ fontSize: "clamp(26px,5vw,42px)", fontWeight: 900, letterSpacing: "-1px" }}>
+                Signed. Paid. <span className="gtext">4 steps.</span>
+              </h2>
+            </div>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, maxWidth: 560, margin: "0 auto" }}>
+            {STEPS.map((s, i) => (
+              <Reveal key={i} delay={i * 0.08}>
+                <div className={`step-item${step === i ? " active" : ""}`} onClick={() => setStep(i)}>
+                  {step === i && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${s.color},transparent)` }} />}
+                  <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: step === i ? s.color + "25" : "#16161E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0, transition: "all .3s", border: step === i ? `1px solid ${s.color}40` : "1px solid transparent" }}>
+                      {s.icon}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: step === i ? s.color : "#6B6B80", fontFamily: "monospace", letterSpacing: 1.5, marginBottom: 2 }}>0{i + 1}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: step === i ? "#F0EEF6" : "#9B9BB0" }}>{s.title}</div>
+                      {step === i && <div style={{ fontSize: 13, color: "#9B9BB0", marginTop: 4, lineHeight: 1.6, animation: "badgePop .3s ease" }}>{s.body}</div>}
+                    </div>
+                    {step === i && <div style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: s.color, animation: "pulse 1.5s ease infinite", flexShrink: 0 }} />}
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
 
-          {/* Agency */}
-          <div className="pricing-card">
-            <div style={{ fontSize: 12, color: C.accent, letterSpacing: 2, fontFamily: "'JetBrains Mono', monospace", marginBottom: 16, fontWeight: 600 }}>AGENCY</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 48, fontWeight: 900, color: C.text }}>₹1,999</div>
-              <div style={{ fontSize: 15, color: C.dim }}>/month</div>
+          {/* Progress bar */}
+          <Reveal delay={0.3}>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 24 }}>
+              {STEPS.map((s, i) => (
+                <div key={i} onClick={() => setStep(i)} style={{ height: 4, width: step === i ? 28 : 8, borderRadius: 2, background: step === i ? gold : "#24243A", transition: "all .3s", cursor: "pointer" }} />
+              ))}
             </div>
-            <div style={{ fontSize: 14, color: C.dim, marginBottom: 32 }}>For teams & agencies</div>
-            {[
-              "Everything in Pro", "5 team members",
-              "White-label branding", "Client portal",
-              "API access", "Custom templates",
-              "Dedicated account manager",
-            ].map((f, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.mid }}>
-                <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>✓</span> {f}
+          </Reveal>
+        </div>
+      </section>
+
+      {/* BEFORE vs AFTER */}
+      <section style={{ padding: "0 20px 80px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={{ fontSize: 11, color: gold, letterSpacing: 3, fontFamily: "monospace", fontWeight: 600, marginBottom: 10 }}>WHY FLOWDOCS</div>
+              <h2 style={{ fontSize: "clamp(26px,5vw,42px)", fontWeight: 900, letterSpacing: "-1px" }}>
+                Pehle vs <span className="gtext">Baad mein</span>
+              </h2>
+            </div>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
+            <Reveal delay={0.1}>
+              <div style={{ background: "#0E0E14", border: "1px solid #EF444430", borderRadius: 20, padding: 24 }}>
+                <div style={{ fontSize: 13, color: "#EF4444", fontWeight: 700, marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>😩 Pehle</div>
+                {["PDF email karo", "Print → sign → scan → email", "SWIFT transfer ka 5 din wait", "Follow up. Follow up. Follow up."].map((t, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 0", borderBottom: i < 3 ? "1px solid #24243A" : "none", fontSize: 13.5, color: "#9B9BB0" }}>
+                    <span style={{ color: "#EF4444", fontWeight: 700, marginTop: 1, flexShrink: 0 }}>✗</span>{t}
+                  </div>
+                ))}
               </div>
-            ))}
-            <button className="ghost-btn" style={{ width: "100%", justifyContent: "center", marginTop: 28, borderColor: C.accent, color: C.accent }} onClick={goAuth}>
-              Contact Sales
-            </button>
+            </Reveal>
+
+            <Reveal delay={0.2}>
+              <div style={{ background: "linear-gradient(160deg,#1A180F,#0E0E14)", border: `1px solid ${gold}40`, borderRadius: 20, padding: 24 }}>
+                <div style={{ fontSize: 13, color: gold, fontWeight: 700, marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>🚀 FlowDocs ke saath</div>
+                {["Contract banao — 2 min", "Ek link generate karo", "Client sign kare + deposit pay kare", "Tum kaam shuru karo ✓"].map((t, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 0", borderBottom: i < 3 ? "1px solid #24243A" : "none", fontSize: 13.5, color: "#9B9BB0" }}>
+                    <span style={{ color: green, fontWeight: 700, marginTop: 1, flexShrink: 0 }}>✓</span>{t}
+                  </div>
+                ))}
+                <div style={{ marginTop: 16, background: `${gold}15`, borderRadius: 10, padding: "12px", fontSize: 13, color: gold, textAlign: "center", fontWeight: 700 }}>
+                  ⏱ 15 minutes. Not 5 days.
+                </div>
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ────── TESTIMONIALS ────── */}
-      <section id="testimonials" style={{ maxWidth: 1200, margin: "0 auto 100px", padding: "0 24px" }}>
-        <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, textTransform: "uppercase", fontFamily: "'JetBrains Mono', monospace", marginBottom: 14, fontWeight: 600 }}>Early Access</div>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: C.text, letterSpacing: "-1px", marginBottom: 16 }}>
-            Be among the first freelancers
-          </h2>
-          <p style={{ fontSize: 16, color: C.mid, maxWidth: 520, margin: "0 auto 48px" }}>
-            FlowDocs is newly launched — built by an Indian developer, for Indian freelancers. Join free and help shape the product.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
-          {[
-            { icon: "🎯", title: "Free forever plan", desc: "3 documents/month, eSign + PDF — no credit card needed." },
-            { icon: "💬", title: "Direct founder access", desc: "Talk directly with the builder. Your feedback shapes features." },
-            { icon: "🔒", title: "Founding member price", desc: "Lock in ₹299/mo Pro pricing before it increases." },
-          ].map((c, i) => (
-            <div key={i} style={{
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 16, padding: 28, flex: 1, minWidth: 260,
-              display: "flex", flexDirection: "column", gap: 12,
-            }}>
-              <div style={{ fontSize: 32 }}>{c.icon}</div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 700, color: C.text }}>{c.title}</div>
-              <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.8 }}>{c.desc}</div>
+      {/* FEATURES */}
+      <section style={{ padding: "0 20px 80px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={{ fontSize: 11, color: gold, letterSpacing: 3, fontFamily: "monospace", fontWeight: 600, marginBottom: 10 }}>FEATURES</div>
+              <h2 style={{ fontSize: "clamp(26px,5vw,42px)", fontWeight: 900, letterSpacing: "-1px" }}>
+                International billing <span className="gtext">made simple</span>
+              </h2>
             </div>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 14 }}>
+            {[
+              { icon: "🔗", title: "One-Link Flow", desc: "Sign + pay deposit — ek link. No account needed for client.", tag: "Core", tc: gold },
+              { icon: "✍️", title: "Legal eSignatures", desc: "IT Act 2000 compliant. IP + timestamp audit trail.", tag: "IT Act 2000", tc: green },
+              { icon: "💳", title: "International Payments", desc: "Stripe, Wise, Razorpay. USD/EUR/GBP → INR.", tag: "8 Currencies", tc: "#60A5FA" },
+              { icon: "📄", title: "AI Contracts", desc: "Professional contracts in 30 seconds. Edit anytime.", tag: "AI Powered", tc: accent },
+              { icon: "🧾", title: "GST Invoices", desc: "CGST/SGST/IGST auto-calc. GSTIN validation.", tag: "India First", tc: gold },
+              { icon: "📊", title: "Revenue Analytics", desc: "Track billings, collections, overdue. CSV export.", tag: "Insights", tc: gold },
+            ].map((f, i) => (
+              <Reveal key={i} delay={i * 0.06}>
+                <div className="feat-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div style={{ fontSize: 28 }}>{f.icon}</div>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 7, background: f.tc + "15", color: f.tc, fontFamily: "monospace" }}>{f.tag}</span>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 7 }}>{f.title}</div>
+                  <div style={{ fontSize: 13.5, color: "#9B9BB0", lineHeight: 1.75 }}>{f.desc}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section style={{ padding: "0 20px 80px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={{ fontSize: 11, color: gold, letterSpacing: 3, fontFamily: "monospace", fontWeight: 600, marginBottom: 10 }}>PRICING</div>
+              <h2 style={{ fontSize: "clamp(26px,5vw,42px)", fontWeight: 900, letterSpacing: "-1px" }}>
+                Seedha pricing. <span className="gtext">No hidden fees.</span>
+              </h2>
+              <p style={{ fontSize: 15, color: "#6B6B80", marginTop: 10 }}>DocuSign = ₹2,500+/month. FlowDocs = ₹0 se shuru.</p>
+            </div>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16, alignItems: "start" }}>
+
+            {/* Free */}
+            <Reveal delay={0.05}>
+              <div style={{ background: "#0E0E14", border: "1px solid #24243A", borderRadius: 20, padding: 28 }}>
+                <div style={{ fontSize: 11, color: "#6B6B80", letterSpacing: 2, fontFamily: "monospace", fontWeight: 600, marginBottom: 14 }}>FREE</div>
+                <div style={{ fontSize: 44, fontWeight: 900, marginBottom: 4 }}>₹0</div>
+                <div style={{ fontSize: 13, color: "#6B6B80", marginBottom: 28 }}>Forever free to start</div>
+                {["3 one-link flows/month", "eSignature collection", "PDF download", "Email notifications", "1 currency"].map((f, i, a) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 0", borderBottom: i < a.length - 1 ? "1px solid #24243A" : "none", fontSize: 13.5, color: "#9B9BB0" }}>
+                    <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px" }}>Start Free</button>
+              </div>
+            </Reveal>
+
+            {/* Pro */}
+            <Reveal delay={0.1}>
+              <div style={{ background: "linear-gradient(160deg,#1A180F,#0E0E14)", border: `2px solid ${gold}`, borderRadius: 20, padding: 28, position: "relative" }}>
+                <div style={{ position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: `linear-gradient(135deg,${gold},#e8941a)`, color: "#0a0a0f", fontSize: 10, fontWeight: 700, padding: "4px 18px", borderRadius: 20, fontFamily: "monospace", whiteSpace: "nowrap" }}>⚡ MOST POPULAR</div>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${gold},transparent)`, borderRadius: "20px 20px 0 0" }} />
+                <div style={{ fontSize: 11, color: gold, letterSpacing: 2, fontFamily: "monospace", fontWeight: 600, marginBottom: 14 }}>PRO</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+                  <div style={{ fontSize: 44, fontWeight: 900 }}>₹749</div>
+                  <div style={{ fontSize: 14, color: "#6B6B80" }}>/month</div>
+                </div>
+                <div style={{ fontSize: 13, color: "#6B6B80", marginBottom: 28 }}>Annual pe save 17% → <span style={{ color: gold, fontWeight: 600 }}>₹7,490/yr</span></div>
+                {["Unlimited one-link flows", "Unlimited eSignatures", "8 currencies (INR, USD, EUR, GBP...)", "Stripe + Wise + Razorpay", "GST invoicing (CGST/SGST/IGST)", "Deposit + milestone payments", "AI contract generation", "Revenue analytics", "Payment reminders", "Priority support"].map((f, i, a) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: i < a.length - 1 ? "1px solid #24243A" : "none", fontSize: 13, color: "#9B9BB0" }}>
+                    <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+                <button className="glow" style={{ width: "100%", justifyContent: "center", marginTop: 24, padding: "14px" }}>Start 7-Day Free Trial →</button>
+              </div>
+            </Reveal>
+
+            {/* Agency */}
+            <Reveal delay={0.15}>
+              <div style={{ background: "#0E0E14", border: "1px solid #24243A", borderRadius: 20, padding: 28 }}>
+                <div style={{ fontSize: 11, color: accent, letterSpacing: 2, fontFamily: "monospace", fontWeight: 600, marginBottom: 14 }}>AGENCY</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+                  <div style={{ fontSize: 44, fontWeight: 900 }}>₹1,999</div>
+                  <div style={{ fontSize: 14, color: "#6B6B80" }}>/month</div>
+                </div>
+                <div style={{ fontSize: 13, color: "#6B6B80", marginBottom: 28 }}>For teams & agencies</div>
+                {["Everything in Pro", "5 team members", "White-label branding", "Client portal", "API access", "Custom templates", "Dedicated account manager"].map((f, i, a) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 0", borderBottom: i < a.length - 1 ? "1px solid #24243A" : "none", fontSize: 13.5, color: "#9B9BB0" }}>
+                    <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px", borderColor: accent, color: accent }}>Contact Sales</button>
+              </div>
+            </Reveal>
+
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section style={{ padding: "0 20px 80px" }}>
+        <Reveal>
+          <div style={{ maxWidth: 1100, margin: "0 auto", background: "linear-gradient(160deg,#1A180F 0%,#0E0E14 40%,#0F0F1A 100%)", border: `1px solid ${gold}40`, borderRadius: 24, padding: "64px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${gold},transparent)` }} />
+            <div style={{ position: "absolute", top: -40, left: "50%", transform: "translateX(-50%)", width: 300, height: 200, borderRadius: "50%", background: `radial-gradient(circle,${gold}18 0%,transparent 70%)`, filter: "blur(50px)", pointerEvents: "none" }} />
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ fontSize: 44, marginBottom: 16, animation: "floatB 4s ease-in-out infinite" }}>🚀</div>
+              <h2 style={{ fontSize: "clamp(26px,6vw,50px)", fontWeight: 900, letterSpacing: "-1.5px", marginBottom: 16, lineHeight: 1.1 }}>
+                Ek link bhejo.<br />
+                <span className="gtext">Signed. Paid. Done.</span>
+              </h2>
+              <p style={{ fontSize: 16, color: "#9B9BB0", marginBottom: 36, maxWidth: 420, margin: "0 auto 36px" }}>
+                Indian freelancers use FlowDocs to close international clients — without the back-and-forth.
+              </p>
+              <button className="glow" style={{ fontSize: 16, padding: "16px 44px" }}>Start Free — No Credit Card →</button>
+              <div style={{ marginTop: 16, fontSize: 12, color: "#6B6B80" }}>flowdocs.co.in</div>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{ borderTop: "1px solid #24243A", padding: "28px 20px", textAlign: "center" }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: gold, marginBottom: 6 }}>FlowDocs</div>
+        <div style={{ fontSize: 12, color: "#6B6B80", marginBottom: 16 }}>One Link. Signed Contract. Paid Deposit.</div>
+        <div style={{ display: "flex", gap: 20, justifyContent: "center", fontSize: 12, color: "#6B6B80", flexWrap: "wrap" }}>
+          {["Privacy Policy", "Terms of Service", "support@flowdocs.co.in"].map((t, i) => (
+            <span key={i} style={{ cursor: "pointer" }}>{t}</span>
           ))}
         </div>
-      </section>
-
-      {/* ────── FINAL CTA ────── */}
-      <section style={{ maxWidth: 1200, margin: "0 auto 100px", padding: "0 24px" }}>
-        <div style={{
-          background: `linear-gradient(160deg, #1A180F 0%, ${C.surface} 40%, #0F0F1A 100%)`,
-          border: `1px solid ${C.gold}40`,
-          borderRadius: 24, padding: "80px 40px", textAlign: "center",
-          position: "relative", overflow: "hidden",
-        }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${C.gold}, transparent)` }} />
-          <div style={{ position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)", width: 400, height: 200, borderRadius: "50%", background: `radial-gradient(circle, ${C.goldGlow} 0%, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none" }} />
-
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{ fontSize: 12, color: C.gold, letterSpacing: 3, fontFamily: "'JetBrains Mono', monospace", marginBottom: 20, fontWeight: 600 }}>GET STARTED TODAY</div>
-            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(30px, 5vw, 48px)", fontWeight: 900, color: C.text, letterSpacing: "-1px", marginBottom: 16 }}>
-              One link bhejo.<br />
-              <span className="gradient-text">Signed. Paid. Done.</span>
-            </h2>
-            <p style={{ fontSize: 17, color: C.mid, marginBottom: 40, maxWidth: 520, margin: "0 auto 40px" }}>
-              Built by an Indian developer for Indian freelancers. Free to start — close your next international client in under 2 minutes.
-            </p>
-            <button className="glow-btn" style={{ fontSize: 17, padding: "18px 48px" }} onClick={goAuth}>
-              Start Free — No Credit Card →
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ────── FOOTER ────── */}
-      <footer style={{ borderTop: `1px solid ${C.border}`, padding: "40px 24px" }}>
-        <div className="footer-grid" style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-          <div>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold, display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{ width: 24, height: 24, background: `linear-gradient(135deg, ${C.gold}, #E8941A)`, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#0A0A0F", fontWeight: 900 }}>F</span>
-              FlowDocs
-            </div>
-            <div style={{ fontSize: 13, color: C.dim }}>One Link. Signed Contract. Paid Deposit.</div>
-          </div>
-          <div style={{ display: "flex", gap: 28, fontSize: 13, color: C.dim, flexWrap: "wrap" }}>
-            <a href="/privacy" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>Privacy Policy</a>
-            <a href="/terms" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>Terms of Service</a>
-            <a href="mailto:support@flowdocs.co.in" style={{ color: C.dim, textDecoration: "none", transition: "color 0.2s" }} onMouseEnter={e => e.target.style.color = C.gold} onMouseLeave={e => e.target.style.color = C.dim}>support@flowdocs.co.in</a>
-          </div>
-          <div style={{ fontSize: 12, color: C.dim }}>© {new Date().getFullYear()} FlowDocs. Built with ❤️ for Indian Freelancers.</div>
-        </div>
+        <div style={{ fontSize: 11, color: "#6B6B80", marginTop: 16 }}>© {new Date().getFullYear()} FlowDocs. Built with ❤️ for Indian Freelancers.</div>
       </footer>
     </div>
   );
