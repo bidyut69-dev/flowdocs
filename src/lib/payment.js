@@ -1,10 +1,10 @@
-// ── Razorpay Payment Integration ─────────────────────────────────────
-// Handles: 1) Pro plan upgrade  2) Invoice payment from client
+// ── FlowDocs payment.js ──────────────────────────────────────────────────────
+// Razorpay checkout + Supabase pro activation
 
 const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
-// Load Razorpay script dynamically
-function loadRazorpay() {
+// ── Load Razorpay script dynamically ────────────────────────────────────────
+function loadRazorpayScript() {
   return new Promise((resolve) => {
     if (window.Razorpay) return resolve(true);
     const script = document.createElement("script");
@@ -15,107 +15,98 @@ function loadRazorpay() {
   });
 }
 
-// ── 1. Pro Plan Upgrade ───────────────────────────────────────────────
-export async function openRazorpayCheckout({ user, plan = "pro_monthly", amount, onSuccess, onFailure }) {
-  const loaded = await loadRazorpay();
-  if (!loaded) return onFailure?.("Payment gateway failed to load.");
-
-  const plans = {
-    solo_monthly:    { amount: 29900,  currency: "INR", desc: "FlowDocs Solo — Monthly (₹299/mo)" },
-    solo_annual:     { amount: 299000, currency: "INR", desc: "FlowDocs Solo — Annual (₹2,990/yr)" },
-    pro_monthly:     { amount: 75000,  currency: "INR", desc: "FlowDocs Pro — Monthly (₹750/mo)" },
-    pro_annual:      { amount: 750000, currency: "INR", desc: "FlowDocs Pro — Annual (₹7,500/yr)" },
-    pro_monthly_usd: { amount: 900,    currency: "USD", desc: "FlowDocs Pro — Monthly ($9/mo)" },
-  };
-
-  const selected = plans[plan];
-  if (!selected) return onFailure?.(`Unknown plan: ${plan}`);
-
-  // amount param se override karo agar explicitly pass kiya ho
-  const finalAmount = (typeof amount === "number" && amount > 0) ? amount : selected.amount;
+// ── Open Razorpay Checkout ───────────────────────────────────────────────────
+export async function openRazorpayCheckout({ user, plan, amount, onSuccess, onFailure }) {
+  const loaded = await loadRazorpayScript();
+  if (!loaded) {
+    onFailure("Payment gateway load nahi hua. Internet check karo.");
+    return;
+  }
 
   const options = {
     key: RAZORPAY_KEY,
-    amount: finalAmount,
-    currency: selected.currency,
+    amount,                          // paise mein — e.g. 29900 = ₹299
+    currency: "INR",
     name: "FlowDocs",
-    description: selected.desc,
-    image: "/android-chrome-192x192.png",
-    prefill: { name: user?.name || "", email: user?.email || "" },
-    notes: { user_id: user?.id || "", plan, type: "subscription" },
-    theme: { color: "#F5A623" },
-    modal: { backdropclose: false, escape: true, animation: true },
-    handler: async (response) => onSuccess?.(response),
-  };
-
-  const rzp = new window.Razorpay(options);
-  rzp.on("payment.failed", (r) => onFailure?.(r.error.description || "Payment failed."));
-  rzp.open();
-}
-
-// ── 2. Invoice Payment (Client pays freelancer) ───────────────────────
-export async function openInvoicePayment({ invoice, clientName, clientEmail, onSuccess, onFailure }) {
-  const loaded = await loadRazorpay();
-  if (!loaded) return onFailure?.("Payment gateway failed to load.");
-
-  if (!RAZORPAY_KEY) return onFailure?.("Payment not configured.");
-
-  // Amount in paise (INR) or cents (USD)
-  const currency = invoice.currency || "INR";
-  const amount = currency === "INR"
-    ? Math.round((invoice.amount || 0) * 100)
-    : Math.round((invoice.amount || 0) * 100);
-
-  if (amount <= 0) return onFailure?.("Invalid invoice amount.");
-
-  const options = {
-    key: RAZORPAY_KEY,
-    amount,
-    currency,
-    name: "FlowDocs Invoice",
-    description: invoice.title,
-    image: "/android-chrome-192x192.png",
+    description: `${plan} Plan Subscription`,
+    image: "https://flowdocs.co.in/favicon-32x32.png",
     prefill: {
-      name: clientName || "",
-      email: clientEmail || "",
+      name: user.name || "",
+      email: user.email || "",
     },
-    notes: {
-      document_id: invoice.id,
-      type: "invoice_payment",
+    theme: {
+      color: "#F5A623",
     },
-    theme: { color: "#F5A623" },
-    modal: { backdropclose: false, escape: true, animation: true },
-    handler: async (response) => onSuccess?.(response),
+    modal: {
+      ondismiss: () => {
+        onFailure("Payment cancelled.");
+      },
+    },
+    handler: function (response) {
+      // response = { razorpay_payment_id, razorpay_order_id, razorpay_signature }
+      onSuccess(response);
+    },
   };
 
   const rzp = new window.Razorpay(options);
-  rzp.on("payment.failed", (r) => onFailure?.(r.error.description || "Payment failed."));
+  rzp.on("payment.failed", function (response) {
+    onFailure(response.error?.description || "Payment failed.");
+  });
   rzp.open();
 }
 
-// ── Update plan after payment ─────────────────────────────────────────
-export async function activateProPlan(supabase, userId, paymentId, planName = "pro") {
-  // planName: "solo" | "pro"
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      plan: planName,
-      plan_activated_at: new Date().toISOString(),
-      razorpay_payment_id: paymentId,
-    })
-    .eq("id", userId);
-  return !error;
+// ── Activate Pro Plan in Supabase ────────────────────────────────────────────
+export async function activateProPlan(supabase, userId, paymentId, planName) {
+  try {
+    // 1. Payment record save karo
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        user_id: userId,
+        razorpay_payment_id: paymentId,
+        amount: planName === "solo" ? 299 : 750,
+        currency: "INR",
+        plan: planName,
+        status: "success",
+      });
+
+    if (paymentError) {
+      // Duplicate payment — already activated
+      if (paymentError.code === "23505") return true;
+      console.error("Payment insert error:", paymentError);
+    }
+
+    // 2. Profile mein plan update karo
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ plan: planName })
+      .eq("id", userId);
+
+    if (profileError) {
+      console.error("Profile update error:", profileError);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("activateProPlan error:", err);
+    return false;
+  }
 }
 
-// ── Mark invoice as paid after client payment ─────────────────────────
-export async function markInvoicePaid(supabase, documentId, paymentId) {
-  const { error } = await supabase
-    .from("documents")
-    .update({
-      status: "paid",
-      razorpay_payment_id: paymentId,
-      paid_at: new Date().toISOString(),
-    })
-    .eq("id", documentId);
-  return !error;
+// ── Check if user is Pro ─────────────────────────────────────────────────────
+export async function getUserPlan(supabase, userId) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", userId)
+    .single();
+
+  if (error) return "free";
+  return data?.plan || "free";
 }
+
+// ── Manual Pro Upgrade (admin use) ───────────────────────────────────────────
+// Jab koi directly pay kare aur webhook na ho
+// Supabase SQL Editor mein run karo:
+// update profiles set plan = 'pro' where email = 'user@email.com';
