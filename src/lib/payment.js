@@ -106,6 +106,63 @@ export async function getUserPlan(supabase, userId) {
   return data?.plan || "free";
 }
 
+// ── Invoice Payment (SignPage use) ───────────────────────────────────────────
+export async function openInvoicePayment({ user, document, amount, currency = "INR", onSuccess, onFailure }) {
+  const loaded = await loadRazorpayScript();
+  if (!loaded) {
+    onFailure?.("Payment gateway load nahi hua. Internet check karo.");
+    return;
+  }
+
+  const options = {
+    key: RAZORPAY_KEY,
+    amount: Math.round(amount * 100), // paise mein
+    currency,
+    name: "FlowDocs",
+    description: `Payment for ${document?.title || "Invoice"}`,
+    image: "https://flowdocs.co.in/favicon-32x32.png",
+    prefill: {
+      name: user?.name || "",
+      email: user?.email || "",
+    },
+    theme: { color: "#F5A623" },
+    modal: {
+      ondismiss: () => onFailure?.("Payment cancelled."),
+    },
+    handler: function (response) {
+      onSuccess?.(response);
+    },
+  };
+
+  const rzp = new window.Razorpay(options);
+  rzp.on("payment.failed", (response) => {
+    onFailure?.(response.error?.description || "Payment failed.");
+  });
+  rzp.open();
+}
+
+// ── Mark Invoice as Paid in Supabase ─────────────────────────────────────────
+export async function markInvoicePaid(supabase, documentId, paymentId) {
+  try {
+    const { error } = await supabase
+      .from("documents")
+      .update({
+        status: "paid",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", documentId);
+
+    if (error) {
+      console.error("markInvoicePaid error:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("markInvoicePaid error:", err);
+    return false;
+  }
+}
+
 // ── Manual Pro Upgrade (admin use) ───────────────────────────────────────────
 // Jab koi directly pay kare aur webhook na ho
 // Supabase SQL Editor mein run karo:
