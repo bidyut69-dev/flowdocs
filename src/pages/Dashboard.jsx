@@ -37,12 +37,13 @@ const calcGST = (subtotal, taxType, taxRate = 18) => {
 };
 
 const btn = (variant = "primary") => ({
-  background: variant === "primary" ? C.gold : "transparent",
+  background: variant === "primary" ? `linear-gradient(135deg, ${C.gold}, #E8941A)` : "transparent",
   color: variant === "primary" ? "#0C0C0E" : C.mid,
   border: variant === "primary" ? "none" : `1px solid ${C.border}`,
-  borderRadius: 8, padding: variant === "primary" ? "10px 20px" : "8px 14px",
+  borderRadius: 9, padding: variant === "primary" ? "10px 20px" : "8px 14px",
   fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-  transition: "all 0.15s", display: "inline-flex", alignItems: "center", gap: 6,
+  transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: 6,
+  boxShadow: variant === "primary" ? `0 4px 16px ${C.gold}30` : "none",
 });
 const input = {
   width: "100%", background: C.surface2, border: `1px solid ${C.border}`,
@@ -397,13 +398,18 @@ export default function Dashboard({ session }) {
       <style>{`
         @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-        input:focus { border-color: ${C.gold} !important; }
-        select:focus { border-color: ${C.gold} !important; }
-        textarea:focus { border-color: ${C.gold} !important; }
-        ::-webkit-scrollbar { width: 6px; }
+        @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+        input:focus { border-color: ${C.gold} !important; box-shadow: 0 0 0 3px ${C.gold}15 !important; }
+        select:focus { border-color: ${C.gold} !important; box-shadow: 0 0 0 3px ${C.gold}15 !important; }
+        textarea:focus { border-color: ${C.gold} !important; box-shadow: 0 0 0 3px ${C.gold}15 !important; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: ${C.bg}; }
-        ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
-        button:hover { opacity: 0.88; }
+        ::-webkit-scrollbar-thumb { background: ${C.gold}40; border-radius: 2px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        .fd-table-row:hover td { background: ${C.surface2} !important; }
+        .fd-nav-item:hover { background: ${C.goldDim} !important; color: ${C.gold} !important; }
+        .stat-card:hover { transform: translateY(-3px) !important; box-shadow: 0 12px 40px rgba(0,0,0,0.4) !important; }
         .fd-sidebar { display: flex; }
         .fd-main { margin-left: 220px; }
         .fd-mobile-topbar { display: none !important; }
@@ -441,47 +447,61 @@ export default function Dashboard({ session }) {
         <button onClick={() => setModal("newDoc")} style={{ background: C.gold, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#0C0C0E", fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>+ New</button>
       </div>
 
-      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{ width: 260, background: C.surface, borderRight: `1px solid ${C.border}`, flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 15, overflowY: "auto" }}>
-        <div style={{ padding: "0 20px 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{ width: 220, background: `linear-gradient(180deg, ${C.surface} 0%, #101012 100%)`, borderRight: `1px solid ${C.border}`, flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 15, overflowY: "auto" }}>
+        {/* Logo */}
+        <div style={{ padding: "0 20px 20px", borderBottom: `1px solid ${C.border}30`, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
-            <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginTop: 3 }}>
-              {profile?.name || session.user.email}
-            </div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, background: `linear-gradient(135deg, ${C.gold}, #FFD700)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FlowDocs</div>
+            <div style={{ fontSize: 9, color: C.dim, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginTop: 2 }}>Freelancer Suite</div>
           </div>
-          <button onClick={() => setSidebarOpen(false)} style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: C.dim, fontSize: 18, lineHeight: 1 }}>×</button>
+          <button onClick={() => setSidebarOpen(false)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 4 }}>×</button>
         </div>
 
-        <div style={{ fontSize: 10, color: C.dim, padding: "0 20px 8px", letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>Workspace</div>
+        {/* User avatar */}
+        <div style={{ padding: "0 16px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: `1px solid ${C.border}30`, marginBottom: 8 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.gold}40, ${C.gold}20)`, border: `1px solid ${C.gold}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: C.gold, flexShrink: 0 }}>
+            {(profile?.name || session.user.email || "U")[0].toUpperCase()}
+          </div>
+          <div style={{ overflow: "hidden" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "User"}</div>
+            <div style={{ fontSize: 10, color: C.dim, fontFamily: "'DM Mono', monospace" }}>{profile?.plan?.toUpperCase() || "FREE"} PLAN</div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 9, color: C.dim, padding: "0 20px 8px", letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>Workspace</div>
 
         {navItems.map(n => (
-          <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", cursor: "pointer", fontSize: 14, color: page === n.id ? C.gold : C.mid, background: page === n.id ? C.goldDim : "transparent", borderLeft: `3px solid ${page === n.id ? C.gold : "transparent"}`, transition: "all 0.15s", fontWeight: page === n.id ? 600 : 400, borderRadius: "0 8px 8px 0", marginRight: 8 }}
+          <div key={n.id} className="fd-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", fontSize: 13.5, color: page === n.id ? C.gold : C.mid, background: page === n.id ? `linear-gradient(90deg, ${C.goldDim}, transparent)` : "transparent", borderLeft: `3px solid ${page === n.id ? C.gold : "transparent"}`, transition: "all 0.2s", fontWeight: page === n.id ? 600 : 400, marginRight: 8, borderRadius: "0 8px 8px 0" }}
             onClick={() => { setPage(n.id); setSidebarOpen(false); }}>
-            <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{n.icon}</span>
+            <span style={{ fontSize: 15, width: 20, textAlign: "center", opacity: page === n.id ? 1 : 0.7 }}>{n.icon}</span>
             {n.label}
           </div>
         ))}
 
         <div style={{ marginTop: "auto" }}>
-          <div style={{ padding: "0 20px 16px" }}>
-            {profile?.plan === "pro" ? (
-              <div style={{ background: C.goldDim, border: `1px solid ${C.gold}`, borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace" }}>⚡ PRO PLAN</div>
+          <div style={{ padding: "0 16px 16px" }}>
+            {profile?.plan === "pro" || profile?.plan === "solo" ? (
+              <div style={{ background: `linear-gradient(135deg, ${C.goldDim}, transparent)`, border: `1px solid ${C.gold}40`, borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace" }}>⚡ {(profile.plan || "PRO").toUpperCase()} PLAN</div>
                 <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>Unlimited docs</div>
               </div>
             ) : (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, fontFamily: "'DM Mono', monospace" }}>FREE PLAN</div>
-                  <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>{documents.length} / 3 docs used</div>
-                  <div style={{ background: C.border, borderRadius: 4, height: 3, marginTop: 6 }}>
-                    <div style={{ width: `${Math.min((documents.length / 3) * 100, 100)}%`, height: "100%", background: documents.length >= 3 ? C.red : C.gold, borderRadius: 4 }} />
+                <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, fontFamily: "'DM Mono', monospace" }}>FREE PLAN</div>
+                    <div style={{ fontSize: 11, color: documents.length >= 3 ? C.red : C.dim }}>{documents.length}/3</div>
+                  </div>
+                  <div style={{ background: C.border, borderRadius: 4, height: 3 }}>
+                    <div style={{ width: `${Math.min((documents.length / 3) * 100, 100)}%`, height: "100%", background: documents.length >= 3 ? C.red : `linear-gradient(90deg, ${C.gold}, #FFD700)`, borderRadius: 4, transition: "width 0.3s" }} />
                   </div>
                 </div>
-                <button onClick={() => setShowUpgrade(true)} style={{ width: "100%", background: C.gold, color: "#0C0C0E", border: "none", borderRadius: 8, padding: "9px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>⚡ Upgrade to Pro</button>
+                <button onClick={() => setShowUpgrade(true)} style={{ width: "100%", background: `linear-gradient(135deg, ${C.gold}, #E8941A)`, color: "#0C0C0E", border: "none", borderRadius: 9, padding: "10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: `0 4px 16px ${C.gold}30` }}>⚡ Upgrade to Pro</button>
               </div>
             )}
-            <div onClick={signOut} style={{ fontSize: 12, color: C.dim, cursor: "pointer", padding: "8px 0", display: "flex", alignItems: "center", gap: 8 }}>⏏ Sign out</div>
+            <div onClick={signOut} style={{ fontSize: 12, color: C.dim, cursor: "pointer", padding: "8px 4px", display: "flex", alignItems: "center", gap: 8, borderRadius: 8, transition: "all 0.2s" }}>
+              <span>⏏</span> Sign out
+            </div>
           </div>
         </div>
       </aside>
