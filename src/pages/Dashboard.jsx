@@ -6,7 +6,6 @@ import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
 import Templates from "./Templates";
 
-// ── THEME ──────────────────────────────────────────────────────────────
 const C = {
   bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
   gold: "#F5A623", goldDim: "#F5A62320", text: "#F0EEE8", dim: "#7A7875",
@@ -15,10 +14,8 @@ const C = {
   purple: "#A78BFA", purpleDim: "#A78BFA20",
 };
 
-// ── APP URL ────────────────────────────────────────────────────────────
 const APP_URL = import.meta.env.VITE_APP_URL?.replace(/\/$/, "") || window.location.origin;
 
-// ── CURRENCIES ─────────────────────────────────────────────────────────
 const CURRENCIES = {
   INR: { symbol: "₹", name: "Indian Rupee" },
   USD: { symbol: "$", name: "US Dollar" },
@@ -31,7 +28,6 @@ const CURRENCIES = {
 };
 const fmtCur = (amount, cur = "INR") => `${CURRENCIES[cur]?.symbol || "₹"}${Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
-// ── GST HELPERS ────────────────────────────────────────────────────────
 const INDIAN_STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Jammu & Kashmir","Ladakh","Chandigarh","Puducherry","Lakshadweep","Andaman & Nicobar"];
 
 const calcGST = (subtotal, taxType, taxRate = 18) => {
@@ -40,7 +36,6 @@ const calcGST = (subtotal, taxType, taxRate = 18) => {
   return { cgst: 0, sgst: 0, igst: 0, total: subtotal };
 };
 
-// ── SHARED STYLES ──────────────────────────────────────────────────────
 const btn = (variant = "primary") => ({
   background: variant === "primary" ? C.gold : "transparent",
   color: variant === "primary" ? "#0C0C0E" : C.mid,
@@ -78,7 +73,6 @@ const badge = (status) => {
   };
 };
 
-// ── TOAST ──────────────────────────────────────────────────────────────
 function Toast({ msg, onClose }) {
   useEffect(() => { if (msg) { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); } }, [msg, onClose]);
   if (!msg) return null;
@@ -95,7 +89,6 @@ function Toast({ msg, onClose }) {
   );
 }
 
-// ── MODAL ──────────────────────────────────────────────────────────────
 function Modal({ title, sub, onClose, children, width = 500 }) {
   return (
     <div style={{
@@ -119,7 +112,6 @@ function Modal({ title, sub, onClose, children, width = 500 }) {
   );
 }
 
-// ── STAT CARD ──────────────────────────────────────────────────────────
 function StatCard({ label: lbl, value, sub, accent }) {
   const accentMap = { gold: C.gold, green: C.green, blue: C.blue, red: C.red, purple: C.purple };
   return (
@@ -132,7 +124,6 @@ function StatCard({ label: lbl, value, sub, accent }) {
   );
 }
 
-// ── DASHBOARD MAIN ─────────────────────────────────────────────────────
 export default function Dashboard({ session }) {
   const [page, setPage] = useState("dashboard");
   const [profile, setProfile] = useState(null);
@@ -145,82 +136,85 @@ export default function Dashboard({ session }) {
 
   const showToast = (text, ok = true) => setToast({ text, ok });
 
-  // New Doc form state
   const [docForm, setDocForm] = useState({
     title: "", type: "Proposal", client_id: "", amount: "", description: "",
     currency: "INR", tax_type: "none", tax_rate: "18", hsn_sac: "",
     due_date: "", recurring_frequency: "", notes: "",
   });
   const [invoiceItems, setInvoiceItems] = useState([{ description: "", qty: 1, rate: "" }]);
-
-  // New Client form state
   const [clientForm, setClientForm] = useState({ name: "", email: "", company: "", country: "", phone: "", gstin: "", state: "", address: "" });
-
-  // Edit document state
   const [editDoc, setEditDoc] = useState(null);
   const [editForm, setEditForm] = useState({});
 
-  // ── Fetch data ──
   const fetchAll = async () => {
     setLoading(true);
     const uid = session.user.id;
-
     const [{ data: prof }, { data: docs }, { data: cls }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", uid).single(),
       supabase.from("documents").select("*, clients(name, email, company), signature_data").eq("user_id", uid).order("created_at", { ascending: false }),
       supabase.from("clients").select("*").eq("user_id", uid).order("name"),
     ]);
-
     if (prof) setProfile(prof);
     if (docs) setDocuments(docs);
     if (cls) setClients(cls);
     setLoading(false);
   };
 
+  // ── NEW: Auto mark overdue ──────────────────────────────────────────
+  const checkAndMarkOverdue = async (docs) => {
+    const today = new Date().toISOString().split("T")[0];
+    const overdueIds = docs
+      .filter(d => d.status === "pending" && d.due_date && d.due_date < today)
+      .map(d => d.id);
+    if (overdueIds.length === 0) return;
+    await supabase.from("documents").update({ status: "overdue" }).in("id", overdueIds);
+    setDocuments(prev => prev.map(d => overdueIds.includes(d.id) ? { ...d, status: "overdue" } : d));
+    showToast(`⚠️ ${overdueIds.length} document(s) marked overdue`, false);
+  };
+
   useEffect(() => {
-    fetchAll();
+    fetchAll().then(() => {
+      // checkAndMarkOverdue called after docs load via useEffect below
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Create Document ──
+  // Check overdue after documents load
+  useEffect(() => {
+    if (documents.length > 0) checkAndMarkOverdue(documents);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documents.length]);
+
+  // ── NEW: Share Client Portal ────────────────────────────────────────
+  const shareClientPortal = (client) => {
+    if (!client?.email) return showToast("Client email nahi hai — portal share nahi ho sakta", false);
+    const url = `${APP_URL}/portal/${session.user.id}/${encodeURIComponent(client.email)}`;
+    navigator.clipboard.writeText(url);
+    showToast("✓ Client portal link copied!");
+  };
+
   const createDoc = async () => {
     if (!docForm.title) return showToast("Enter document title", false);
-
     const invItems = invoiceItems.filter(i => i.description);
     const subtotal = docForm.type === "Invoice"
       ? invItems.reduce((s, i) => s + (i.qty || 1) * (i.rate || 0), 0)
       : parseFloat(docForm.amount) || 0;
-
     const gst = calcGST(subtotal, docForm.tax_type, parseFloat(docForm.tax_rate) || 18);
-    const content = docForm.type === "Invoice"
-      ? { items: invItems }
-      : { description: docForm.description };
-
+    const content = docForm.type === "Invoice" ? { items: invItems } : { description: docForm.description };
     const { data, error } = await supabase.from("documents").insert({
       user_id: session.user.id,
       client_id: docForm.client_id || null,
-      title: docForm.title,
-      type: docForm.type,
-      status: "draft",
-      amount: gst.total,
-      subtotal,
-      currency: docForm.currency,
-      tax_type: docForm.tax_type,
-      tax_rate: parseFloat(docForm.tax_rate) || 18,
+      title: docForm.title, type: docForm.type, status: "draft",
+      amount: gst.total, subtotal, currency: docForm.currency,
+      tax_type: docForm.tax_type, tax_rate: parseFloat(docForm.tax_rate) || 18,
       tax_amount: gst.cgst + gst.sgst + gst.igst,
-      hsn_sac: docForm.hsn_sac || null,
-      due_date: docForm.due_date || null,
+      hsn_sac: docForm.hsn_sac || null, due_date: docForm.due_date || null,
       recurring_frequency: docForm.recurring_frequency || null,
       recurring_active: !!docForm.recurring_frequency,
       recurring_next_date: docForm.recurring_frequency ? docForm.due_date : null,
-      notes: docForm.notes || null,
-      content,
-      // BUG-13 FIX: Auto invoice number
-      invoice_number: docForm.type === "Invoice"
-        ? `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`
-        : null,
+      notes: docForm.notes || null, content,
+      invoice_number: docForm.type === "Invoice" ? `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}` : null,
     }).select("*, clients(name, email, company)").single();
-
     if (error) return showToast(error.message, false);
     setDocuments([data, ...documents]);
     setModal(null);
@@ -229,12 +223,9 @@ export default function Dashboard({ session }) {
     showToast("✓ Document created!");
   };
 
-  // ── Create Client ──
   const createClient = async () => {
     if (!clientForm.name) return showToast("Enter client name", false);
-    const { data, error } = await supabase.from("clients").insert({
-      user_id: session.user.id, ...clientForm
-    }).select().single();
+    const { data, error } = await supabase.from("clients").insert({ user_id: session.user.id, ...clientForm }).select().single();
     if (error) return showToast(error.message, false);
     setClients([data, ...clients]);
     setModal(null);
@@ -242,20 +233,14 @@ export default function Dashboard({ session }) {
     showToast("✓ Client added!");
   };
 
-  // ── Edit Document ──
   const openEditDoc = (doc) => {
     setEditDoc(doc);
     setEditForm({
-      title: doc.title,
-      description: doc.content?.description || "",
-      amount: doc.amount || "",
-      currency: doc.currency || "INR",
-      tax_type: doc.tax_type || "none",
-      tax_rate: doc.tax_rate || "18",
-      hsn_sac: doc.hsn_sac || "",
-      due_date: doc.due_date || "",
-      notes: doc.notes || "",
-      status: doc.status,
+      title: doc.title, description: doc.content?.description || "",
+      amount: doc.amount || "", currency: doc.currency || "INR",
+      tax_type: doc.tax_type || "none", tax_rate: doc.tax_rate || "18",
+      hsn_sac: doc.hsn_sac || "", due_date: doc.due_date || "",
+      notes: doc.notes || "", status: doc.status,
     });
     setModal("editDoc");
   };
@@ -264,177 +249,103 @@ export default function Dashboard({ session }) {
     if (!editDoc) return;
     const subtotal = parseFloat(editForm.amount) || editDoc.subtotal || 0;
     const gst = calcGST(subtotal, editForm.tax_type, parseFloat(editForm.tax_rate) || 18);
-
     const { error } = await supabase.from("documents").update({
       title: editForm.title,
       content: editDoc.type === "Invoice" ? editDoc.content : { description: editForm.description },
-      amount: gst.total,
-      subtotal,
-      currency: editForm.currency,
-      tax_type: editForm.tax_type,
-      tax_rate: parseFloat(editForm.tax_rate) || 18,
+      amount: gst.total, subtotal, currency: editForm.currency,
+      tax_type: editForm.tax_type, tax_rate: parseFloat(editForm.tax_rate) || 18,
       tax_amount: gst.cgst + gst.sgst + gst.igst,
-      hsn_sac: editForm.hsn_sac || null,
-      due_date: editForm.due_date || null,
-      notes: editForm.notes || null,
-      status: editForm.status,
+      hsn_sac: editForm.hsn_sac || null, due_date: editForm.due_date || null,
+      notes: editForm.notes || null, status: editForm.status,
     }).eq("id", editDoc.id);
-
     if (error) return showToast(error.message, false);
     await fetchAll();
-    setModal(null);
-    setEditDoc(null);
+    setModal(null); setEditDoc(null);
     showToast("✓ Document updated!");
   };
 
-  // ── Send Document / Email Reminder ──
   const sendDoc = async (doc) => {
     const client = clients.find(c => c.id === doc.client_id) || doc.clients;
     const signingUrl = `${APP_URL}/sign/${doc.sign_token}`;
-
-    // Update status to pending if still draft
     if (doc.status === "draft") {
-      const { error } = await supabase
-        .from("documents")
-        .update({ status: "pending" })
-        .eq("id", doc.id);
+      const { error } = await supabase.from("documents").update({ status: "pending" }).eq("id", doc.id);
       if (error) return showToast("Failed: " + error.message, false);
-      setDocuments(prev => prev.map(d =>
-        d.id === doc.id ? { ...d, status: "pending" } : d
-      ));
+      setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, status: "pending" } : d));
     }
-
-    // Send email if client has email
     if (client?.email) {
       try {
         const emailOk = await sendSigningEmail({
-          to: client.email,
-          clientName: client.name || "there",
-          docTitle: doc.title,
-          signingUrl,
-          fromName: profile?.name || "FlowDocs User",
+          to: client.email, clientName: client.name || "there",
+          docTitle: doc.title, signingUrl, fromName: profile?.name || "FlowDocs User",
           amount: doc.amount ? fmtCur(doc.amount, doc.currency || "INR") : null,
         });
-        if (emailOk) {
-          showToast("✓ Email sent to " + client.email + "!");
-        } else {
-          // Email failed — copy link as fallback
-          navigator.clipboard.writeText(signingUrl).catch(() => {});
-          showToast("⚠️ Email failed — link copied! Share manually.", false);
-        }
-      } catch {
-        navigator.clipboard.writeText(signingUrl).catch(() => {});
-        showToast("⚠️ Email error — link copied!", false);
-      }
+        if (emailOk) showToast("✓ Email sent to " + client.email + "!");
+        else { navigator.clipboard.writeText(signingUrl).catch(() => {}); showToast("⚠️ Email failed — link copied!", false); }
+      } catch { navigator.clipboard.writeText(signingUrl).catch(() => {}); showToast("⚠️ Email error — link copied!", false); }
     } else {
-      // No email — copy link
       navigator.clipboard.writeText(signingUrl).catch(() => {});
       showToast("✓ No email on client — signing link copied!");
     }
   };
 
-  // ── WhatsApp Share ──
   const shareWhatsApp = (doc) => {
     const client = clients.find(c => c.id === doc.client_id);
     const url = `${APP_URL}/sign/${doc.sign_token}`;
-    const msg = encodeURIComponent(
-      `Hi ${client?.name || ""},\n\n${profile?.name || "I"} has sent you a ${doc.type} to review and sign:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 View & Sign: ${url}\n\nPowered by FlowDocs`
-    );
+    const msg = encodeURIComponent(`Hi ${client?.name || ""},\n\n${profile?.name || "I"} has sent you a ${doc.type} to review and sign:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 View & Sign: ${url}\n\nPowered by FlowDocs`);
     const phone = client?.phone ? client.phone.replace(/[^0-9]/g, "") : "";
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
     showToast("✓ Opening WhatsApp...");
   };
 
-  // ── Download PDF ──
   const handleDownload = async (doc) => {
     try {
       showToast("Generating PDF...");
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-
-      // Fresh signature_data DB se fetch karo
       let freshDoc = doc;
       if (doc.status === "signed") {
-        const { data } = await supabase
-          .from("documents")
-          .select("signature_data, signature_url, signed_at, signer_name")
-          .eq("id", doc.id)
-          .single();
+        const { data } = await supabase.from("documents").select("signature_data, signature_url, signed_at, signer_name").eq("id", doc.id).single();
         if (data) freshDoc = { ...doc, ...data };
       }
-
-      // signature_data ya signature_url — jo bhi available ho
       const signatureDataUrl = freshDoc.signature_data || freshDoc.signature_url || null;
-
       const ok = downloadPDF(freshDoc, profile, client, signatureDataUrl);
       if (ok) showToast("✓ PDF downloaded!");
       else showToast("PDF generation failed.", false);
-    } catch (err) {
-      console.error("Download error:", err);
-      showToast("PDF failed: " + (err.message || "Unknown error"), false);
-    }
+    } catch (err) { showToast("PDF failed: " + (err.message || "Unknown error"), false); }
   };
 
-  // ── Copy signing link ──
   const copyLink = (doc) => {
     const url = `${APP_URL}/sign/${doc.sign_token}`;
     navigator.clipboard.writeText(url).then(() => showToast("✓ Signing link copied!"));
   };
 
-  // ── Mark as Paid (with confirmation) ──
   const markPaid = async (doc) => {
     const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-    const confirmed = window.confirm(
-      `Mark this invoice as PAID?\n\n"${doc.title}"\nClient: ${client?.name || "—"}\nAmount: ${fmtCur(doc.amount, doc.currency || "INR")}\n\nThis cannot be undone easily.`
-    );
+    const confirmed = window.confirm(`Mark this invoice as PAID?\n\n"${doc.title}"\nClient: ${client?.name || "—"}\nAmount: ${fmtCur(doc.amount, doc.currency || "INR")}\n\nThis cannot be undone easily.`);
     if (!confirmed) return;
-
-    const { error } = await supabase
-      .from("documents")
-      .update({ status: "paid", paid_at: new Date().toISOString() })
-      .eq("id", doc.id);
-
+    const { error } = await supabase.from("documents").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", doc.id);
     if (!error) {
-      setDocuments(prev => prev.map(d =>
-        d.id === doc.id ? { ...d, status: "paid", paid_at: new Date().toISOString() } : d
-      ));
+      setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, status: "paid", paid_at: new Date().toISOString() } : d));
       showToast("✓ Invoice marked as paid! 💰");
-    } else {
-      showToast("Failed: " + error.message, false);
-    }
+    } else showToast("Failed: " + error.message, false);
   };
 
-  // ── Sign out ──
   const signOut = async () => { await supabase.auth.signOut(); };
 
-  // ── Audit Trail Download ──
   const handleAuditTrail = (doc) => {
     try {
-      const pdf = generateAuditTrail({
-        document: doc,
-        signerName: doc.signer_name || "—",
-        signerIp: doc.signer_ip || "—",
-        signedAt: doc.signed_at,
-        signatureUrl: doc.signature_url,
-      });
+      const pdf = generateAuditTrail({ document: doc, signerName: doc.signer_name || "—", signerIp: doc.signer_ip || "—", signedAt: doc.signed_at, signatureUrl: doc.signature_url });
       pdf.save(`AuditTrail-${doc.title.replace(/\s+/g, "-")}.pdf`);
       showToast("✓ Audit trail downloaded!");
-    } catch (err) {
-      showToast("Audit trail failed: " + err.message, false);
-    }
+    } catch (err) { showToast("Audit trail failed: " + err.message, false); }
   };
 
-  // ── Bulk WhatsApp Reminders ──
   const sendBulkReminders = () => {
-    const pending = documents.filter(d =>
-      d.status === "pending" || d.status === "overdue"
-    );
+    const pending = documents.filter(d => d.status === "pending" || d.status === "overdue");
     if (pending.length === 0) return showToast("No pending documents!", false);
     pending.forEach(doc => {
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
       const url = `${APP_URL}/sign/${doc.sign_token}`;
-      const msg = encodeURIComponent(
-        `Hi ${client?.name || "there"},\n\nJust a reminder — your ${doc.type} is waiting for action:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 ${url}\n\nPowered by FlowDocs`
-      );
+      const msg = encodeURIComponent(`Hi ${client?.name || "there"},\n\nJust a reminder — your ${doc.type} is waiting for action:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 ${url}\n\nPowered by FlowDocs`);
       window.open(`https://wa.me/?text=${msg}`, "_blank");
     });
     showToast(`✓ Opened ${pending.length} WhatsApp reminder(s)!`);
@@ -443,14 +354,12 @@ export default function Dashboard({ session }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAI, setShowAI] = useState(false);
 
-  // ── Derived stats ──
   const defaultCur = profile?.default_currency || "INR";
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
   const collected = documents.filter(d => d.status === "paid").reduce((s, d) => s + (d.amount || 0), 0);
   const pendingSign = documents.filter(d => d.status === "pending").length;
   const overdue = documents.filter(d => d.status === "overdue").length;
 
-  // ── Analytics data ──
   const monthlyRevenue = {};
   documents.filter(d => d.status === "paid").forEach(d => {
     const m = new Date(d.paid_at || d.updated_at).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
@@ -495,28 +404,15 @@ export default function Dashboard({ session }) {
         ::-webkit-scrollbar-track { background: ${C.bg}; }
         ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 3px; }
         button:hover { opacity: 0.88; }
-
-        /* ── Desktop ── */
         .fd-sidebar { display: flex; }
         .fd-main { margin-left: 220px; }
         .fd-mobile-topbar { display: none !important; }
         .fd-bottom-nav { display: none !important; }
         .fd-overlay { display: none !important; }
-
-        /* ── Mobile ── */
         @media (max-width: 768px) {
-          .fd-sidebar {
-            transform: translateX(-100%);
-            transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
-          }
-          .fd-sidebar.open {
-            transform: translateX(0) !important;
-            box-shadow: 4px 0 32px rgba(0,0,0,0.6);
-          }
-          .fd-main {
-            margin-left: 0 !important;
-            padding: 16px 12px 80px !important;
-          }
+          .fd-sidebar { transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+          .fd-sidebar.open { transform: translateX(0) !important; box-shadow: 4px 0 32px rgba(0,0,0,0.6); }
+          .fd-main { margin-left: 0 !important; padding: 16px 12px 80px !important; }
           .fd-mobile-topbar { display: flex !important; }
           .fd-bottom-nav { display: flex !important; }
           .fd-overlay { display: block !important; }
@@ -533,88 +429,34 @@ export default function Dashboard({ session }) {
         }
       `}</style>
 
-      {/* ── MOBILE OVERLAY ── */}
       {sidebarOpen && (
-        <div className="fd-overlay" onClick={() => setSidebarOpen(false)} style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)",
-          zIndex: 14, backdropFilter: "blur(2px)",
-        }} />
+        <div className="fd-overlay" onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 14, backdropFilter: "blur(2px)" }} />
       )}
 
-      {/* ── MOBILE TOP BAR ── */}
-      <div className="fd-mobile-topbar" style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 13,
-        background: C.surface, borderBottom: `1px solid ${C.border}`,
-        padding: "12px 16px", alignItems: "center", justifyContent: "space-between",
-        height: 54,
-      }}>
-        {/* Hamburger */}
-        <button onClick={() => setSidebarOpen(true)} style={{
-          background: C.surface2, border: `1px solid ${C.border}`,
-          borderRadius: 8, padding: "6px 10px", cursor: "pointer",
-          color: C.gold, fontSize: 18, display: "flex", alignItems: "center", gap: 6,
-          fontFamily: "'DM Sans', sans-serif",
-        }}>
+      <div className="fd-mobile-topbar" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 13, background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "12px 16px", alignItems: "center", justifyContent: "space-between", height: 54 }}>
+        <button onClick={() => setSidebarOpen(true)} style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: C.gold, fontSize: 18, display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif" }}>
           <span>☰</span>
         </button>
-
-        {/* Logo center */}
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold }}>
-          ⚡ FlowDocs
-        </div>
-
-        {/* New doc button */}
-        <button onClick={() => setModal("newDoc")} style={{
-          background: C.gold, border: "none", borderRadius: 8,
-          padding: "6px 12px", cursor: "pointer",
-          color: "#0C0C0E", fontSize: 13, fontWeight: 700,
-          fontFamily: "'DM Sans', sans-serif",
-        }}>+ New</button>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
+        <button onClick={() => setModal("newDoc")} style={{ background: C.gold, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#0C0C0E", fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>+ New</button>
       </div>
 
-      {/* ── SIDEBAR ── */}
-      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{
-        width: 260, background: C.surface, borderRight: `1px solid ${C.border}`,
-        flexDirection: "column", padding: "24px 0",
-        position: "fixed", height: "100vh", zIndex: 15,
-        overflowY: "auto",
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "0 20px 20px", borderBottom: `1px solid ${C.border}`,
-          marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
+      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{ width: 260, background: C.surface, borderRight: `1px solid ${C.border}`, flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 15, overflowY: "auto" }}>
+        <div style={{ padding: "0 20px 20px", borderBottom: `1px solid ${C.border}`, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
             <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginTop: 3 }}>
               {profile?.name || session.user.email}
             </div>
           </div>
-          {/* Close button — mobile only */}
-          <button onClick={() => setSidebarOpen(false)} style={{
-            background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8,
-            padding: "4px 10px", cursor: "pointer", color: C.dim, fontSize: 18,
-            lineHeight: 1,
-          }}>×</button>
+          <button onClick={() => setSidebarOpen(false)} style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: C.dim, fontSize: 18, lineHeight: 1 }}>×</button>
         </div>
 
-        <div style={{ fontSize: 10, color: C.dim, padding: "0 20px 8px", letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>
-          Workspace
-        </div>
+        <div style={{ fontSize: 10, color: C.dim, padding: "0 20px 8px", letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>Workspace</div>
 
         {navItems.map(n => (
-          <div key={n.id}
-            style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "11px 20px", cursor: "pointer", fontSize: 14,
-              color: page === n.id ? C.gold : C.mid,
-              background: page === n.id ? C.goldDim : "transparent",
-              borderLeft: `3px solid ${page === n.id ? C.gold : "transparent"}`,
-              transition: "all 0.15s", fontWeight: page === n.id ? 600 : 400,
-              borderRadius: "0 8px 8px 0", marginRight: 8,
-            }}
-            onClick={() => { setPage(n.id); setSidebarOpen(false); }}
-          >
+          <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", cursor: "pointer", fontSize: 14, color: page === n.id ? C.gold : C.mid, background: page === n.id ? C.goldDim : "transparent", borderLeft: `3px solid ${page === n.id ? C.gold : "transparent"}`, transition: "all 0.15s", fontWeight: page === n.id ? 600 : 400, borderRadius: "0 8px 8px 0", marginRight: 8 }}
+            onClick={() => { setPage(n.id); setSidebarOpen(false); }}>
             <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{n.icon}</span>
             {n.label}
           </div>
@@ -636,11 +478,7 @@ export default function Dashboard({ session }) {
                     <div style={{ width: `${Math.min((documents.length / 3) * 100, 100)}%`, height: "100%", background: documents.length >= 3 ? C.red : C.gold, borderRadius: 4 }} />
                   </div>
                 </div>
-                <button onClick={() => setShowUpgrade(true)} style={{
-                  width: "100%", background: C.gold, color: "#0C0C0E", border: "none",
-                  borderRadius: 8, padding: "9px", fontSize: 12, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-                }}>⚡ Upgrade to Pro</button>
+                <button onClick={() => setShowUpgrade(true)} style={{ width: "100%", background: C.gold, color: "#0C0C0E", border: "none", borderRadius: 8, padding: "9px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>⚡ Upgrade to Pro</button>
               </div>
             )}
             <div onClick={signOut} style={{ fontSize: 12, color: C.dim, cursor: "pointer", padding: "8px 0", display: "flex", alignItems: "center", gap: 8 }}>⏏ Sign out</div>
@@ -648,40 +486,23 @@ export default function Dashboard({ session }) {
         </div>
       </aside>
 
-      {/* ── UPGRADE MODAL ── */}
-      {showUpgrade && (
-        <UpgradeModal
-          session={session}
-          profile={profile}
-          onClose={() => setShowUpgrade(false)}
-          onUpgraded={() => { fetchAll(); setShowUpgrade(false); }}
-        />
-      )}
+      {showUpgrade && <UpgradeModal session={session} profile={profile} onClose={() => setShowUpgrade(false)} onUpgraded={() => { fetchAll(); setShowUpgrade(false); }} />}
 
-      {/* ── AI MODAL ── */}
       {showAI && (
-        <AIDocModal
-          profile={profile}
-          onClose={() => setShowAI(false)}
+        <AIDocModal profile={profile} onClose={() => setShowAI(false)}
           onGenerated={(data) => {
             if (data.type === "invoice_items") {
               setDocForm(f => ({ ...f, type: "Invoice", title: data.title, client_id: clients.find(c => c.name === data.clientName)?.id || "" }));
               setInvoiceItems(data.items.map(i => ({ description: i.description, qty: i.qty || 1, rate: i.rate || 0 })));
-              setShowAI(false);
-              setModal("newDoc");
+              setShowAI(false); setModal("newDoc");
             } else {
               setDocForm(f => ({ ...f, type: data.type === "nda" ? "NDA" : data.type === "contract" ? "Contract" : "Proposal", title: data.title, description: data.text, client_id: clients.find(c => c.name === data.clientName)?.id || "" }));
             }
-          }}
-        />
+          }} />
       )}
 
-      {/* ── MAIN ── */}
       <main className="fd-main" style={{ marginLeft: 220, flex: 1, padding: 32, minHeight: "100vh" }}>
-
-        {/* Mobile top bar spacer */}
         <div className="fd-mobile-topbar" style={{ height: 54, display: "none", marginBottom: 8 }} />
-
 
         {page === "dashboard" && (
           <>
@@ -690,16 +511,11 @@ export default function Dashboard({ session }) {
                 <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: C.text }}>
                   Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {profile?.name?.split(" ")[0] || "there"} 👋
                 </div>
-                <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>
-                  {pendingSign} pending signature{pendingSign !== 1 ? "s" : ""} · {overdue} overdue
-                </div>
+                <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>{pendingSign} pending signature{pendingSign !== 1 ? "s" : ""} · {overdue} overdue</div>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {(documents.filter(d => d.status === "pending" || d.status === "overdue").length > 0) && (
-                  <button
-                    style={{ ...btn("ghost"), borderColor: "#25D366", color: "#25D366", background: "#25D36618", fontSize: 12 }}
-                    onClick={sendBulkReminders}
-                  >
+                {documents.filter(d => d.status === "pending" || d.status === "overdue").length > 0 && (
+                  <button style={{ ...btn("ghost"), borderColor: "#25D366", color: "#25D366", background: "#25D36618", fontSize: 12 }} onClick={sendBulkReminders}>
                     💬 Remind All ({documents.filter(d => d.status === "pending" || d.status === "overdue").length})
                   </button>
                 )}
@@ -707,20 +523,17 @@ export default function Dashboard({ session }) {
                 <button style={btn()} onClick={() => setModal("newDoc")}>+ New Document</button>
               </div>
             </div>
-
             <div className="fd-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
               <StatCard label="Total Billed" value={fmtCur(totalBilled, defaultCur)} sub="All time" accent="gold" />
               <StatCard label="Collected" value={fmtCur(collected, defaultCur)} sub="Paid invoices" accent="green" />
               <StatCard label="Pending Sign" value={pendingSign} sub="Awaiting response" accent="blue" />
               <StatCard label="Overdue" value={overdue} sub="Action needed" accent="red" />
             </div>
-
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
             <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} />
           </>
         )}
 
-        {/* ─── DOCUMENTS ─── */}
         {page === "documents" && (
           <>
             <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => setModal("newDoc")} btnLabel="+ New Document" />
@@ -728,18 +541,10 @@ export default function Dashboard({ session }) {
           </>
         )}
 
-        {/* ─── TEMPLATES ─── */}
         {page === "templates" && (
           <>
             <PageHeader title="Templates" sub="Ready-to-use proposals, contracts & NDAs" onNew={() => setModal("newDoc")} btnLabel="+ Blank Document" />
-            <Templates
-              session={session}
-              onUse={(doc) => {
-                setDocuments(prev => [doc, ...prev]);
-                setPage("documents");
-                showToast("✓ Template added to documents!");
-              }}
-            />
+            <Templates session={session} onUse={(doc) => { setDocuments(prev => [doc, ...prev]); setPage("documents"); showToast("✓ Template added to documents!"); }} />
           </>
         )}
 
@@ -750,7 +555,6 @@ export default function Dashboard({ session }) {
           </>
         )}
 
-        {/* ─── INVOICES ─── */}
         {page === "invoices" && (
           <>
             <PageHeader title="Invoices" sub="Billing & payment tracking with GST" onNew={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }} btnLabel="+ New Invoice" />
@@ -758,15 +562,14 @@ export default function Dashboard({ session }) {
           </>
         )}
 
-        {/* ─── CLIENTS ─── */}
         {page === "clients" && (
           <>
             <PageHeader title="Clients" sub={`${clients.length} active clients`} onNew={() => setModal("newClient")} btnLabel="+ Add Client" />
-            <ClientsPage clients={clients} documents={documents} profile={profile} />
+            {/* ── NEW: Pass shareClientPortal to ClientsPage ── */}
+            <ClientsPage clients={clients} documents={documents} profile={profile} onSharePortal={shareClientPortal} />
           </>
         )}
 
-        {/* ─── ANALYTICS ─── */}
         {page === "analytics" && (
           <>
             <PageHeader title="Analytics" sub="Revenue insights & reports" />
@@ -774,7 +577,6 @@ export default function Dashboard({ session }) {
           </>
         )}
 
-        {/* ─── SETTINGS ─── */}
         {page === "settings" && (
           <>
             <PageHeader title="Settings" sub="Business profile & GST settings" />
@@ -783,35 +585,24 @@ export default function Dashboard({ session }) {
         )}
       </main>
 
-      {/* ── MODALS ── */}
-
-      {/* New Document Modal */}
       {modal === "newDoc" && (
         <Modal title="New Document" sub="Create a proposal, contract, or invoice" onClose={() => setModal(null)} width={560}>
           <label style={label}>Document Type</label>
-          <select style={{ ...input, color: C.text, background: C.surface2 }}
-            value={docForm.type} onChange={e => setDocForm({ ...docForm, type: e.target.value })}>
+          <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.type} onChange={e => setDocForm({ ...docForm, type: e.target.value })}>
             <option>Proposal</option><option>Contract</option><option>Invoice</option><option>NDA</option>
           </select>
-
           <label style={label}>Document Title</label>
-          <input style={input} placeholder="e.g. Website Redesign Proposal" value={docForm.title}
-            onChange={e => setDocForm({ ...docForm, title: e.target.value })} />
-
+          <input style={input} placeholder="e.g. Website Redesign Proposal" value={docForm.title} onChange={e => setDocForm({ ...docForm, title: e.target.value })} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={label}>Client</label>
               {clients.length === 0 ? (
                 <div style={{ background: C.goldDim, border: `1px solid ${C.gold}40`, borderRadius: 8, padding: "10px 14px" }}>
                   <div style={{ fontSize: 12, color: C.gold, marginBottom: 6 }}>⚠ Pehle ek client add karo</div>
-                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }}
-                    onClick={() => { setModal(null); setPage("clients"); setTimeout(() => setModal("newClient"), 100); }}>
-                    + Add Client →
-                  </button>
+                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }} onClick={() => { setModal(null); setPage("clients"); setTimeout(() => setModal("newClient"), 100); }}>+ Add Client →</button>
                 </div>
               ) : (
-                <select style={{ ...input, color: C.text, background: C.surface2 }}
-                  value={docForm.client_id} onChange={e => setDocForm({ ...docForm, client_id: e.target.value })}>
+                <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.client_id} onChange={e => setDocForm({ ...docForm, client_id: e.target.value })}>
                   <option value="">— Select Client —</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</option>)}
                   <option value="__new__">+ Add New Client...</option>
@@ -819,140 +610,86 @@ export default function Dashboard({ session }) {
               )}
               {docForm.client_id === "__new__" && (
                 <div style={{ marginTop: 6 }}>
-                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }}
-                    onClick={() => { setModal("newClient"); }}>
-                    + Add New Client →
-                  </button>
+                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }} onClick={() => { setModal("newClient"); }}>+ Add New Client →</button>
                 </div>
               )}
             </div>
             <div>
               <label style={label}>Currency</label>
-              <select style={{ ...input, color: C.text, background: C.surface2 }}
-                value={docForm.currency} onChange={e => setDocForm({ ...docForm, currency: e.target.value })}>
-                {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (
-                  <option key={code} value={code}>{symbol} {code} — {currName}</option>
-                ))}
+              <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.currency} onChange={e => setDocForm({ ...docForm, currency: e.target.value })}>
+                {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (<option key={code} value={code}>{symbol} {code} — {currName}</option>))}
               </select>
             </div>
           </div>
-
           {docForm.type !== "Invoice" && (
             <>
               <label style={label}>Amount ({CURRENCIES[docForm.currency]?.symbol})</label>
-              <input style={input} placeholder="e.g. 1500" type="number" value={docForm.amount}
-                onChange={e => setDocForm({ ...docForm, amount: e.target.value })} />
+              <input style={input} placeholder="e.g. 1500" type="number" value={docForm.amount} onChange={e => setDocForm({ ...docForm, amount: e.target.value })} />
               <label style={label}>Description</label>
-              <textarea style={{ ...input, minHeight: 80, resize: "vertical" }}
-                placeholder="Describe the scope of work..."
-                value={docForm.description} onChange={e => setDocForm({ ...docForm, description: e.target.value })} />
+              <textarea style={{ ...input, minHeight: 80, resize: "vertical" }} placeholder="Describe the scope of work..." value={docForm.description} onChange={e => setDocForm({ ...docForm, description: e.target.value })} />
             </>
           )}
-
           {docForm.type === "Invoice" && (
             <>
               <label style={label}>Invoice Items</label>
               {invoiceItems.map((item, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 56px 80px 32px", gap: 8, marginBottom: 8 }}>
-                  <input style={input} placeholder="Description" value={item.description}
-                    onChange={e => { const it = [...invoiceItems]; it[i].description = e.target.value; setInvoiceItems(it); }} />
-                  <input style={input} placeholder="Qty" type="number" value={item.qty}
-                    onChange={e => { const it = [...invoiceItems]; it[i].qty = e.target.value; setInvoiceItems(it); }} />
-                  <input style={input} placeholder={`Rate ${CURRENCIES[docForm.currency]?.symbol}`} type="number" value={item.rate}
-                    onChange={e => { const it = [...invoiceItems]; it[i].rate = e.target.value; setInvoiceItems(it); }} />
-                  <button onClick={() => setInvoiceItems(invoiceItems.filter((_, j) => j !== i))}
-                    style={{ background: C.redDim, border: `1px solid ${C.red}`, color: C.red, borderRadius: 8, cursor: "pointer" }}>×</button>
+                  <input style={input} placeholder="Description" value={item.description} onChange={e => { const it = [...invoiceItems]; it[i].description = e.target.value; setInvoiceItems(it); }} />
+                  <input style={input} placeholder="Qty" type="number" value={item.qty} onChange={e => { const it = [...invoiceItems]; it[i].qty = e.target.value; setInvoiceItems(it); }} />
+                  <input style={input} placeholder={`Rate ${CURRENCIES[docForm.currency]?.symbol}`} type="number" value={item.rate} onChange={e => { const it = [...invoiceItems]; it[i].rate = e.target.value; setInvoiceItems(it); }} />
+                  <button onClick={() => setInvoiceItems(invoiceItems.filter((_, j) => j !== i))} style={{ background: C.redDim, border: `1px solid ${C.red}`, color: C.red, borderRadius: 8, cursor: "pointer" }}>×</button>
                 </div>
               ))}
-              <button style={{ ...btn("ghost"), marginTop: 4, fontSize: 12 }}
-                onClick={() => setInvoiceItems([...invoiceItems, { description: "", qty: 1, rate: "" }])}>
-                + Add Item
-              </button>
+              <button style={{ ...btn("ghost"), marginTop: 4, fontSize: 12 }} onClick={() => setInvoiceItems([...invoiceItems, { description: "", qty: 1, rate: "" }])}>+ Add Item</button>
             </>
           )}
-
-          {/* GST Section */}
           <div style={{ marginTop: 14, padding: 14, background: C.surface2, borderRadius: 10, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace", marginBottom: 10 }}>🏛 GST / TAX SETTINGS</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
                 <label style={{ ...label, marginTop: 0 }}>Tax Type</label>
-                <select style={{ ...input, color: C.text, background: C.bg }} value={docForm.tax_type}
-                  onChange={e => setDocForm({ ...docForm, tax_type: e.target.value })}>
-                  <option value="none">No Tax</option>
-                  <option value="cgst_sgst">CGST + SGST (Intra-state)</option>
-                  <option value="igst">IGST (Inter-state)</option>
-                  <option value="custom">Custom Tax</option>
+                <select style={{ ...input, color: C.text, background: C.bg }} value={docForm.tax_type} onChange={e => setDocForm({ ...docForm, tax_type: e.target.value })}>
+                  <option value="none">No Tax</option><option value="cgst_sgst">CGST + SGST (Intra-state)</option><option value="igst">IGST (Inter-state)</option><option value="custom">Custom Tax</option>
                 </select>
               </div>
               <div>
                 <label style={{ ...label, marginTop: 0 }}>Tax Rate (%)</label>
-                <select style={{ ...input, color: C.text, background: C.bg }} value={docForm.tax_rate}
-                  onChange={e => setDocForm({ ...docForm, tax_rate: e.target.value })}>
-                  <option value="5">5%</option>
-                  <option value="12">12%</option>
-                  <option value="18">18% (Standard)</option>
-                  <option value="28">28%</option>
+                <select style={{ ...input, color: C.text, background: C.bg }} value={docForm.tax_rate} onChange={e => setDocForm({ ...docForm, tax_rate: e.target.value })}>
+                  <option value="5">5%</option><option value="12">12%</option><option value="18">18% (Standard)</option><option value="28">28%</option>
                 </select>
               </div>
             </div>
             <label style={label}>HSN/SAC Code (optional)</label>
-            <input style={{ ...input, background: C.bg }} placeholder="e.g. 998314 (IT Services)" value={docForm.hsn_sac}
-              onChange={e => setDocForm({ ...docForm, hsn_sac: e.target.value })} />
-
-            {/* Preview tax calculation */}
+            <input style={{ ...input, background: C.bg }} placeholder="e.g. 998314 (IT Services)" value={docForm.hsn_sac} onChange={e => setDocForm({ ...docForm, hsn_sac: e.target.value })} />
             {docForm.tax_type !== "none" && (() => {
-              const sub = docForm.type === "Invoice"
-                ? invoiceItems.reduce((s, i) => s + (i.qty || 1) * (i.rate || 0), 0)
-                : parseFloat(docForm.amount) || 0;
+              const sub = docForm.type === "Invoice" ? invoiceItems.reduce((s, i) => s + (i.qty || 1) * (i.rate || 0), 0) : parseFloat(docForm.amount) || 0;
               const gst = calcGST(sub, docForm.tax_type, parseFloat(docForm.tax_rate));
               const sym = CURRENCIES[docForm.currency]?.symbol || "₹";
               return (
                 <div style={{ marginTop: 10, padding: 10, background: C.bg, borderRadius: 8, fontSize: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}>
-                    <span>Subtotal</span><span>{sym}{sub.toFixed(2)}</span>
-                  </div>
-                  {gst.cgst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}>
-                    <span>CGST ({docForm.tax_rate / 2}%)</span><span>{sym}{gst.cgst.toFixed(2)}</span>
-                  </div>}
-                  {gst.sgst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}>
-                    <span>SGST ({docForm.tax_rate / 2}%)</span><span>{sym}{gst.sgst.toFixed(2)}</span>
-                  </div>}
-                  {gst.igst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}>
-                    <span>IGST ({docForm.tax_rate}%)</span><span>{sym}{gst.igst.toFixed(2)}</span>
-                  </div>}
-                  <div style={{ display: "flex", justifyContent: "space-between", color: C.gold, fontWeight: 700, borderTop: `1px solid ${C.border}`, paddingTop: 6, marginTop: 4 }}>
-                    <span>Total</span><span>{sym}{gst.total.toFixed(2)}</span>
-                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>Subtotal</span><span>{sym}{sub.toFixed(2)}</span></div>
+                  {gst.cgst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>CGST ({docForm.tax_rate / 2}%)</span><span>{sym}{gst.cgst.toFixed(2)}</span></div>}
+                  {gst.sgst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>SGST ({docForm.tax_rate / 2}%)</span><span>{sym}{gst.sgst.toFixed(2)}</span></div>}
+                  {gst.igst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>IGST ({docForm.tax_rate}%)</span><span>{sym}{gst.igst.toFixed(2)}</span></div>}
+                  <div style={{ display: "flex", justifyContent: "space-between", color: C.gold, fontWeight: 700, borderTop: `1px solid ${C.border}`, paddingTop: 6, marginTop: 4 }}><span>Total</span><span>{sym}{gst.total.toFixed(2)}</span></div>
                 </div>
               );
             })()}
           </div>
-
-          {/* Due Date + Recurring */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={label}>Due Date</label>
-              <input style={input} type="date" value={docForm.due_date}
-                onChange={e => setDocForm({ ...docForm, due_date: e.target.value })} />
+              <input style={input} type="date" value={docForm.due_date} onChange={e => setDocForm({ ...docForm, due_date: e.target.value })} />
             </div>
             <div>
               <label style={label}>Recurring</label>
-              <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.recurring_frequency}
-                onChange={e => setDocForm({ ...docForm, recurring_frequency: e.target.value })}>
-                <option value="">One-time</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
+              <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.recurring_frequency} onChange={e => setDocForm({ ...docForm, recurring_frequency: e.target.value })}>
+                <option value="">One-time</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option>
               </select>
             </div>
           </div>
-
           <label style={label}>Notes (Internal)</label>
-          <input style={input} placeholder="Private notes about this document..." value={docForm.notes}
-            onChange={e => setDocForm({ ...docForm, notes: e.target.value })} />
-
+          <input style={input} placeholder="Private notes about this document..." value={docForm.notes} onChange={e => setDocForm({ ...docForm, notes: e.target.value })} />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
             <button style={btn("ghost")} onClick={() => setModal(null)}>Cancel</button>
             <button style={btn()} onClick={createDoc}>Create Document →</button>
@@ -960,72 +697,42 @@ export default function Dashboard({ session }) {
         </Modal>
       )}
 
-      {/* Edit Document Modal */}
       {modal === "editDoc" && editDoc && (
         <Modal title="Edit Document" sub={editDoc.title} onClose={() => { setModal(null); setEditDoc(null); }} width={560}>
           <label style={label}>Title</label>
           <input style={input} value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
-
           <label style={label}>Status</label>
-          <select style={{ ...input, color: C.text }} value={editForm.status}
-            onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
-            <option value="draft">Draft</option>
-            <option value="pending">Pending</option>
-            <option value="signed">Signed</option>
-            <option value="paid">Paid</option>
-            <option value="overdue">Overdue</option>
+          <select style={{ ...input, color: C.text }} value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
+            <option value="draft">Draft</option><option value="pending">Pending</option><option value="signed">Signed</option><option value="paid">Paid</option><option value="overdue">Overdue</option>
           </select>
-
           {editDoc.type !== "Invoice" && (
             <>
               <label style={label}>Description</label>
-              <textarea style={{ ...input, minHeight: 120, resize: "vertical" }}
-                value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+              <textarea style={{ ...input, minHeight: 120, resize: "vertical" }} value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
             </>
           )}
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <label style={label}>Amount</label>
-              <input style={input} type="number" value={editForm.amount}
-                onChange={e => setEditForm({ ...editForm, amount: e.target.value })} />
-            </div>
+            <div><label style={label}>Amount</label><input style={input} type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })} /></div>
             <div>
               <label style={label}>Currency</label>
-              <select style={{ ...input, color: C.text }} value={editForm.currency}
-                onChange={e => setEditForm({ ...editForm, currency: e.target.value })}>
-                {Object.entries(CURRENCIES).map(([code, { symbol }]) => (
-                  <option key={code} value={code}>{symbol} {code}</option>
-                ))}
+              <select style={{ ...input, color: C.text }} value={editForm.currency} onChange={e => setEditForm({ ...editForm, currency: e.target.value })}>
+                {Object.entries(CURRENCIES).map(([code, { symbol }]) => (<option key={code} value={code}>{symbol} {code}</option>))}
               </select>
             </div>
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={label}>Tax Type</label>
-              <select style={{ ...input, color: C.text }} value={editForm.tax_type}
-                onChange={e => setEditForm({ ...editForm, tax_type: e.target.value })}>
-                <option value="none">No Tax</option>
-                <option value="cgst_sgst">CGST + SGST</option>
-                <option value="igst">IGST</option>
+              <select style={{ ...input, color: C.text }} value={editForm.tax_type} onChange={e => setEditForm({ ...editForm, tax_type: e.target.value })}>
+                <option value="none">No Tax</option><option value="cgst_sgst">CGST + SGST</option><option value="igst">IGST</option>
               </select>
             </div>
-            <div>
-              <label style={label}>Tax Rate (%)</label>
-              <input style={input} type="number" value={editForm.tax_rate}
-                onChange={e => setEditForm({ ...editForm, tax_rate: e.target.value })} />
-            </div>
+            <div><label style={label}>Tax Rate (%)</label><input style={input} type="number" value={editForm.tax_rate} onChange={e => setEditForm({ ...editForm, tax_rate: e.target.value })} /></div>
           </div>
-
           <label style={label}>Due Date</label>
-          <input style={input} type="date" value={editForm.due_date}
-            onChange={e => setEditForm({ ...editForm, due_date: e.target.value })} />
-
+          <input style={input} type="date" value={editForm.due_date} onChange={e => setEditForm({ ...editForm, due_date: e.target.value })} />
           <label style={label}>Notes</label>
-          <input style={input} value={editForm.notes || ""} placeholder="Internal notes..."
-            onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
-
+          <input style={input} value={editForm.notes || ""} placeholder="Internal notes..." onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
             <button style={btn("ghost")} onClick={() => { setModal(null); setEditDoc(null); }}>Cancel</button>
             <button style={btn()} onClick={saveEditDoc}>Save Changes →</button>
@@ -1033,60 +740,33 @@ export default function Dashboard({ session }) {
         </Modal>
       )}
 
-      {/* New Client Modal */}
       {modal === "newClient" && (
         <Modal title="Add Client" sub="Add a new client to your workspace" onClose={() => setModal(null)} width={560}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <label style={label}>Name *</label>
-              <input style={input} placeholder="John Smith" value={clientForm.name}
-                onChange={e => setClientForm({ ...clientForm, name: e.target.value })} />
-            </div>
-            <div>
-              <label style={label}>Email</label>
-              <input style={input} type="email" placeholder="john@company.com" value={clientForm.email}
-                onChange={e => setClientForm({ ...clientForm, email: e.target.value })} />
-            </div>
+            <div><label style={label}>Name *</label><input style={input} placeholder="John Smith" value={clientForm.name} onChange={e => setClientForm({ ...clientForm, name: e.target.value })} /></div>
+            <div><label style={label}>Email</label><input style={input} type="email" placeholder="john@company.com" value={clientForm.email} onChange={e => setClientForm({ ...clientForm, email: e.target.value })} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <label style={label}>Company</label>
-              <input style={input} placeholder="Acme Corp" value={clientForm.company}
-                onChange={e => setClientForm({ ...clientForm, company: e.target.value })} />
-            </div>
-            <div>
-              <label style={label}>Phone (with country code)</label>
-              <input style={input} placeholder="+91 9876543210" value={clientForm.phone}
-                onChange={e => setClientForm({ ...clientForm, phone: e.target.value })} />
-            </div>
+            <div><label style={label}>Company</label><input style={input} placeholder="Acme Corp" value={clientForm.company} onChange={e => setClientForm({ ...clientForm, company: e.target.value })} /></div>
+            <div><label style={label}>Phone (with country code)</label><input style={input} placeholder="+91 9876543210" value={clientForm.phone} onChange={e => setClientForm({ ...clientForm, phone: e.target.value })} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <label style={label}>Country</label>
-              <input style={input} placeholder="India" value={clientForm.country}
-                onChange={e => setClientForm({ ...clientForm, country: e.target.value })} />
-            </div>
+            <div><label style={label}>Country</label><input style={input} placeholder="India" value={clientForm.country} onChange={e => setClientForm({ ...clientForm, country: e.target.value })} /></div>
             <div>
               <label style={label}>State</label>
-              <select style={{ ...input, color: C.text, background: C.surface2 }} value={clientForm.state}
-                onChange={e => setClientForm({ ...clientForm, state: e.target.value })}>
+              <select style={{ ...input, color: C.text, background: C.surface2 }} value={clientForm.state} onChange={e => setClientForm({ ...clientForm, state: e.target.value })}>
                 <option value="">— Select State —</option>
                 {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
-
-          {/* GST Section for Client */}
           <div style={{ marginTop: 14, padding: 14, background: C.surface2, borderRadius: 10, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace", marginBottom: 10 }}>🏛 GST DETAILS (Optional)</div>
             <label style={{ ...label, marginTop: 0 }}>Client GSTIN</label>
-            <input style={{ ...input, background: C.bg }} placeholder="e.g. 27AABCT1234F1Z5" value={clientForm.gstin}
-              onChange={e => setClientForm({ ...clientForm, gstin: e.target.value })} />
+            <input style={{ ...input, background: C.bg }} placeholder="e.g. 27AABCT1234F1Z5" value={clientForm.gstin} onChange={e => setClientForm({ ...clientForm, gstin: e.target.value })} />
             <label style={label}>Address</label>
-            <input style={{ ...input, background: C.bg }} placeholder="Full business address" value={clientForm.address}
-              onChange={e => setClientForm({ ...clientForm, address: e.target.value })} />
+            <input style={{ ...input, background: C.bg }} placeholder="Full business address" value={clientForm.address} onChange={e => setClientForm({ ...clientForm, address: e.target.value })} />
           </div>
-
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
             <button style={btn("ghost")} onClick={() => setModal(null)}>Cancel</button>
             <button style={btn()} onClick={createClient}>Add Client →</button>
@@ -1096,13 +776,7 @@ export default function Dashboard({ session }) {
 
       <Toast msg={toast} onClose={() => setToast(null)} />
 
-      {/* ── MOBILE BOTTOM NAV ── */}
-      <nav className="fd-bottom-nav" style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 13,
-        background: C.surface, borderTop: `1px solid ${C.border}`,
-        display: "none", alignItems: "center", justifyContent: "space-around",
-        padding: "6px 0 10px", height: 60,
-      }}>
+      <nav className="fd-bottom-nav" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 13, background: C.surface, borderTop: `1px solid ${C.border}`, display: "none", alignItems: "center", justifyContent: "space-around", padding: "6px 0 10px", height: 60 }}>
         {[
           { id: "dashboard", icon: "⊞", label: "Home" },
           { id: "documents", icon: "◈", label: "Docs" },
@@ -1110,20 +784,9 @@ export default function Dashboard({ session }) {
           { id: "invoices", icon: "◎", label: "Invoice" },
           { id: "clients", icon: "👤", label: "Clients" },
         ].map(n => (
-          <div key={n.id} onClick={() => setPage(n.id)} style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            gap: 3, cursor: "pointer", padding: "4px 10px", borderRadius: 10,
-            background: page === n.id ? C.goldDim : "transparent",
-            transition: "all 0.15s", minWidth: 52,
-          }}>
-            <span style={{ fontSize: 18, color: page === n.id ? C.gold : C.dim, lineHeight: 1 }}>
-              {n.icon}
-            </span>
-            <span style={{
-              fontSize: 10, color: page === n.id ? C.gold : C.dim,
-              fontWeight: page === n.id ? 700 : 400,
-              fontFamily: "'DM Mono', monospace", letterSpacing: 0.5,
-            }}>{n.label}</span>
+          <div key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", padding: "4px 10px", borderRadius: 10, background: page === n.id ? C.goldDim : "transparent", transition: "all 0.15s", minWidth: 52 }}>
+            <span style={{ fontSize: 18, color: page === n.id ? C.gold : C.dim, lineHeight: 1 }}>{n.icon}</span>
+            <span style={{ fontSize: 10, color: page === n.id ? C.gold : C.dim, fontWeight: page === n.id ? 700 : 400, fontFamily: "'DM Mono', monospace", letterSpacing: 0.5 }}>{n.label}</span>
           </div>
         ))}
       </nav>
@@ -1131,7 +794,6 @@ export default function Dashboard({ session }) {
   );
 }
 
-// ── PAGE HEADER ─────────────────────────────────────────────────────────
 function PageHeader({ title, sub, onNew, btnLabel }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
@@ -1144,46 +806,31 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
   );
 }
 
-// ── DOCUMENTS TABLE ─────────────────────────────────────────────────────
 function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onWhatsApp, onEdit, onMarkPaid, onAuditTrail, onNew }) {
   const [filter, setFilter] = useState("All");
   const filtered = filter === "All" ? docs : docs.filter(d => d.type === filter || d.status === filter.toLowerCase());
-
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div style={{ fontSize: 13, color: C.dim }}>{filtered.length} document{filtered.length !== 1 ? "s" : ""}</div>
         <div style={{ display: "flex", gap: 4, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 4, flexWrap: "wrap" }}>
           {["All", "Proposal", "Contract", "Invoice", "NDA"].map(f => (
-            <button key={f}
-              style={{
-                padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", border: "none",
-                background: filter === f ? C.surface2 : "transparent", color: filter === f ? C.text : C.dim,
-                fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-              }}
-              onClick={() => setFilter(f)}
-            >{f}</button>
+            <button key={f} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", border: "none", background: filter === f ? C.surface2 : "transparent", color: filter === f ? C.text : C.dim, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }} onClick={() => setFilter(f)}>{f}</button>
           ))}
         </div>
       </div>
-
       <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               {["Document", "Type", "Status", "Amount", "Date", "Actions"].map(h => (
-                <th key={h} style={{
-                  textAlign: "left", padding: "12px 16px", fontSize: 10, color: C.dim,
-                  textTransform: "uppercase", letterSpacing: 1, fontFamily: "'DM Mono', monospace", fontWeight: 500,
-                }}>{h}</th>
+                <th key={h} style={{ textAlign: "left", padding: "12px 16px", fontSize: 10, color: C.dim, textTransform: "uppercase", letterSpacing: 1, fontFamily: "'DM Mono', monospace", fontWeight: 500 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 48, color: C.dim, fontSize: 13 }}>
-                No documents yet. <span style={{ color: C.gold, cursor: "pointer" }} onClick={onNew}>Create one →</span>
-              </td></tr>
+              <tr><td colSpan={6} style={{ textAlign: "center", padding: 48, color: C.dim, fontSize: 13 }}>No documents yet. <span style={{ color: C.gold, cursor: "pointer" }} onClick={onNew}>Create one →</span></td></tr>
             ) : filtered.map(doc => {
               const client = clients.find(c => c.id === doc.client_id) || doc.clients;
               const cur = doc.currency || profile?.default_currency || "INR";
@@ -1197,9 +844,7 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                       {doc.recurring_active && <span style={{ marginLeft: 6, fontSize: 9, background: C.purpleDim, color: C.purple, padding: "1px 6px", borderRadius: 10 }}>🔄 {doc.recurring_frequency}</span>}
                     </div>
                   </td>
-                  <td style={{ padding: "14px 16px" }}>
-                    <span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>{doc.type}</span>
-                  </td>
+                  <td style={{ padding: "14px 16px" }}><span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>{doc.type}</span></td>
                   <td style={{ padding: "14px 16px" }}>
                     <span style={badge(doc.status)}>
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
@@ -1207,71 +852,31 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                     </span>
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.text }}>
-                      {doc.amount ? fmtCur(doc.amount, cur) : "—"}
-                    </span>
-                    {doc.tax_type && doc.tax_type !== "none" && (
-                      <div style={{ fontSize: 9, color: C.dim, fontFamily: "'DM Mono', monospace" }}>
-                        +{doc.tax_type === "cgst_sgst" ? "GST" : "IGST"} {doc.tax_rate}%
-                      </div>
-                    )}
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.text }}>{doc.amount ? fmtCur(doc.amount, cur) : "—"}</span>
+                    {doc.tax_type && doc.tax_type !== "none" && <div style={{ fontSize: 9, color: C.dim, fontFamily: "'DM Mono', monospace" }}>+{doc.tax_type === "cgst_sgst" ? "GST" : "IGST"} {doc.tax_rate}%</div>}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>
-                      {new Date(doc.created_at).toLocaleDateString("en-IN")}
-                    </span>
-                    {doc.due_date && (
-                      <div style={{ fontSize: 9, color: new Date(doc.due_date) < new Date() ? C.red : C.dim }}>
-                        Due: {new Date(doc.due_date).toLocaleDateString("en-IN")}
-                      </div>
-                    )}
+                    <span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>{new Date(doc.created_at).toLocaleDateString("en-IN")}</span>
+                    {doc.due_date && <div style={{ fontSize: 9, color: new Date(doc.due_date) < new Date() ? C.red : C.dim }}>Due: {new Date(doc.due_date).toLocaleDateString("en-IN")}</div>}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {doc.status === "draft" && (
-                        <>
-                          {/* Email send — only if client has email */}
-                          {(clients.find(c => c.id === doc.client_id) || doc.clients)?.email ? (
-                            <button
-                              style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }}
-                              onClick={() => onSend(doc)}
-                              title="Send via Email"
-                            >📧 Email</button>
-                          ) : (
-                            <button
-                              style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.dim, borderColor: C.border }}
-                              onClick={() => onSend(doc)}
-                              title="No email — link will be copied"
-                            >Send ↗</button>
-                          )}
-                        </>
+                        (clients.find(c => c.id === doc.client_id) || doc.clients)?.email
+                          ? <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }} onClick={() => onSend(doc)} title="Send via Email">📧 Email</button>
+                          : <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.dim, borderColor: C.border }} onClick={() => onSend(doc)} title="No email — link will be copied">Send ↗</button>
                       )}
-                      {/* Pending reminder via email */}
                       {doc.status === "pending" && (clients.find(c => c.id === doc.client_id) || doc.clients)?.email && (
-                        <button
-                          style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
-                          onClick={() => onSend(doc)}
-                          title="Send reminder email"
-                        >📧 Remind</button>
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }} onClick={() => onSend(doc)} title="Send reminder email">📧 Remind</button>
                       )}
                       {(doc.status === "pending" || doc.status === "signed") && doc.type === "Invoice" && (
-                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.green, borderColor: C.green, background: C.greenDim }}
-                          onClick={() => onMarkPaid(doc)}>✓ Paid</button>
+                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.green, borderColor: C.green, background: C.greenDim }} onClick={() => onMarkPaid(doc)}>✓ Paid</button>
                       )}
-                      <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#25D366", borderColor: "#25D366", background: "#25D36618" }}
-                        onClick={() => onWhatsApp(doc)} title="Share on WhatsApp">💬 WA</button>
-                      {doc.sign_token && (
-                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                          onClick={() => onCopyLink(doc)} title="Copy signing link">🔗</button>
-                      )}
-                      <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                        onClick={() => onDownload(doc)}>PDF</button>
-                      {doc.status === "signed" && (
-                        <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#A78BFA", borderColor: "#A78BFA", background: "#A78BFA18" }}
-                          onClick={() => onAuditTrail?.(doc)} title="Download Audit Trail">🔏</button>
-                      )}
-                      <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }}
-                        onClick={() => onEdit(doc)} title="Edit">✎</button>
+                      <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#25D366", borderColor: "#25D366", background: "#25D36618" }} onClick={() => onWhatsApp(doc)} title="Share on WhatsApp">💬 WA</button>
+                      {doc.sign_token && <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }} onClick={() => onCopyLink(doc)} title="Copy signing link">🔗</button>}
+                      <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }} onClick={() => onDownload(doc)}>PDF</button>
+                      {doc.status === "signed" && <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#A78BFA", borderColor: "#A78BFA", background: "#A78BFA18" }} onClick={() => onAuditTrail?.(doc)} title="Download Audit Trail">🔏</button>}
+                      <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }} onClick={() => onEdit(doc)} title="Edit">✎</button>
                     </div>
                   </td>
                 </tr>
@@ -1284,7 +889,6 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
   );
 }
 
-// ── ESIGN PAGE ──────────────────────────────────────────────────────────
 function ESignPage({ docs, clients, onSend, onCopyLink, onWhatsApp }) {
   const signingDocs = docs.filter(d => ["pending", "signed", "draft"].includes(d.status));
   return (
@@ -1299,29 +903,20 @@ function ESignPage({ docs, clients, onSend, onCopyLink, onWhatsApp }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>{doc.title}</div>
-                <div style={{ fontSize: 12, color: C.dim, marginTop: 3 }}>
-                  {client?.name || "No client"} · {doc.type}
-                  {doc.signed_at && ` · Signed ${new Date(doc.signed_at).toLocaleDateString()}`}
-                </div>
+                <div style={{ fontSize: 12, color: C.dim, marginTop: 3 }}>{client?.name || "No client"} · {doc.type}{doc.signed_at && ` · Signed ${new Date(doc.signed_at).toLocaleDateString()}`}</div>
               </div>
               <span style={badge(doc.status)}>
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
                 {doc.status === "signed" ? "Complete" : doc.status === "pending" ? "In Progress" : "Not Sent"}
               </span>
             </div>
-
-            {/* Progress bar */}
             <div style={{ background: C.surface2, borderRadius: 4, height: 4, marginBottom: 14, overflow: "hidden" }}>
               <div style={{ width: `${progress}%`, height: "100%", background: C.gold, borderRadius: 4, transition: "width 0.5s" }} />
             </div>
-
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: 1, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {client && (
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 6, padding: "5px 12px",
-                    background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 20, fontSize: 12, color: C.mid,
-                  }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 20, fontSize: 12, color: C.mid }}>
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: doc.status === "signed" ? C.green : C.dim }} />
                     {client.name} {doc.status === "signed" ? "✓ Signed" : "· Waiting"}
                   </div>
@@ -1329,39 +924,17 @@ function ESignPage({ docs, clients, onSend, onCopyLink, onWhatsApp }) {
               </div>
               {doc.status === "draft" && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {client?.email ? (
-                    <button
-                      style={{ ...btn(), fontSize: 12, padding: "7px 14px" }}
-                      onClick={() => onSend(doc)}
-                    >📧 Send via Email →</button>
-                  ) : (
-                    <button
-                      style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }}
-                      onClick={() => onSend(doc)}
-                    >Send & Copy Link →</button>
-                  )}
-                  <button
-                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }}
-                    onClick={() => onWhatsApp(doc)}
-                  >💬 WhatsApp</button>
+                  {client?.email
+                    ? <button style={{ ...btn(), fontSize: 12, padding: "7px 14px" }} onClick={() => onSend(doc)}>📧 Send via Email →</button>
+                    : <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }} onClick={() => onSend(doc)}>Send & Copy Link →</button>}
+                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }} onClick={() => onWhatsApp(doc)}>💬 WhatsApp</button>
                 </div>
               )}
               {doc.status === "pending" && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {client?.email && (
-                    <button
-                      style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }}
-                      onClick={() => onSend(doc)}
-                    >📧 Email Reminder</button>
-                  )}
-                  <button
-                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }}
-                    onClick={() => onWhatsApp(doc)}
-                  >💬 WhatsApp</button>
-                  <button
-                    style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }}
-                    onClick={() => onCopyLink(doc)}
-                  >🔗 Copy Link</button>
+                  {client?.email && <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }} onClick={() => onSend(doc)}>📧 Email Reminder</button>}
+                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px", color: "#25D366", borderColor: "#25D366" }} onClick={() => onWhatsApp(doc)}>💬 WhatsApp</button>
+                  <button style={{ ...btn("ghost"), fontSize: 12, padding: "7px 14px" }} onClick={() => onCopyLink(doc)}>🔗 Copy Link</button>
                 </div>
               )}
             </div>
@@ -1372,8 +945,8 @@ function ESignPage({ docs, clients, onSend, onCopyLink, onWhatsApp }) {
   );
 }
 
-// ── CLIENTS PAGE ────────────────────────────────────────────────────────
-function ClientsPage({ clients, documents, profile }) {
+// ── CLIENTS PAGE — Updated with Portal Share button ─────────────────────
+function ClientsPage({ clients, documents, profile, onSharePortal }) {
   return (
     <div>
       {clients.length === 0 ? (
@@ -1385,15 +958,8 @@ function ClientsPage({ clients, documents, profile }) {
         const color = colors[clients.indexOf(c) % colors.length];
         const cur = profile?.default_currency || "INR";
         return (
-          <div key={c.id} style={{
-            ...card, display: "flex", alignItems: "center", gap: 16, marginBottom: 12,
-            cursor: "pointer", transition: "border-color 0.15s", flexWrap: "wrap",
-          }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-              background: color + "20", color, display: "flex", alignItems: "center",
-              justifyContent: "center", fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800,
-            }}>{c.name[0]}</div>
+          <div key={c.id} style={{ ...card, display: "flex", alignItems: "center", gap: 16, marginBottom: 12, transition: "border-color 0.15s", flexWrap: "wrap" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: color + "20", color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800 }}>{c.name[0]}</div>
             <div style={{ flex: 1, minWidth: 150 }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{c.name}</div>
               <div style={{ fontSize: 12, color: C.dim, marginTop: 2 }}>
@@ -1402,9 +968,20 @@ function ClientsPage({ clients, documents, profile }) {
               </div>
               {c.phone && <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>📱 {c.phone}</div>}
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, color: C.text }}>{fmtCur(total, cur)}</div>
-              <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>{clientDocs.length} document{clientDocs.length !== 1 ? "s" : ""}</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, color: C.text }}>{fmtCur(total, cur)}</div>
+                <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>{clientDocs.length} document{clientDocs.length !== 1 ? "s" : ""}</div>
+              </div>
+              {/* ── NEW: Share Client Portal button ── */}
+              {c.email && (
+                <button
+                  onClick={() => onSharePortal?.(c)}
+                  style={{ fontSize: 11, color: C.blue, background: C.blueDim, border: `1px solid ${C.blue}40`, borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}
+                >
+                  🔗 Share Portal
+                </button>
+              )}
             </div>
           </div>
         );
@@ -1413,7 +990,6 @@ function ClientsPage({ clients, documents, profile }) {
   );
 }
 
-// ── ANALYTICS PAGE ──────────────────────────────────────────────────────
 function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
   const cur = profile?.default_currency || "INR";
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
@@ -1421,23 +997,17 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
   const totalPending = documents.filter(d => ["pending", "draft"].includes(d.status)).reduce((s, d) => s + (d.amount || 0), 0);
   const totalOverdue = documents.filter(d => d.status === "overdue").reduce((s, d) => s + (d.amount || 0), 0);
   const taxCollected = documents.filter(d => d.status === "paid").reduce((s, d) => s + (d.tax_amount || 0), 0);
-
   const typeBreakdown = {};
   documents.forEach(d => { typeBreakdown[d.type] = (typeBreakdown[d.type] || 0) + 1; });
-
   const maxMonthly = Math.max(...Object.values(monthlyRevenue), 1);
-
   return (
     <div>
-      {/* Revenue Summary */}
       <div className="fd-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
         <StatCard label="Total Revenue" value={fmtCur(totalPaid, cur)} sub="Collected" accent="green" />
         <StatCard label="Outstanding" value={fmtCur(totalPending, cur)} sub="Pending payment" accent="gold" />
         <StatCard label="Overdue" value={fmtCur(totalOverdue, cur)} sub="Action needed" accent="red" />
         <StatCard label="Tax Collected" value={fmtCur(taxCollected, cur)} sub="GST/IGST" accent="purple" />
       </div>
-
-      {/* Monthly Revenue Chart */}
       <div style={{ ...card, marginBottom: 20 }}>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Monthly Revenue</div>
         {Object.keys(monthlyRevenue).length === 0 ? (
@@ -1447,20 +1017,14 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
             {Object.entries(monthlyRevenue).slice(-12).map(([month, amount]) => (
               <div key={month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                 <div style={{ fontSize: 10, color: C.gold, fontFamily: "'DM Mono', monospace" }}>{fmtCur(amount, cur)}</div>
-                <div style={{
-                  width: "100%", maxWidth: 40, background: `linear-gradient(180deg, ${C.gold}, ${C.gold}40)`,
-                  borderRadius: "4px 4px 0 0", transition: "height 0.5s",
-                  height: `${Math.max((amount / maxMonthly) * 120, 8)}px`,
-                }} />
+                <div style={{ width: "100%", maxWidth: 40, background: `linear-gradient(180deg, ${C.gold}, ${C.gold}40)`, borderRadius: "4px 4px 0 0", transition: "height 0.5s", height: `${Math.max((amount / maxMonthly) * 120, 8)}px` }} />
                 <div style={{ fontSize: 10, color: C.dim }}>{month}</div>
               </div>
             ))}
           </div>
         )}
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {/* Client Revenue */}
         <div style={card}>
           <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Revenue by Client</div>
           {Object.entries(clientRevenue).sort((a, b) => b[1].total - a[1].total).slice(0, 8).map(([name, data]) => (
@@ -1473,8 +1037,6 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
             </div>
           ))}
         </div>
-
-        {/* Document Breakdown */}
         <div style={card}>
           <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Document Breakdown</div>
           {Object.entries(typeBreakdown).map(([type, count]) => {
@@ -1483,8 +1045,7 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
             return (
               <div key={type} style={{ marginBottom: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                  <span style={{ color: C.text }}>{type}</span>
-                  <span style={{ color: C.dim }}>{count} ({pct.toFixed(0)}%)</span>
+                  <span style={{ color: C.text }}>{type}</span><span style={{ color: C.dim }}>{count} ({pct.toFixed(0)}%)</span>
                 </div>
                 <div style={{ background: C.surface2, borderRadius: 4, height: 6, overflow: "hidden" }}>
                   <div style={{ width: `${pct}%`, height: "100%", background: colors[type] || C.gold, borderRadius: 4, transition: "width 0.5s" }} />
@@ -1492,7 +1053,6 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
               </div>
             );
           })}
-
           <div style={{ marginTop: 20, padding: 12, background: C.surface2, borderRadius: 8 }}>
             <div style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace", marginBottom: 6 }}>COLLECTION RATE</div>
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 700, color: totalBilled > 0 ? C.green : C.dim }}>
@@ -1505,129 +1065,68 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
   );
 }
 
-// ── SETTINGS PAGE ────────────────────────────────────────────────────────
 function SettingsPage({ profile, onUpdate, showToast, session }) {
   const [form, setForm] = useState({
-    name: profile?.name || "",
-    company: profile?.company || "",
-    email: profile?.email || "",
-    phone: profile?.phone || "",
-    gstin: profile?.gstin || "",
-    pan: profile?.pan || "",
-    state: profile?.state || "",
-    address: profile?.address || "",
+    name: profile?.name || "", company: profile?.company || "", email: profile?.email || "",
+    phone: profile?.phone || "", gstin: profile?.gstin || "", pan: profile?.pan || "",
+    state: profile?.state || "", address: profile?.address || "",
     default_currency: profile?.default_currency || "INR",
-    bank_name: profile?.bank_name || "",
-    bank_account: profile?.bank_account || "",
-    bank_ifsc: profile?.bank_ifsc || "",
-    upi_id: profile?.upi_id || "",
+    bank_name: profile?.bank_name || "", bank_account: profile?.bank_account || "",
+    bank_ifsc: profile?.bank_ifsc || "", upi_id: profile?.upi_id || "",
   });
   const [saving, setSaving] = useState(false);
-
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase.from("profiles").update(form).eq("id", session.user.id);
     setSaving(false);
     if (error) return showToast(error.message, false);
-    showToast("✓ Settings saved!");
-    onUpdate?.();
+    showToast("✓ Settings saved!"); onUpdate?.();
   };
-
   return (
     <div style={{ maxWidth: 700 }}>
-      {/* Business Info */}
       <div style={{ ...card, marginBottom: 20 }}>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Business Information</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label style={{ ...label, marginTop: 0 }}>Business Name</label>
-            <input style={input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div>
-            <label style={{ ...label, marginTop: 0 }}>Company</label>
-            <input style={input} value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} />
-          </div>
+          <div><label style={{ ...label, marginTop: 0 }}>Business Name</label><input style={input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+          <div><label style={{ ...label, marginTop: 0 }}>Company</label><input style={input} value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} /></div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label style={label}>Email</label>
-            <input style={input} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div>
-            <label style={label}>Phone</label>
-            <input style={input} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-          </div>
+          <div><label style={label}>Email</label><input style={input} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+          <div><label style={label}>Phone</label><input style={input} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
         </div>
         <label style={label}>Default Currency</label>
-        <select style={{ ...input, color: C.text }} value={form.default_currency}
-          onChange={e => setForm({ ...form, default_currency: e.target.value })}>
-          {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (
-            <option key={code} value={code}>{symbol} {code} — {currName}</option>
-          ))}
+        <select style={{ ...input, color: C.text }} value={form.default_currency} onChange={e => setForm({ ...form, default_currency: e.target.value })}>
+          {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (<option key={code} value={code}>{symbol} {code} — {currName}</option>))}
         </select>
         <label style={label}>Address</label>
-        <textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={form.address}
-          onChange={e => setForm({ ...form, address: e.target.value })} />
+        <textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
       </div>
-
-      {/* GST Details */}
       <div style={{ ...card, marginBottom: 20, borderColor: C.gold }}>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.gold, marginBottom: 4 }}>🏛 GST & Tax Details</div>
         <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>Required for GST-compliant invoices</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label style={{ ...label, marginTop: 0 }}>GSTIN</label>
-            <input style={input} placeholder="e.g. 27AABCT1234F1Z5" value={form.gstin}
-              onChange={e => setForm({ ...form, gstin: e.target.value })} />
-          </div>
-          <div>
-            <label style={{ ...label, marginTop: 0 }}>PAN</label>
-            <input style={input} placeholder="e.g. ABCDE1234F" value={form.pan}
-              onChange={e => setForm({ ...form, pan: e.target.value })} />
-          </div>
+          <div><label style={{ ...label, marginTop: 0 }}>GSTIN</label><input style={input} placeholder="e.g. 27AABCT1234F1Z5" value={form.gstin} onChange={e => setForm({ ...form, gstin: e.target.value })} /></div>
+          <div><label style={{ ...label, marginTop: 0 }}>PAN</label><input style={input} placeholder="e.g. ABCDE1234F" value={form.pan} onChange={e => setForm({ ...form, pan: e.target.value })} /></div>
         </div>
         <label style={label}>State (Place of Supply)</label>
-        <select style={{ ...input, color: C.text }} value={form.state}
-          onChange={e => setForm({ ...form, state: e.target.value })}>
+        <select style={{ ...input, color: C.text }} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })}>
           <option value="">— Select State —</option>
           {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
-
-      {/* Bank / UPI Details */}
       <div style={{ ...card, marginBottom: 20 }}>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 4 }}>💳 Payment Details</div>
         <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>Shown on invoices for bank transfer & UPI payments</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label style={{ ...label, marginTop: 0 }}>Bank Name</label>
-            <input style={input} placeholder="e.g. HDFC Bank" value={form.bank_name}
-              onChange={e => setForm({ ...form, bank_name: e.target.value })} />
-          </div>
-          <div>
-            <label style={{ ...label, marginTop: 0 }}>Account Number</label>
-            <input style={input} placeholder="e.g. 12345678901234" value={form.bank_account}
-              onChange={e => setForm({ ...form, bank_account: e.target.value })} />
-          </div>
+          <div><label style={{ ...label, marginTop: 0 }}>Bank Name</label><input style={input} placeholder="e.g. HDFC Bank" value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} /></div>
+          <div><label style={{ ...label, marginTop: 0 }}>Account Number</label><input style={input} placeholder="e.g. 12345678901234" value={form.bank_account} onChange={e => setForm({ ...form, bank_account: e.target.value })} /></div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>
-            <label style={label}>IFSC Code</label>
-            <input style={input} placeholder="e.g. HDFC0001234" value={form.bank_ifsc}
-              onChange={e => setForm({ ...form, bank_ifsc: e.target.value })} />
-          </div>
-          <div>
-            <label style={label}>UPI ID</label>
-            <input style={input} placeholder="e.g. yourname@upi" value={form.upi_id}
-              onChange={e => setForm({ ...form, upi_id: e.target.value })} />
-          </div>
+          <div><label style={label}>IFSC Code</label><input style={input} placeholder="e.g. HDFC0001234" value={form.bank_ifsc} onChange={e => setForm({ ...form, bank_ifsc: e.target.value })} /></div>
+          <div><label style={label}>UPI ID</label><input style={input} placeholder="e.g. yourname@upi" value={form.upi_id} onChange={e => setForm({ ...form, upi_id: e.target.value })} /></div>
         </div>
       </div>
-
-      <button onClick={handleSave} disabled={saving} style={{
-        ...btn(), width: "100%", justifyContent: "center", padding: "14px", fontSize: 15,
-        opacity: saving ? 0.6 : 1,
-      }}>
+      <button onClick={handleSave} disabled={saving} style={{ ...btn(), width: "100%", justifyContent: "center", padding: "14px", fontSize: 15, opacity: saving ? 0.6 : 1 }}>
         {saving ? "Saving..." : "Save Settings →"}
       </button>
     </div>
