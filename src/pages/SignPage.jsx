@@ -271,6 +271,20 @@ export default function SignPage() {
 
     const depositAmount = Math.round((doc.amount * depositPct) / 100);
 
+    // Amount 0 ya invalid hai toh payment mat karo
+    if (!depositAmount || depositAmount <= 0) {
+      setPayError("Invoice amount set nahi hua hai। Freelancer se contact karo।");
+      setPaying(false);
+      return;
+    }
+
+    // Razorpay minimum ₹1 (100 paise) check
+    if (depositAmount < 1) {
+      setPayError(`Minimum payment ₹1 hona chahiye। Current: ₹${depositAmount}`);
+      setPaying(false);
+      return;
+    }
+
     await openInvoicePayment({
       invoice: { ...doc, amount: depositAmount },
       clientName: doc.clients?.name || name,
@@ -305,7 +319,7 @@ export default function SignPage() {
   const depositAmt = doc ? Math.round((doc.amount * depositPct) / 100) : 0;
 
   // ── Steps config ─────────────────────────────────────────────────────
-  const hasPayment = doc?.amount > 0;
+  const hasPayment = doc?.amount > 0 && doc.amount >= 1;
   const steps = hasPayment
     ? ["review", "sign", "pay", "done"]
     : ["review", "sign", "done"];
