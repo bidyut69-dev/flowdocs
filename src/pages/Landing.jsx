@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 const gold = "#F5A623";
 const green = "#22C55E";
@@ -75,6 +76,7 @@ export default function Landing() {
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [foundingCount, setFoundingCount] = useState(3);
 
   useEffect(() => {
     const t = setInterval(() => setStep(s => (s + 1) % 4), 2800);
@@ -85,6 +87,17 @@ export default function Landing() {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  useEffect(() => {
+    supabase
+      .from("site_config")
+      .select("value")
+      .eq("key", "founding_members_count")
+      .single()
+      .then(({ data }) => {
+        if (data) setFoundingCount(parseInt(data.value) || 3);
+      });
   }, []);
 
   const notifications = [
@@ -491,7 +504,7 @@ export default function Landing() {
 
               {/* Badge */}
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${gold}18`, border: `1px solid ${gold}35`, borderRadius: 100, padding: "4px 14px", fontSize: 12, color: gold, marginBottom: 24, fontWeight: 600 }}>
-                ⚡ Only 20 spots — 17 remaining
+                ⚡ Only 20 spots — {20 - foundingCount} remaining
               </div>
 
               {/* Price */}
@@ -519,10 +532,10 @@ export default function Landing() {
               {/* Progress bar */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 24 }}>
                 <div style={{ width: 160, height: 6, background: "#24243A", borderRadius: 99, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "15%", background: "#EF4444", borderRadius: 99 }} />
+                  <div style={{ height: "100%", width: `${Math.min((foundingCount / 20) * 100, 100)}%`, background: "#EF4444", borderRadius: 99 }} />
                 </div>
                 <span style={{ fontSize: 13, color: "#6B6B80" }}>
-                  <span style={{ color: "#F0EEF6", fontWeight: 600 }}>3 of 20</span> spots claimed
+                  <span style={{ color: "#F0EEF6", fontWeight: 600 }}>{foundingCount} of 20</span> spots claimed
                 </span>
               </div>
 
