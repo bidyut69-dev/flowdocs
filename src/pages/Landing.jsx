@@ -392,7 +392,7 @@ export default function Landing() {
             </div>
           </Reveal>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 16, alignItems: "start" }}>
 
             {/* Free */}
             <Reveal delay={0.05}>
@@ -406,6 +406,25 @@ export default function Landing() {
                   </div>
                 ))}
                 <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px" }} onClick={() => nav("/auth")}>Start Free</button>
+              </div>
+            </Reveal>
+
+            {/* Solo */}
+            <Reveal delay={0.08}>
+              <div style={{ background: "#0E0E14", border: `1px solid ${accent}50`, borderRadius: 20, padding: 28, position: "relative" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${accent},transparent)`, borderRadius: "20px 20px 0 0" }} />
+                <div style={{ fontSize: 11, color: accent, letterSpacing: 2, fontFamily: "monospace", fontWeight: 600, marginBottom: 14 }}>SOLO</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+                  <div style={{ fontSize: 44, fontWeight: 900 }}>₹299</div>
+                  <div style={{ fontSize: 14, color: "#6B6B80" }}>/month</div>
+                </div>
+                <div style={{ fontSize: 13, color: "#6B6B80", marginBottom: 28 }}>For independent freelancers</div>
+                {["Unlimited documents", "Legal eSignatures", "GST invoices", "Razorpay payments", "8 currencies", "No FlowDocs branding", "5 templates"].map((f, i, a) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: i < a.length - 1 ? "1px solid #24243A" : "none", fontSize: 13, color: "#9B9BB0" }}>
+                    <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px", borderColor: accent, color: accent }} onClick={() => nav("/auth")}>Get Started →</button>
               </div>
             </Reveal>
 
@@ -425,7 +444,7 @@ export default function Landing() {
                     <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
                   </div>
                 ))}
-                <button className="glow" style={{ width: "100%", justifyContent: "center", marginTop: 24, padding: "14px" }}>Start 7-Day Free Trial →</button>
+                <button className="glow" style={{ width: "100%", justifyContent: "center", marginTop: 24, padding: "14px" }} onClick={() => nav("/auth")}>Start 7-Day Free Trial →</button>
               </div>
             </Reveal>
 
