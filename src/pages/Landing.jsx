@@ -451,6 +451,72 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* FOUNDING MEMBERS */}
+      <section style={{ padding: "0 20px 80px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={{ fontSize: 11, color: gold, letterSpacing: 3, fontFamily: "monospace", fontWeight: 600, marginBottom: 10 }}>LIMITED OFFER</div>
+              <h2 style={{ fontSize: "clamp(26px,5vw,42px)", fontWeight: 900, letterSpacing: "-1px" }}>
+                Become a <span className="gtext">Founding Member</span>
+              </h2>
+              <p style={{ fontSize: 15, color: "#6B6B80", marginTop: 10 }}>Lock in our lowest price, forever. Only 20 spots available.</p>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div style={{ maxWidth: 480, margin: "0 auto", background: "linear-gradient(160deg,#1A180F,#0E0E14)", border: `2px solid ${gold}`, borderRadius: 24, padding: "40px 36px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+
+              {/* Top line */}
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${gold},transparent)` }} />
+
+              {/* Badge */}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${gold}18`, border: `1px solid ${gold}35`, borderRadius: 100, padding: "4px 14px", fontSize: 12, color: gold, marginBottom: 24, fontWeight: 600 }}>
+                ⚡ Only 20 spots — 17 remaining
+              </div>
+
+              {/* Price */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 8 }}>
+                <div style={{ fontSize: 22, color: "#6B6B80", textDecoration: "line-through", fontWeight: 500 }}>₹299/mo</div>
+                <div style={{ fontSize: 56, fontWeight: 900, color: gold, lineHeight: 1 }}>₹99<span style={{ fontSize: 16, color: "#6B6B80", fontWeight: 400 }}>/month</span></div>
+              </div>
+
+              {/* Save badge */}
+              <div style={{ display: "inline-block", background: `${green}15`, color: green, fontSize: 13, fontWeight: 600, padding: "4px 14px", borderRadius: 20, marginBottom: 16 }}>
+                Save 67% — locked in forever
+              </div>
+
+              <p style={{ fontSize: 13, color: "#6B6B80", marginBottom: 28 }}>🔒 Your rate never increases, even when we raise prices.</p>
+
+              {/* Features */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", textAlign: "left", marginBottom: 28 }}>
+                {["Unlimited documents", "Legal eSign", "GST invoices", "Razorpay payments", "Auto reminders", "9 templates"].map((f, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#9B9BB0" }}>
+                    <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+
+              {/* Progress bar */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 24 }}>
+                <div style={{ width: 160, height: 6, background: "#24243A", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: "15%", background: "#EF4444", borderRadius: 99 }} />
+                </div>
+                <span style={{ fontSize: 13, color: "#6B6B80" }}>
+                  <span style={{ color: "#F0EEF6", fontWeight: 600 }}>3 of 20</span> spots claimed
+                </span>
+              </div>
+
+              {/* CTA */}
+              <button className="glow" style={{ width: "100%", justifyContent: "center", fontSize: 15, padding: "14px" }} onClick={() => nav("/auth")}>
+                Claim My Founding Member Spot →
+              </button>
+              <p style={{ fontSize: 12, color: "#6B6B80", marginTop: 12 }}>No credit card needed &nbsp;·&nbsp; Cancel anytime</p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section style={{ padding: "0 20px 80px" }}>
         <Reveal>
