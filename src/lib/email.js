@@ -9,7 +9,7 @@ export async function sendSigningEmail({ to, clientName, docTitle, signingUrl, f
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <onboarding@resend.dev>",
+      from: "FlowDocs <support@flowdocs.co.in>",
       to: [to],
       subject: `${fromName} sent you a document to sign: ${docTitle}`,
       html: `
@@ -71,7 +71,7 @@ export async function sendReminderEmail({
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <onboarding@resend.dev>",
+      from: "FlowDocs <support@flowdocs.co.in>",
       to: [to],
       subject,
       html: `
@@ -101,7 +101,7 @@ export async function sendReminderEmail({
 
           ${paymentDetails}
 
-          ${signingUrl && signingUrl !== window?.location?.origin ? `
+          ${signingUrl ? `
           <a href="${signingUrl}" style="display: inline-block; background: #F5A623; color: #0C0C0E; padding: 14px 28px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 15px; margin-bottom: 24px;">
             ${isInvoice ? "View Invoice & Pay →" : "Sign Document Now →"}
           </a>` : ""}
@@ -125,7 +125,7 @@ export async function sendSignedConfirmation({ to, ownerName, clientName, docTit
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      from: "FlowDocs <onboarding@resend.dev>",
+      from: "FlowDocs <support@flowdocs.co.in>",
       to: [to],
       subject: `✓ ${clientName} signed "${docTitle}"`,
       html: `
