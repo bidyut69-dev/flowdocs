@@ -6,8 +6,8 @@ const C = {
 };
 
 const COMPANY = "FlowDocs";
-const EMAIL = "support@flowdocs.app";
-const DOMAIN = "flowdocs.app";
+const EMAIL = "support@flowdocs.co.in";
+const DOMAIN = "flowdocs.co.in";
 const DATE = "April 5, 2026";
 
 function LegalLayout({ title, children }) {
@@ -81,7 +81,7 @@ export function PrivacyPolicy() {
       <ul>
         <li><strong style={{ color: C.text }}>Supabase</strong> — database and authentication infrastructure</li>
         <li><strong style={{ color: C.text }}>Resend</strong> — transactional email delivery</li>
-        <li><strong style={{ color: C.text }}>Razorpay/Stripe</strong> — payment processing (we never see your card details)</li>
+        <li><strong style={{ color: C.text }}>Razorpay</strong> — payment processing (we never see your card details)</li>
         <li><strong style={{ color: C.text }}>Law enforcement</strong> — only when legally required</li>
       </ul>
 
