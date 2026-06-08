@@ -530,8 +530,8 @@ export default function Landing() {
               </div>
 
               {/* Progress bar */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 24 }}>
-                <div style={{ width: 160, height: 6, background: "#24243A", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 24 }}>
+                <div style={{ width: "100%", height: 6, background: "#24243A", borderRadius: 99, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${Math.min((foundingCount / 20) * 100, 100)}%`, background: "#EF4444", borderRadius: 99 }} />
                 </div>
                 <span style={{ fontSize: 13, color: "#6B6B80" }}>
