@@ -101,9 +101,9 @@ export default function Landing() {
   }, []);
 
   const notifications = [
-    { top: "12%", right: "-2px", icon: "✍️", title: "Contract Signed!", sub: "Acme Corp · just now", border: green },
-    { top: "52%", right: "-2px", icon: "💸", title: "$1,750 received", sub: "Deposit paid", border: gold },
-    { top: "78%", left: "-2px", icon: "🌍", title: "USD · EUR · GBP", sub: "Multi-currency", border: accent },
+    { top: "12%", right: "8px", icon: "✍️", title: "Contract Signed!", sub: "Acme Corp · just now", border: green },
+    { top: "52%", right: "8px", icon: "💸", title: "$1,750 received", sub: "Deposit paid", border: gold },
+    { top: "78%", left: "8px", icon: "🌍", title: "USD · EUR · GBP", sub: "Multi-currency", border: accent },
   ];
 
   return (
@@ -127,7 +127,7 @@ export default function Landing() {
         .step-item{background:#0E0E14;border:1px solid #24243A;border-radius:14px;padding:18px 20px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
         .step-item.active{border-color:${gold};background:linear-gradient(135deg,#1A180F,#0E0E14);transform:scale(1.01)}
         .step-item:hover{border-color:#3A3A5C}
-        .notif{background:#0E0E14;border-radius:12px;padding:11px 14px;position:absolute;width:170px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:notifIn .5s ease both}
+        .notif{background:#0E0E14;border-radius:12px;padding:11px 14px;position:absolute;width:155px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:notifIn .5s ease both}
         .stat-card{background:#0E0E14;border:1px solid #24243A;border-radius:16px;padding:24px 20px;text-align:center;transition:all .3s}
         .stat-card:hover{border-color:${gold}40;transform:translateY(-3px)}
         .feat-card{background:#0E0E14;border:1px solid #24243A;border-radius:16px;padding:24px;transition:all .3s;position:relative;overflow:hidden}
@@ -154,7 +154,7 @@ export default function Landing() {
       </nav>
 
       {/* HERO */}
-      <section style={{ minHeight: "100svh", display: "flex", alignItems: "center", padding: "80px 20px 60px", position: "relative", overflow: "hidden" }}>
+      <section style={{ minHeight: "100svh", display: "flex", alignItems: "center", padding: "80px 20px 60px", position: "relative", overflow: "hidden", overflowX: "hidden" }}>
         {/* BG orbs */}
         <div style={{ position: "absolute", top: "15%", left: "5%", width: 340, height: 340, borderRadius: "50%", background: `radial-gradient(circle,${gold}18 0%,transparent 70%)`, filter: "blur(60px)", animation: "gradGlow 7s ease-in-out infinite", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: "10%", right: "0%", width: 280, height: 280, borderRadius: "50%", background: `radial-gradient(circle,${accent}18 0%,transparent 70%)`, filter: "blur(60px)", animation: "gradGlow 7s ease-in-out 3.5s infinite", pointerEvents: "none" }} />
