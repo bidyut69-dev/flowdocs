@@ -272,7 +272,7 @@ export default function Landing() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: "0 20px 80px" }}>
+      <section id="how-it-works" style={{ padding: "0 20px 80px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
