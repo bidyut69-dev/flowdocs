@@ -66,10 +66,10 @@ function CountUp({ to, suffix = "" }) {
 }
 
 const STEPS = [
-  { icon: "📝", title: "Contract banao", body: "AI se 2 min mein — scope, amount, timeline ready.", color: gold },
-  { icon: "🔗", title: "Ek link generate karo", body: "Contract + signature + payment — sab ek jagah.", color: accent },
-  { icon: "📲", title: "Client ko bhejo", body: "Email ya WhatsApp pe. Koi bhi device pe kholega.", color: "#60A5FA" },
-  { icon: "✅", title: "Signed & Paid", body: "Confirmation tujhe aayega. Kaam shuru karo.", color: green },
+  { icon: "📝", title: "Create your contract", body: "AI generates it in 2 minutes. Scope, amount, timeline — all ready.", color: gold },
+  { icon: "🔗", title: "Generate one link", body: "Contract, signature, and payment — everything in a single link.", color: accent },
+  { icon: "📲", title: "Send it to your client", body: "Via email or WhatsApp. Opens on any device, no app needed.", color: "#60A5FA" },
+  { icon: "✅", title: "Signed & Paid", body: "You get notified instantly. Money secured. Start the work.", color: green },
 ];
 
 export default function Landing() {
@@ -322,7 +322,7 @@ export default function Landing() {
             <div style={{ textAlign: "center", marginBottom: 40 }}>
               <div style={{ fontSize: 11, color: gold, letterSpacing: 3, fontFamily: "monospace", fontWeight: 600, marginBottom: 10 }}>WHY FLOWDOCS</div>
               <h2 style={{ fontSize: "clamp(26px,5vw,42px)", fontWeight: 900, letterSpacing: "-1px" }}>
-                Pehle vs <span className="gtext">Baad mein</span>
+                Before vs <span className="gtext">With FlowDocs</span>
               </h2>
             </div>
           </Reveal>
@@ -330,8 +330,8 @@ export default function Landing() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
             <Reveal delay={0.1}>
               <div style={{ background: "#0E0E14", border: "1px solid #EF444430", borderRadius: 20, padding: 24 }}>
-                <div style={{ fontSize: 13, color: "#EF4444", fontWeight: 700, marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>😩 Pehle</div>
-                {["PDF email karo", "Print → sign → scan → email", "SWIFT transfer ka 5 din wait", "Follow up. Follow up. Follow up."].map((t, i) => (
+                <div style={{ fontSize: 13, color: "#EF4444", fontWeight: 700, marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>😩 Before</div>
+                {["Email PDFs back and forth", "Print, sign, scan, email again", "Wait 5 days for SWIFT transfer", "Follow up. Follow up. Follow up."].map((t, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 0", borderBottom: i < 3 ? "1px solid #24243A" : "none", fontSize: 13.5, color: "#9B9BB0" }}>
                     <span style={{ color: "#EF4444", fontWeight: 700, marginTop: 1, flexShrink: 0 }}>✗</span>{t}
                   </div>
@@ -341,8 +341,8 @@ export default function Landing() {
 
             <Reveal delay={0.2}>
               <div style={{ background: "linear-gradient(160deg,#1A180F,#0E0E14)", border: `1px solid ${gold}40`, borderRadius: 20, padding: 24 }}>
-                <div style={{ fontSize: 13, color: gold, fontWeight: 700, marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>🚀 FlowDocs ke saath</div>
-                {["Contract banao — 2 min", "Ek link generate karo", "Client sign kare + deposit pay kare", "Tum kaam shuru karo ✓"].map((t, i) => (
+                <div style={{ fontSize: 13, color: gold, fontWeight: 700, marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>🚀 With FlowDocs</div>
+                {["Create contract in 2 minutes", "Generate one link", "Client signs and pays deposit", "You start the work ✓"].map((t, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 0", borderBottom: i < 3 ? "1px solid #24243A" : "none", fontSize: 13.5, color: "#9B9BB0" }}>
                     <span style={{ color: green, fontWeight: 700, marginTop: 1, flexShrink: 0 }}>✓</span>{t}
                   </div>
@@ -558,7 +558,7 @@ export default function Landing() {
             <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{ fontSize: 44, marginBottom: 16, animation: "floatB 4s ease-in-out infinite" }}>🚀</div>
               <h2 style={{ fontSize: "clamp(26px,6vw,50px)", fontWeight: 900, letterSpacing: "-1.5px", marginBottom: 16, lineHeight: 1.1 }}>
-                Ek link bhejo.<br />
+                Send one link.<br />
                 <span className="gtext">Signed. Paid. Done.</span>
               </h2>
               <p style={{ fontSize: 16, color: "#9B9BB0", marginBottom: 36, maxWidth: 420, margin: "0 auto 36px" }}>
