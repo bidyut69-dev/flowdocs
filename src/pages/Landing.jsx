@@ -188,7 +188,7 @@ export default function Landing() {
 
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
               <button className="glow" style={{ fontSize: 15, padding: "15px 36px" }} onClick={() => nav("/auth")}>Start Free — No Card →</button>
-              <button className="ghost">See How It Works</button>
+              <button className="ghost" onClick={() => {   document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}>   See How It Works </button>
             </div>
 
             <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
