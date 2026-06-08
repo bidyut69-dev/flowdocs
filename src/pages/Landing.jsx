@@ -12,7 +12,7 @@ function useInView(ref, threshold = 0.15) {
     const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true); }, { threshold });
     if (ref.current) o.observe(ref.current);
     return () => o.disconnect();
-  }, []);
+  }, [ref, threshold]);
   return v;
 }
 
@@ -576,9 +576,9 @@ export default function Landing() {
         <div style={{ fontSize: 16, fontWeight: 800, color: gold, marginBottom: 6 }}>FlowDocs</div>
         <div style={{ fontSize: 12, color: "#6B6B80", marginBottom: 16 }}>One Link. Signed Contract. Paid Deposit.</div>
         <div style={{ display: "flex", gap: 20, justifyContent: "center", fontSize: 12, color: "#6B6B80", flexWrap: "wrap" }}>
-          {["Privacy Policy", "Terms of Service", "support@flowdocs.co.in"].map((t, i) => (
-            <span key={i} style={{ cursor: "pointer" }}>{t}</span>
-          ))}
+          <span style={{ cursor: "pointer" }} onClick={() => nav("/privacy")}>Privacy Policy</span>
+          <span style={{ cursor: "pointer" }} onClick={() => nav("/terms")}>Terms of Service</span>
+          <a href="mailto:support@flowdocs.co.in" style={{ color: "#6B6B80", textDecoration: "none" }}>support@flowdocs.co.in</a>
         </div>
         <div style={{ fontSize: 11, color: "#6B6B80", marginTop: 16 }}>© {new Date().getFullYear()} FlowDocs. Built with ❤️ for Indian Freelancers.</div>
       </footer>
