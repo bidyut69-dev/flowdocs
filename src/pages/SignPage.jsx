@@ -61,6 +61,11 @@ export default function SignPage() {
   const [payError, setPayError] = useState("");
   const [depositPct, setDepositPct] = useState(50); // default 50%
 
+  // Onboarding Intake Form State
+  const [intakeSubmitting, setIntakeSubmitting] = useState(false);
+  const [intakeSuccess, setIntakeSuccess] = useState(false);
+  const [intakeError, setIntakeError] = useState("");
+
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
 
@@ -78,17 +83,16 @@ export default function SignPage() {
         setError("Document not found or link is invalid.");
       } else {
         setDoc(data);
-        // BUG-02 FIX: Track when client opens the document
         if (!data.opened_at && data.status !== "signed" && data.status !== "paid") {
           supabase.from("documents")
             .update({ opened_at: new Date().toISOString() })
             .eq("sign_token", token)
             .then(() => {});
         }
-        // Restore state if already signed/paid
+        
+        // Router State Reconstruction
         if (data.status === "paid") setStep("done");
         else if (data.status === "signed") {
-          // Show pay step if has amount, else done
           setStep(data.amount > 0 ? "pay" : "done");
         }
       }
@@ -101,9 +105,8 @@ export default function SignPage() {
   useEffect(() => {
     if (step !== "sign" || !doc) return;
 
-    // Wait for canvas to render in DOM
     const timer = setTimeout(() => {
-      const canvas = canvasRef.current; // local copy — no ref in cleanup
+      const canvas = canvasRef.current;
       if (!canvas) return;
 
       const dpr = window.devicePixelRatio || 1;
@@ -161,7 +164,6 @@ export default function SignPage() {
       canvas.addEventListener("touchend", stop);
       canvas.addEventListener("touchcancel", stop);
 
-      // Store cleanup on canvas element itself — uses local var not ref
       canvas._evCleanup = () => {
         canvas.removeEventListener("mousedown", start);
         canvas.removeEventListener("mousemove", draw);
@@ -174,7 +176,6 @@ export default function SignPage() {
       };
     }, 100);
 
-    // BUG-07 FIX: snapshot ref value before cleanup runs
     const canvasSnapshot = canvasRef.current;
     return () => {
       clearTimeout(timer);
@@ -206,10 +207,8 @@ export default function SignPage() {
     setSigning(true);
     try {
       const canvas = canvasRef.current;
-      // Get base64 directly from canvas — no URL, no CORS
       const signatureBase64 = canvas.toDataURL("image/png");
 
-      // Also try to upload to storage (optional — for backup)
       let publicUrl = null;
       try {
         const blob = await (await fetch(signatureBase64)).blob();
@@ -223,23 +222,21 @@ export default function SignPage() {
             .getPublicUrl(fileName);
           publicUrl = urlData?.publicUrl || null;
         }
-      } catch { /* storage upload failed — base64 still saved */ }
+      } catch { /* backup storage trace ignored */ }
 
-      // Save BOTH base64 and URL to documents + signer name
       const { error: updateErr } = await supabase
         .from("documents")
         .update({
           status: "signed",
-          signature_data: signatureBase64,  // ← base64 directly
-          signature_url: publicUrl,          // ← URL as backup
+          signature_data: signatureBase64,
+          signature_url: publicUrl,
           signed_at: new Date().toISOString(),
-          signer_name: name.trim(),          // ← BUG-01 FIX
+          signer_name: name.trim(),
         })
         .eq("id", doc.id);
 
       if (updateErr) return setSignError("Signing failed: " + updateErr.message);
 
-      // Notify owner (non-blocking)
       if (doc.profiles?.email) {
         sendSignedConfirmation({
           to: doc.profiles.email,
@@ -271,14 +268,12 @@ export default function SignPage() {
 
     const depositAmount = Math.round((doc.amount * depositPct) / 100);
 
-    // Amount 0 ya invalid hai toh payment mat karo
     if (!depositAmount || depositAmount <= 0) {
       setPayError("Invoice amount set nahi hua hai। Freelancer se contact karo।");
       setPaying(false);
       return;
     }
 
-    // Razorpay minimum ₹1 (100 paise) check
     if (depositAmount < 1) {
       setPayError(`Minimum payment ₹1 hona chahiye। Current: ₹${depositAmount}`);
       setPaying(false);
@@ -291,7 +286,6 @@ export default function SignPage() {
       clientEmail: doc.clients?.email || "",
       onSuccess: async (response) => {
         await markInvoicePaid(supabase, doc.id, response.razorpay_payment_id);
-        // BUG-03 FIX: Notify freelancer of payment
         if (doc.profiles?.email) {
           sendPaymentReceived({
             to: doc.profiles.email,
@@ -312,13 +306,12 @@ export default function SignPage() {
 
   const skipPay = () => setStep("done");
 
-  // ── Format amount ────────────────────────────────────────────────────
+  // ── Format parameters ────────────────────────────────────────────────
   const currency = doc?.currency || "INR";
   const sym = currency === "INR" ? "₹" : currency === "USD" ? "$" : currency === "EUR" ? "€" : currency;
   const fmt = (amt) => `${sym}${Number(amt || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const depositAmt = doc ? Math.round((doc.amount * depositPct) / 100) : 0;
 
-  // ── Steps config ─────────────────────────────────────────────────────
   const hasPayment = doc?.amount > 0 && doc.amount >= 1;
   const steps = hasPayment
     ? ["review", "sign", "pay", "done"]
@@ -361,15 +354,13 @@ export default function SignPage() {
     </div>
   );
 
-  // ── Loading ───────────────────────────────────────────────────────────
   if (loading) return shell(
     <div style={{ textAlign: "center", padding: 48, color: C.dim }}>
       <div style={{ width: 28, height: 28, border: `3px solid ${C.border}`, borderTopColor: C.gold, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-      Loading document...
+      Loading document metrics...
     </div>
   );
 
-  // ── Error ─────────────────────────────────────────────────────────────
   if (error) return shell(
     <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 12, padding: "24px", textAlign: "center" }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
@@ -381,8 +372,6 @@ export default function SignPage() {
   // ── STEP 1: Review ────────────────────────────────────────────────────
   if (step === "review") return shell(
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
-
-      {/* Doc header */}
       <div style={{ padding: "24px 24px 20px", borderBottom: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 10, color: C.gold, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 6 }}>
           {doc.type}
@@ -410,7 +399,6 @@ export default function SignPage() {
         </div>
       </div>
 
-      {/* Document content */}
       <div style={{ padding: "20px 24px", maxHeight: 320, overflowY: "auto" }}>
         <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>Document Content</div>
         <pre style={{ fontFamily: "'DM Mono', monospace", fontSize: 12.5, color: C.mid, lineHeight: 1.85, whiteSpace: "pre-wrap", margin: 0 }}>
@@ -418,7 +406,6 @@ export default function SignPage() {
         </pre>
       </div>
 
-      {/* Payment preview if applicable */}
       {doc.amount > 0 && (
         <div style={{ margin: "0 24px 20px", background: C.goldDim2, border: `1px solid ${C.gold}30`, borderRadius: 10, padding: "14px 16px" }}>
           <div style={{ fontSize: 12, color: C.gold, fontWeight: 600, marginBottom: 6 }}>💰 Payment on Signing</div>
@@ -426,7 +413,6 @@ export default function SignPage() {
         </div>
       )}
 
-      {/* CTA */}
       <div style={{ padding: "0 24px 24px" }}>
         <button onClick={() => setStep("sign")} style={{
           width: "100%", background: C.gold, color: "#0C0C0E", border: "none",
@@ -450,7 +436,6 @@ export default function SignPage() {
       <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 800, color: C.text, marginBottom: 4 }}>Sign Document</div>
       <div style={{ fontSize: 13, color: C.dim, marginBottom: 24 }}>{doc.title}</div>
 
-      {/* Full name */}
       <div style={{ marginBottom: 18 }}>
         <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", display: "block", marginBottom: 8 }}>
           Your Full Legal Name *
@@ -464,7 +449,6 @@ export default function SignPage() {
         />
       </div>
 
-      {/* Signature canvas */}
       <div style={{ marginBottom: 18 }}>
         <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", display: "block", marginBottom: 8 }}>
           Draw Your Signature *
@@ -479,7 +463,6 @@ export default function SignPage() {
         </div>
       </div>
 
-      {/* Agreement */}
       <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px", marginBottom: 20 }}>
         <label style={{ display: "flex", gap: 12, cursor: "pointer", alignItems: "flex-start" }}>
           <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 2, accentColor: C.gold, width: 16, height: 16, flexShrink: 0 }} />
@@ -489,14 +472,12 @@ export default function SignPage() {
         </label>
       </div>
 
-      {/* Error */}
       {signError && (
         <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
           {signError}
         </div>
       )}
 
-      {/* Buttons */}
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={() => setStep("review")} style={{ padding: "12px 16px", background: "transparent", border: `1px solid ${C.border}`, color: C.mid, borderRadius: 10, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600 }}>
           ← Back
@@ -534,7 +515,6 @@ export default function SignPage() {
         <div style={{ fontSize: 14, color: C.mid }}>One last step — pay your deposit to confirm the project.</div>
       </div>
 
-      {/* Deposit selector */}
       <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", marginBottom: 20 }}>
         <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>Deposit Amount</div>
 
@@ -552,7 +532,6 @@ export default function SignPage() {
           ))}
         </div>
 
-        {/* Amount display */}
         <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: `1px solid ${C.border}` }}>
           <span style={{ fontSize: 14, color: C.dim }}>Total project value</span>
           <span style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{fmt(doc.amount)}</span>
@@ -563,7 +542,6 @@ export default function SignPage() {
         </div>
       </div>
 
-      {/* Payment methods */}
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20 }}>
         {["💳 Cards", "📱 UPI", "🏦 Net Banking", "💼 Wallets"].map((m, i) => (
           <span key={i} style={{ fontSize: 11, color: C.dim, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px" }}>{m}</span>
@@ -599,32 +577,92 @@ export default function SignPage() {
     </div>
   );
 
-  // ── STEP 4: Done ─────────────────────────────────────────────────────
-  if (step === "done") return shell(
-    <div style={{ background: C.surface, border: `2px solid ${C.green}`, borderRadius: 16, padding: "40px 28px", textAlign: "center" }}>
-      <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
-      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, color: C.green, marginBottom: 10 }}>
-        {doc?.status === "paid" ? "All Done!" : "Signed Successfully!"}
-      </div>
-      <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.8, marginBottom: 24 }}>
-        {doc?.status === "paid"
-          ? `${doc.clients?.name || "You"} have signed the document and paid the deposit. The service provider has been notified.`
-          : `${doc.clients?.name || "You"} have signed "${doc?.title}". The service provider has been notified and will be in touch soon.`}
-      </div>
+  // ── STEP 4: Done / Dynamic Intake Automation Hub ──────────────────────
+  if (step === "done") {
+    // Fallback default variables if freelancer hasn't injected custom rows
+    const intakeRequirements = doc?.content?.intake_requirements || [
+      "Share the secure Google Drive / Figma file links for design assets.",
+      "List explicit design color palettes or copy parameters/constraints."
+    ];
 
-      {doc?.signed_at && (
-        <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", fontSize: 12, color: C.dim, fontFamily: "'DM Mono', monospace", marginBottom: 20 }}>
-          ✓ Signed: {new Date(doc.signed_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}
+    return shell(
+      <div style={{ background: C.surface, border: `1px solid ${intakeSuccess ? C.green : C.border}`, borderRadius: 16, padding: "32px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>{intakeSuccess ? "🚀" : "🎉"}</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: intakeSuccess ? C.green : C.gold, marginBottom: 8 }}>
+          {intakeSuccess ? "Workspace Activated!" : doc?.status === "paid" ? "Payment Secured!" : "Agreement Signed!"}
         </div>
-      )}
+        <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.7, marginBottom: 24, maxWidth: 440, margin: "0 auto 24px" }}>
+          {intakeSuccess 
+            ? "Your requirements have been securely synced. The project tracking framework is now running automatically."
+            : "The contract is locked. To bypass standard delivery friction and avoid pipeline asset delays, please state your operational requirements below."}
+        </div>
 
-      <div style={{ display: "flex", gap: 12, justifyContent: "center", fontSize: 13, color: C.dim }}>
-        <span>🔒 Legally binding</span>
-        <span>📧 Confirmation sent</span>
-        <span>⚡ FlowDocs</span>
+        {/* Dynamic Intake Form Interface */}
+        {!intakeSuccess && (
+          <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "left", marginBottom: 24 }}>
+            <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
+              <span>⚡</span> Mandatory Project Intake Parameters
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setIntakeSubmitting(true);
+              setIntakeError("");
+
+              const formData = new FormData(e.target);
+              const responses = Object.fromEntries(formData.entries());
+
+              const { error: dbErr } = await supabase
+                .from("documents")
+                .update({
+                  intake_responses: responses,
+                  intake_submitted_at: new Date().toISOString()
+                })
+                .eq("id", doc.id);
+
+              setIntakeSubmitting(false);
+              if (dbErr) {
+                setIntakeError("Database synchronization leak: " + dbErr.message);
+              } else {
+                setIntakeSuccess(true);
+              }
+            }}>
+              {intakeRequirements.map((field, idx) => (
+                <div key={idx} style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 12, color: C.text, display: "block", marginBottom: 6, fontWeight: 500, lineHeight: 1.4 }}>
+                    {idx + 1}. {field}
+                  </label>
+                  <textarea
+                    name={`intake_field_${idx}`}
+                    required
+                    rows={3}
+                    style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, color: C.text, fontFamily: "'DM Sans', sans-serif", outline: "none", resize: "vertical", boxSizing: "border-box" }}
+                    placeholder="Enter absolute links or explicit execution rules..."
+                  />
+                </div>
+              ))}
+
+              {intakeError && (
+                <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
+                  {intakeError}
+                </div>
+              )}
+
+              <button type="submit" disabled={intakeSubmitting} style={{ width: "100%", background: C.green, color: "#0C0C0E", border: "none", borderRadius: 8, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>
+                {intakeSubmitting ? "Locking Assets..." : "Submit Project Specs & Initialize Timeline →"}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {doc?.signed_at && (
+          <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>
+            ✓ Verification Hash: {doc.id.slice(0, 8).toUpperCase()}-{new Date(doc.signed_at).getTime()}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  }
 
   return null;
 }
