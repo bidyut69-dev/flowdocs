@@ -355,6 +355,17 @@ export default function Dashboard({ session }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showAI, setShowAI] = useState(false);
 
+  // Check free plan limit before opening new doc modal
+  const handleNewDoc = (presetType = null) => {
+    const isFreePlan = !profile?.plan || profile?.plan === "free";
+    if (isFreePlan && documents.length >= 3) {
+      setShowUpgrade(true);
+      return;
+    }
+    if (presetType) setDocForm(f => ({ ...f, type: presetType }));
+    setModal("newDoc");
+  };
+
   const defaultCur = profile?.default_currency || "INR";
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
   const collected = documents.filter(d => d.status === "paid").reduce((s, d) => s + (d.amount || 0), 0);
@@ -444,7 +455,7 @@ export default function Dashboard({ session }) {
           <span>☰</span>
         </button>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
-        <button onClick={() => setModal("newDoc")} style={{ background: C.gold, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#0C0C0E", fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>+ New</button>
+        <button onClick={() => handleNewDoc()} style={{ background: C.gold, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#0C0C0E", fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>+ New</button>
       </div>
 
       <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{ width: 220, background: `linear-gradient(180deg, ${C.surface} 0%, #101012 100%)`, borderRight: `1px solid ${C.border}`, flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 15, overflowY: "auto" }}>
@@ -514,7 +525,7 @@ export default function Dashboard({ session }) {
             if (data.type === "invoice_items") {
               setDocForm(f => ({ ...f, type: "Invoice", title: data.title, client_id: clients.find(c => c.name === data.clientName)?.id || "" }));
               setInvoiceItems(data.items.map(i => ({ description: i.description, qty: i.qty || 1, rate: i.rate || 0 })));
-              setShowAI(false); setModal("newDoc");
+              setShowAI(false); handleNewDoc();
             } else {
               setDocForm(f => ({ ...f, type: data.type === "nda" ? "NDA" : data.type === "contract" ? "Contract" : "Proposal", title: data.title, description: data.text, client_id: clients.find(c => c.name === data.clientName)?.id || "" }));
             }
@@ -540,7 +551,7 @@ export default function Dashboard({ session }) {
                   </button>
                 )}
                 <button style={{ ...btn("ghost"), borderColor: "#60A5FA", color: "#60A5FA", background: "#60A5FA18" }} onClick={() => setShowAI(true)}>✨ AI Generate</button>
-                <button style={btn()} onClick={() => setModal("newDoc")}>+ New Document</button>
+                <button style={btn()} onClick={() => handleNewDoc()}>+ New Document</button>
               </div>
             </div>
             <div className="fd-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
@@ -550,35 +561,35 @@ export default function Dashboard({ session }) {
               <StatCard label="Overdue" value={overdue} sub="Action needed" accent="red" />
             </div>
             <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
-            <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} />
+            <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => handleNewDoc()} />
           </>
         )}
 
         {page === "documents" && (
           <>
-            <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => setModal("newDoc")} btnLabel="+ New Document" />
-            <DocsTable docs={documents} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} full />
+            <PageHeader title="Documents" sub={`${documents.length} total`} onNew={() => handleNewDoc()} btnLabel="+ New Document" />
+            <DocsTable docs={documents} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => handleNewDoc()} full />
           </>
         )}
 
         {page === "templates" && (
           <>
-            <PageHeader title="Templates" sub="Ready-to-use proposals, contracts & NDAs" onNew={() => setModal("newDoc")} btnLabel="+ Blank Document" />
+            <PageHeader title="Templates" sub="Ready-to-use proposals, contracts & NDAs" onNew={() => handleNewDoc()} btnLabel="+ Blank Document" />
             <Templates session={session} onUse={(doc) => { setDocuments(prev => [doc, ...prev]); setPage("documents"); showToast("✓ Template added to documents!"); }} />
           </>
         )}
 
         {page === "esign" && (
           <>
-            <PageHeader title="eSign" sub="Track signature status in real-time" onNew={() => setModal("newDoc")} btnLabel="+ New Signing Request" />
+            <PageHeader title="eSign" sub="Track signature status in real-time" onNew={() => handleNewDoc()} btnLabel="+ New Signing Request" />
             <ESignPage docs={documents} clients={clients} onSend={sendDoc} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} />
           </>
         )}
 
         {page === "invoices" && (
           <>
-            <PageHeader title="Invoices" sub="Billing & payment tracking with GST" onNew={() => { setDocForm(f => ({ ...f, type: "Invoice" })); setModal("newDoc"); }} btnLabel="+ New Invoice" />
-            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => setModal("newDoc")} full />
+            <PageHeader title="Invoices" sub="Billing & payment tracking with GST" onNew={() => handleNewDoc("Invoice")} btnLabel="+ New Invoice" />
+            <DocsTable docs={documents.filter(d => d.type === "Invoice")} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => handleNewDoc()} full />
           </>
         )}
 

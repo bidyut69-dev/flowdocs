@@ -52,10 +52,10 @@ export default function UpgradeModal({ session, profile, onClose, onUpgraded }) 
 
   const plan = PLANS[selectedPlan];
 
-  // Returns amount in paise (Razorpay expects paise)
+  // Returns amount in rupees (payment.js converts to paise)
   const getAmount = () => {
-    if (selectedPlan === "solo") return billing === "annual" ? 299000 : 29900;
-    return billing === "annual" ? 750000 : 75000;
+    if (selectedPlan === "solo") return billing === "annual" ? 2990 : 299;
+    return billing === "annual" ? 7500 : 750;
   };
 
   const getLabel = () => {
