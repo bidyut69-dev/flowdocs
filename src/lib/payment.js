@@ -25,7 +25,7 @@ export async function openRazorpayCheckout({ user, plan, amount, onSuccess, onFa
 
   const options = {
     key: RAZORPAY_KEY,
-    amount,                          // paise mein — e.g. 29900 = ₹299
+    amount: Math.round(amount * 100), // rupees to paise — e.g. 299 → 29900
     currency: "INR",
     name: "FlowDocs",
     description: `${plan} Plan Subscription`,
