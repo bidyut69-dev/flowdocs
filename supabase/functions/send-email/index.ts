@@ -19,9 +19,10 @@ serve(async (req) => {
   try {
     const { type, to, data } = await req.json();
     let subject = "", html = "";
+    const uid = crypto.randomUUID().slice(0, 8);
 
     if (type === "signing_request") {
-      subject = `${data.fromName} sent you a document: ${data.docTitle}`;
+      subject = `${data.fromName} sent you a document: ${data.docTitle} [#${uid}]`;
       html = `<div style="font-family:sans-serif;background:#0C0C0E;color:#F0EEE8;padding:40px;max-width:520px;margin:0 auto;border-radius:12px;">
         <div style="color:#F5A623;font-size:22px;font-weight:800;margin-bottom:8px;">⚡ FlowDocs</div>
         <h2 style="color:#F0EEE8;margin-bottom:12px;">Hi ${data.clientName},</h2>
@@ -32,6 +33,7 @@ serve(async (req) => {
           ${data.amount ? `<div style="color:#F5A623;margin-top:8px;font-size:14px;">${data.amount}</div>` : ""}
         </div>
         <a href="${data.signingUrl}" style="display:inline-block;background:#F5A623;color:#0C0C0E;padding:14px 28px;border-radius:8px;font-weight:700;text-decoration:none;">View & Sign →</a>
+        <div style="color:#3A3A3E;font-size:10px;margin-top:24px;">ref: ${uid}</div>
       </div>`;
     } else if (type === "signed_confirmation") {
       subject = `✓ ${data.clientName} signed "${data.docTitle}"`;

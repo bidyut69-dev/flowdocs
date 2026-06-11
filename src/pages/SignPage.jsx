@@ -281,9 +281,13 @@ export default function SignPage() {
     }
 
     await openInvoicePayment({
-      invoice: { ...doc, amount: depositAmount },
-      clientName: doc.clients?.name || name,
-      clientEmail: doc.clients?.email || "",
+      user: {
+        name: doc.clients?.name || name,
+        email: doc.clients?.email || "",
+      },
+      document: doc,
+      amount: depositAmount,
+      currency: doc.currency || "INR",
       onSuccess: async (response) => {
         await markInvoicePaid(supabase, doc.id, response.razorpay_payment_id);
         if (doc.profiles?.email) {
