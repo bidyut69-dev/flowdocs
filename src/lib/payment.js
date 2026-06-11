@@ -33,6 +33,7 @@ export async function openRazorpayCheckout({ user, plan, amount, onSuccess, onFa
     prefill: {
       name: user.name || "",
       email: user.email || "",
+      contact: user.phone || user.contact || "",
     },
     theme: {
       color: "#F5A623",
@@ -124,6 +125,7 @@ export async function openInvoicePayment({ user, document, amount, currency = "I
     prefill: {
       name: user?.name || "",
       email: user?.email || "",
+      contact: user?.phone || user?.contact || "",
     },
     theme: { color: "#F5A623" },
     modal: {
