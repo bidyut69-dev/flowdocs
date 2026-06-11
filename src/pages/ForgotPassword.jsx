@@ -22,6 +22,8 @@ export default function ForgotPassword() {
 
   const sendReset = async () => {
     if (!email) return setError("Enter your email");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return setError("Enter a valid email address");
     setLoading(true); setError("");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -32,7 +34,7 @@ export default function ForgotPassword() {
   };
 
   const updatePassword = async () => {
-    if (!newPassword || newPassword.length < 6) return setError("Password must be 6+ characters");
+    if (!newPassword || newPassword.length < 8) return setError("Password must be at least 8 characters");
     setLoading(true); setError("");
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
@@ -87,10 +89,10 @@ export default function ForgotPassword() {
               </div>
               {error && <div style={{ background: "#EF444420", border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 12px", color: C.red, fontSize: 13, marginBottom: 8 }}>{error}</div>}
               <label style={S.label}>New Password</label>
-              <input style={S.input} type="password" placeholder="Minimum 6 characters" value={newPassword}
+              <input style={S.input} type="password" placeholder="Minimum 8 characters" value={newPassword}
                 onChange={e => setNewPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && updatePassword()} />
               <button style={{ ...S.btn, opacity: loading ? 0.6 : 1 }} onClick={updatePassword} disabled={loading}>
-                {loading ? "Updating..." : "Set New Password →"}
+                {loading ? "Updating..." : "Set New Password"}
               </button>
             </>
           ) : (
@@ -103,12 +105,12 @@ export default function ForgotPassword() {
               <input style={S.input} type="email" placeholder="you@example.com" value={email}
                 onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && sendReset()} />
               <button style={{ ...S.btn, opacity: loading ? 0.6 : 1 }} onClick={sendReset} disabled={loading}>
-                {loading ? "Sending..." : "Send Reset Link →"}
+                {loading ? "Sending..." : "Send Reset Link"}
               </button>
             </>
           )}
 
-          <div style={S.back} onClick={() => nav("/auth")}>← Back to Sign In</div>
+          <div style={S.back} onClick={() => nav("/auth")}>Back to Sign In</div>
         </div>
       </div>
     </div>
