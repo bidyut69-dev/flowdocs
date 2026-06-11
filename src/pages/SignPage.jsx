@@ -593,19 +593,19 @@ export default function SignPage() {
       <div style={{ background: C.surface, border: `1px solid ${intakeSuccess ? C.green : C.border}`, borderRadius: 16, padding: "32px 24px", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>{intakeSuccess ? "🚀" : "🎉"}</div>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: intakeSuccess ? C.green : C.gold, marginBottom: 8 }}>
-          {intakeSuccess ? "Workspace Activated!" : doc?.status === "paid" ? "Payment Secured!" : "Agreement Signed!"}
+          {intakeSuccess ? "You're all set!" : doc?.status === "paid" ? "Payment Received!" : "Agreement Signed!"}
         </div>
         <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.7, marginBottom: 24, maxWidth: 440, margin: "0 auto 24px" }}>
           {intakeSuccess 
-            ? "Your requirements have been securely synced. The project tracking framework is now running automatically."
-            : "The contract is locked. To bypass standard delivery friction and avoid pipeline asset delays, please state your operational requirements below."}
+            ? "Your details have been submitted. We will be in touch shortly to kick things off."
+            : "One last step — share a few details so we can get started on the right foot."}
         </div>
 
         {/* Dynamic Intake Form Interface */}
         {!intakeSuccess && (
           <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "left", marginBottom: 24 }}>
             <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>⚡</span> Mandatory Project Intake Parameters
+              <span>⚡</span> Project Details
             </div>
 
             <form onSubmit={async (e) => {
@@ -626,7 +626,7 @@ export default function SignPage() {
 
               setIntakeSubmitting(false);
               if (dbErr) {
-                setIntakeError("Database synchronization leak: " + dbErr.message);
+                setIntakeError("Something went wrong. Please try again or contact support.");
               } else {
                 setIntakeSuccess(true);
               }
@@ -638,10 +638,9 @@ export default function SignPage() {
                   </label>
                   <textarea
                     name={`intake_field_${idx}`}
-                    required
                     rows={3}
                     style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, color: C.text, fontFamily: "'DM Sans', sans-serif", outline: "none", resize: "vertical", boxSizing: "border-box" }}
-                    placeholder="Enter absolute links or explicit execution rules..."
+                    placeholder="Add your response here..."
                   />
                 </div>
               ))}
@@ -653,7 +652,7 @@ export default function SignPage() {
               )}
 
               <button type="submit" disabled={intakeSubmitting} style={{ width: "100%", background: C.green, color: "#0C0C0E", border: "none", borderRadius: 8, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>
-                {intakeSubmitting ? "Locking Assets..." : "Submit Project Specs & Initialize Timeline →"}
+                {intakeSubmitting ? "Submitting..." : "Submit Details"}
               </button>
             </form>
           </div>
