@@ -148,6 +148,7 @@ export async function markInvoicePaid(supabase, documentId, paymentId) {
       .from("documents")
       .update({
         status: "paid",
+        razorpay_payment_id: paymentId,
         updated_at: new Date().toISOString(),
       })
       .eq("id", documentId);
