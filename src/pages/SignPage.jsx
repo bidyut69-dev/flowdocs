@@ -75,7 +75,7 @@ export default function SignPage() {
       setLoading(true);
       const { data, error: err } = await supabase
         .from("documents")
-        .select("*, clients(name, email, company), profiles(name, company, email)")
+        .select("*, clients(name, email, company), profiles(name, company, email, razorpay_key_id, upi_id, bank_name, bank_account, bank_ifsc)")
         .eq("sign_token", token)
         .single();
 
@@ -288,6 +288,7 @@ export default function SignPage() {
       document: doc,
       amount: depositAmount,
       currency: doc.currency || "INR",
+      razorpayKey: doc.profiles?.razorpay_key_id || null, // freelancer's own key
       onSuccess: async (response) => {
         await markInvoicePaid(supabase, doc.id, response.razorpay_payment_id);
         if (doc.profiles?.email) {
@@ -309,6 +310,28 @@ export default function SignPage() {
   };
 
   const skipPay = () => setStep("done");
+
+  // ── Manual Pay: client confirms they've paid via UPI/bank ─────────────
+  const handleManualPayDone = async () => {
+    setPaying(true);
+    try {
+      await supabase
+        .from("documents")
+        .update({ status: "payment_pending", updated_at: new Date().toISOString() })
+        .eq("id", doc.id);
+      // Notify freelancer
+      if (doc.profiles?.email) {
+        sendPaymentReceived({
+          to: doc.profiles.email,
+          docTitle: doc.title,
+          amount: fmt(depositAmt),
+          clientName: doc.clients?.name || name,
+        }).catch(() => {});
+      }
+    } catch { /* silent */ }
+    setPaying(false);
+    setStep("done");
+  };
 
   // ── Format parameters ────────────────────────────────────────────────
   const currency = doc?.currency || "INR";
@@ -511,17 +534,23 @@ export default function SignPage() {
   );
 
   // ── STEP 3: Pay Deposit ───────────────────────────────────────────────
-  if (step === "pay") return shell(
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "28px 24px" }}>
-      <div style={{ textAlign: "center", marginBottom: 24 }}>
-        <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: C.green, marginBottom: 6 }}>Document Signed!</div>
-        <div style={{ fontSize: 14, color: C.mid }}>One last step — pay your deposit to confirm the project.</div>
-      </div>
+  if (step === "pay") {
+    const freelancerKey  = doc?.profiles?.razorpay_key_id;
+    const upiId          = doc?.profiles?.upi_id;
+    const bankName       = doc?.profiles?.bank_name;
+    const bankAccNo      = doc?.profiles?.bank_account;
+    const bankIfsc       = doc?.profiles?.bank_ifsc;
+    const freelancerName = doc?.profiles?.name || "Freelancer";
 
+    // upi://pay deep link
+    const upiDeepLink = upiId
+      ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(freelancerName)}&am=${depositAmt}&cu=INR&tn=${encodeURIComponent(`Deposit - ${doc.title || "Invoice"}`)}`
+      : null;
+
+    // Deposit amount card — shared between both modes
+    const depositCard = (
       <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", marginBottom: 20 }}>
         <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>Deposit Amount</div>
-
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           {[25, 50, 100].map(pct => (
             <button key={pct} onClick={() => setDepositPct(pct)} style={{
@@ -535,7 +564,6 @@ export default function SignPage() {
             </button>
           ))}
         </div>
-
         <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: `1px solid ${C.border}` }}>
           <span style={{ fontSize: 14, color: C.dim }}>Total project value</span>
           <span style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{fmt(doc.amount)}</span>
@@ -545,41 +573,139 @@ export default function SignPage() {
           <span style={{ fontSize: 22, color: C.gold, fontWeight: 800, fontFamily: "'Syne', sans-serif" }}>{fmt(depositAmt)}</span>
         </div>
       </div>
+    );
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20 }}>
-        {["💳 Cards", "📱 UPI", "🏦 Net Banking", "💼 Wallets"].map((m, i) => (
-          <span key={i} style={{ fontSize: 11, color: C.dim, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px" }}>{m}</span>
-        ))}
-      </div>
-
-      {payError && (
-        <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
-          {payError}
+    return shell(
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "28px 24px" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: C.green, marginBottom: 6 }}>Document Signed!</div>
+          <div style={{ fontSize: 14, color: C.mid }}>One last step — pay your deposit to confirm the project.</div>
         </div>
-      )}
 
-      <button onClick={handlePay} disabled={paying} style={{
-        width: "100%", background: paying ? C.surface2 : C.gold,
-        color: paying ? C.gold : "#0C0C0E", border: paying ? `1px solid ${C.gold}` : "none",
-        borderRadius: 10, padding: "15px", fontSize: 15, fontWeight: 700,
-        cursor: paying ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12,
-      }}>
-        {paying ? (
+        {depositCard}
+
+        {payError && (
+          <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
+            {payError}
+          </div>
+        )}
+
+        {/* ── PATH A: Razorpay connected ── */}
+        {freelancerKey ? (
           <>
-            <span style={{ width: 16, height: 16, border: `2px solid ${C.dim}`, borderTopColor: C.gold, borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
-            Opening payment...
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20 }}>
+              {["💳 Cards", "📱 UPI", "🏦 Net Banking", "💼 Wallets"].map((m, i) => (
+                <span key={i} style={{ fontSize: 11, color: C.dim, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px" }}>{m}</span>
+              ))}
+            </div>
+            <button onClick={handlePay} disabled={paying} style={{
+              width: "100%", background: paying ? C.surface2 : C.gold,
+              color: paying ? C.gold : "#0C0C0E", border: paying ? `1px solid ${C.gold}` : "none",
+              borderRadius: 10, padding: "15px", fontSize: 15, fontWeight: 700,
+              cursor: paying ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12,
+            }}>
+              {paying ? (
+                <>
+                  <span style={{ width: 16, height: 16, border: `2px solid ${C.dim}`, borderTopColor: C.gold, borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+                  Opening payment...
+                </>
+              ) : `Pay Deposit ${fmt(depositAmt)} →`}
+            </button>
+            <div style={{ textAlign: "center", marginTop: 4, marginBottom: 12, fontSize: 11, color: C.dim }}>🔒 Secured by Razorpay</div>
           </>
-        ) : `Pay Deposit ${fmt(depositAmt)} →`}
-      </button>
+        ) : (
+          /* ── PATH B: No Razorpay key — Manual UPI / Bank transfer ── */
+          <div>
+            <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>
+              📱 Pay Manually
+            </div>
 
-      <button onClick={skipPay} style={{ width: "100%", background: "transparent", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", padding: "8px", fontFamily: "'DM Sans', sans-serif" }}>
-        Skip for now — I'll pay later
-      </button>
+            {/* UPI section */}
+            {upiId && (
+              <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>UPI ID</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, color: C.text, fontWeight: 600 }}>{upiId}</span>
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText(upiId); }}
+                    style={{ fontSize: 11, color: C.gold, background: "transparent", border: `1px solid ${C.gold}40`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}
+                  >
+                    Copy
+                  </button>
+                </div>
+                {upiDeepLink && (
+                  <a href={upiDeepLink} style={{ display: "block", marginTop: 14, textAlign: "center", background: C.gold, color: "#0C0C0E", borderRadius: 8, padding: "12px", fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "'DM Sans', sans-serif" }}>
+                    📱 Pay {fmt(depositAmt)} via UPI App
+                  </a>
+                )}
+              </div>
+            )}
 
-      <div style={{ textAlign: "center", marginTop: 10, fontSize: 11, color: C.dim }}>🔒 Secured by Razorpay</div>
-    </div>
-  );
+            {/* Bank transfer section */}
+            {(bankAccNo || bankIfsc) && (
+              <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>Bank Transfer</div>
+                {[
+                  bankName     && ["Bank",       bankName],
+                  bankAccNo    && ["Account No.", bankAccNo],
+                  bankIfsc     && ["IFSC",        bankIfsc],
+                ].filter(Boolean).map(([label, val]) => (
+                  <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
+                    <span style={{ fontSize: 12, color: C.dim }}>{label}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.text }}>{val}</span>
+                      <button
+                        onClick={() => navigator.clipboard?.writeText(val)}
+                        style={{ fontSize: 10, color: C.gold, background: "transparent", border: `1px solid ${C.gold}40`, borderRadius: 4, padding: "2px 7px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ marginTop: 10, fontSize: 12, color: C.dim }}>
+                  Transfer exactly <strong style={{ color: C.gold }}>{fmt(depositAmt)}</strong> and use your name as reference.
+                </div>
+              </div>
+            )}
+
+            {/* No payment details at all */}
+            {!upiId && !bankAccNo && !bankIfsc && (
+              <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 12, fontSize: 13, color: C.mid, textAlign: "center" }}>
+                Contact <strong style={{ color: C.text }}>{freelancerName}</strong> directly to arrange payment of <strong style={{ color: C.gold }}>{fmt(depositAmt)}</strong>.
+              </div>
+            )}
+
+            {/* Confirm button */}
+            <button onClick={handleManualPayDone} disabled={paying} style={{
+              width: "100%", background: paying ? C.surface2 : C.green,
+              color: paying ? C.green : "#0C0C0E", border: paying ? `1px solid ${C.green}` : "none",
+              borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 700,
+              cursor: paying ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8, marginTop: 4,
+            }}>
+              {paying ? (
+                <>
+                  <span style={{ width: 16, height: 16, border: `2px solid ${C.dim}`, borderTopColor: C.green, borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+                  Please wait...
+                </>
+              ) : "✅ I've Paid — Notify Freelancer"}
+            </button>
+            <div style={{ textAlign: "center", fontSize: 11, color: C.dim, marginBottom: 4 }}>
+              Freelancer will verify and confirm your payment.
+            </div>
+          </div>
+        )}
+
+        <button onClick={skipPay} style={{ width: "100%", background: "transparent", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", padding: "8px", fontFamily: "'DM Sans', sans-serif" }}>
+          Skip for now — I'll pay later
+        </button>
+      </div>
+    );
+  }
 
   // ── STEP 4: Done / Dynamic Intake Automation Hub ──────────────────────
   if (step === "done") {

@@ -108,15 +108,19 @@ export async function getUserPlan(supabase, userId) {
 }
 
 // ── Invoice Payment (SignPage use) ───────────────────────────────────────────
-export async function openInvoicePayment({ user, document, amount, currency = "INR", onSuccess, onFailure }) {
+// razorpayKey: freelancer's own key (from profiles.razorpay_key_id)
+// Falls back to FlowDocs platform key only if freelancer hasn't connected theirs
+export async function openInvoicePayment({ user, document, amount, currency = "INR", razorpayKey, onSuccess, onFailure }) {
   const loaded = await loadRazorpayScript();
   if (!loaded) {
     onFailure?.("Payment gateway load nahi hua. Internet check karo.");
     return;
   }
 
+  const activeKey = razorpayKey || RAZORPAY_KEY;
+
   const options = {
-    key: RAZORPAY_KEY,
+    key: activeKey,
     amount: Math.round(amount * 100), // paise mein
     currency,
     name: "FlowDocs",

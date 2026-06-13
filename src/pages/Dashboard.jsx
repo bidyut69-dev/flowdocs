@@ -1104,6 +1104,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
     default_currency: profile?.default_currency || "INR",
     bank_name: profile?.bank_name || "", bank_account: profile?.bank_account || "",
     bank_ifsc: profile?.bank_ifsc || "", upi_id: profile?.upi_id || "",
+    razorpay_key_id: profile?.razorpay_key_id || "",
   });
   const [saving, setSaving] = useState(false);
   const handleSave = async () => {
@@ -1157,6 +1158,38 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
           <div><label style={label}>UPI ID</label><input style={input} placeholder="e.g. yourname@upi" value={form.upi_id} onChange={e => setForm({ ...form, upi_id: e.target.value })} /></div>
         </div>
       </div>
+      {/* Razorpay Integration */}
+      <div style={{ ...card, marginBottom: 20, border: `1px solid ${form.razorpay_key_id ? "#22c55e40" : C.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text }}>
+            ⚡ Razorpay Integration
+          </div>
+          {form.razorpay_key_id && (
+            <span style={{ fontSize: 11, color: "#22c55e", background: "#22c55e15", border: "1px solid #22c55e40", borderRadius: 20, padding: "2px 10px", fontFamily: "'DM Mono', monospace" }}>
+              ● Connected
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>
+          Allow clients to pay via Razorpay — Cards, UPI, Net Banking, and Wallets. Payments go directly to your Razorpay account.
+        </div>
+        <label style={{ ...label, marginTop: 0 }}>Razorpay Key ID</label>
+        <input
+          style={input}
+          placeholder="rzp_live_xxxxxxxxxxxxxxxxxxxx"
+          value={form.razorpay_key_id}
+          onChange={e => setForm({ ...form, razorpay_key_id: e.target.value.trim() })}
+        />
+        <div style={{ fontSize: 11, color: C.dim, marginTop: 6, lineHeight: 1.6 }}>
+          Go to Razorpay Dashboard → Settings → API Keys → copy your <strong style={{ color: C.text }}>Key ID</strong>. Never paste your Secret Key here.
+        </div>
+        {form.razorpay_key_id && !form.razorpay_key_id.startsWith("rzp_") && (
+          <div style={{ marginTop: 8, fontSize: 12, color: "#f59e0b", background: "#f59e0b15", border: "1px solid #f59e0b40", borderRadius: 8, padding: "8px 12px" }}>
+            ⚠️ Key ID should start with "rzp_live_" (production) or "rzp_test_" (test mode) — please double-check.
+          </div>
+        )}
+      </div>
+
       <button onClick={handleSave} disabled={saving} style={{ ...btn(), width: "100%", justifyContent: "center", padding: "14px", fontSize: 15, opacity: saving ? 0.6 : 1 }}>
         {saving ? "Saving..." : "Save Settings →"}
       </button>
