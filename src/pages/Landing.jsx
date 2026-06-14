@@ -171,10 +171,10 @@ export default function Landing() {
               For Indian Freelancers Billing Globally
             </div>
 
-            <h1 style={{ fontSize: "clamp(38px,8vw,76px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2.5px", marginBottom: 24 }}>
-              <span style={{ display: "block" }}>One Link.</span>
-              <span style={{ display: "block" }}>Signed Contract.</span>
-              <span className="gtext" style={{ display: "block" }}>Paid Deposit.</span>
+            <h1 style={{ fontSize: "clamp(34px,7vw,68px)", fontWeight: 900, lineHeight: 1.1, letterSpacing: "-2.5px", marginBottom: 24 }}>
+              <span style={{ display: "block" }}>Get Contracts Signed</span>
+              <span style={{ display: "block" }}>and Deposits Paid —</span>
+              <span className="gtext" style={{ display: "block" }}>Before Work Starts.</span>
             </h1>
 
             <p style={{ fontSize: "clamp(16px,2.5vw,19px)", color: "#9B9BB0", lineHeight: 1.75, marginBottom: 12 }}>
