@@ -91,9 +91,9 @@ export default function SignPage() {
         }
         
         // Router State Reconstruction
-        if (data.status === "paid") setStep("done");
+        if (data.status === "paid") setStep(data.intake_data ? "done" : "intake");
         else if (data.status === "signed") {
-          setStep(data.amount > 0 ? "pay" : "done");
+          setStep(data.amount > 0 ? "pay" : "intake");
         }
       }
       setLoading(false);
@@ -252,7 +252,7 @@ export default function SignPage() {
         signature_data: signatureBase64,
         signature_url: publicUrl,
       }));
-      setStep(doc.amount > 0 ? "pay" : "done");
+      setStep(doc.amount > 0 ? "pay" : "intake");
 
     } catch (err) {
       setSignError("Something went wrong: " + err.message);
@@ -299,7 +299,7 @@ export default function SignPage() {
             clientName: doc.clients?.name || name,
           }).catch(() => {});
         }
-        setStep("done");
+        setStep("intake");
         setPaying(false);
       },
       onFailure: (msg) => {
@@ -309,7 +309,7 @@ export default function SignPage() {
     });
   };
 
-  const skipPay = () => setStep("done");
+  const skipPay = () => setStep("intake");
 
   // ── Manual Pay: client confirms they've paid via UPI/bank ─────────────
   const handleManualPayDone = async () => {
@@ -330,7 +330,7 @@ export default function SignPage() {
       }
     } catch { /* silent */ }
     setPaying(false);
-    setStep("done");
+    setStep("intake");
   };
 
   // ── Format parameters ────────────────────────────────────────────────
@@ -341,8 +341,8 @@ export default function SignPage() {
 
   const hasPayment = doc?.amount > 0 && doc.amount >= 1;
   const steps = hasPayment
-    ? ["review", "sign", "pay", "done"]
-    : ["review", "sign", "done"];
+    ? ["review", "sign", "pay", "intake", "done"]
+    : ["review", "sign", "intake", "done"];
 
   const stepNum = steps.indexOf(step) + 1;
 
@@ -368,10 +368,12 @@ export default function SignPage() {
           <StepBadge num="2" label="Sign" active={step === "sign"} done={stepNum > 2} />
           {hasPayment && (
             <>
-              <StepLine done={step === "done" || step === "pay" && stepNum > 3} />
-              <StepBadge num="3" label="Pay Deposit" active={step === "pay"} done={step === "done"} />
+              <StepLine done={stepNum > 2} />
+              <StepBadge num="3" label="Pay Deposit" active={step === "pay"} done={stepNum > 3} />
             </>
           )}
+          <StepLine done={step === "done"} />
+          <StepBadge num={hasPayment ? "4" : "3"} label="Details" active={step === "intake"} done={step === "done"} />
         </div>
       )}
 
@@ -707,9 +709,8 @@ export default function SignPage() {
     );
   }
 
-  // ── STEP 4: Done / Dynamic Intake Automation Hub ──────────────────────
-  if (step === "done") {
-    // Fallback default variables if freelancer hasn't injected custom rows
+  // ── STEP 4: Intake Form ───────────────────────────────────────────────
+  if (step === "intake") {
     const intakeRequirements = doc?.content?.intake_requirements || [
       "Share the secure Google Drive / Figma file links for design assets.",
       "List explicit design color palettes or copy parameters/constraints."
@@ -717,17 +718,16 @@ export default function SignPage() {
 
     return shell(
       <div style={{ background: C.surface, border: `1px solid ${intakeSuccess ? C.green : C.border}`, borderRadius: 16, padding: "32px 24px", textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>{intakeSuccess ? "🚀" : "🎉"}</div>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: intakeSuccess ? C.green : C.gold, marginBottom: 8 }}>
-          {intakeSuccess ? "You're all set!" : doc?.status === "paid" ? "Payment Received!" : "Agreement Signed!"}
+        <div style={{ fontSize: 48, marginBottom: 12 }}>{intakeSuccess ? "🚀" : "📋"}</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: intakeSuccess ? C.green : C.gold, marginBottom: 8 }}>
+          {intakeSuccess ? "You're all set!" : "Almost done!"}
         </div>
         <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.7, marginBottom: 24, maxWidth: 440, margin: "0 auto 24px" }}>
-          {intakeSuccess 
+          {intakeSuccess
             ? "Your details have been submitted. We will be in touch shortly to kick things off."
-            : "One last step — share a few details so we can get started on the right foot."}
+            : "Share a few details so we can get started on the right foot."}
         </div>
 
-        {/* Dynamic Intake Form Interface */}
         {!intakeSuccess && (
           <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "left", marginBottom: 24 }}>
             <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
@@ -738,23 +738,18 @@ export default function SignPage() {
               e.preventDefault();
               setIntakeSubmitting(true);
               setIntakeError("");
-
               const formData = new FormData(e.target);
               const responses = Object.fromEntries(formData.entries());
-
               const { error: dbErr } = await supabase
                 .from("documents")
-                .update({
-                  intake_responses: responses,
-                  intake_submitted_at: new Date().toISOString()
-                })
+                .update({ intake_responses: responses, intake_submitted_at: new Date().toISOString() })
                 .eq("id", doc.id);
-
               setIntakeSubmitting(false);
               if (dbErr) {
-                setIntakeError("Something went wrong. Please try again or contact support.");
+                setIntakeError("Something went wrong. Please try again.");
               } else {
                 setIntakeSuccess(true);
+                setTimeout(() => setStep("done"), 1800);
               }
             }}>
               {intakeRequirements.map((field, idx) => (
@@ -784,6 +779,26 @@ export default function SignPage() {
           </div>
         )}
 
+        {!intakeSuccess && (
+          <button onClick={() => setStep("done")} style={{ background: "transparent", border: "none", color: C.dim, fontSize: 12, cursor: "pointer", padding: "8px", fontFamily: "'DM Sans', sans-serif" }}>
+            Skip for now
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── STEP 5: Done ───────────────────────────────────────────────────────
+  if (step === "done") {
+    return shell(
+      <div style={{ background: C.surface, border: `1px solid ${C.green}40`, borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>🚀</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: C.green, marginBottom: 10 }}>
+          You're all set!
+        </div>
+        <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.7, marginBottom: 28 }}>
+          Agreement signed and everything is in order. We'll be in touch shortly.
+        </div>
         {doc?.signed_at && (
           <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>
             ✓ Verification Hash: {doc.id.slice(0, 8).toUpperCase()}-{new Date(doc.signed_at).getTime()}
