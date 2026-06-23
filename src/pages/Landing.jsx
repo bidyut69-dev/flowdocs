@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { posthog } from "../lib/posthog";
 
 const gold = "#F5A623";
 const green = "#22C55E";
@@ -147,8 +148,8 @@ export default function Landing() {
             FlowDocs
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="ghost" style={{ padding: "8px 16px", fontSize: 13 }} onClick={() => nav("/auth")}>Log In</button>
-            <button className="glow" style={{ padding: "8px 18px", fontSize: 13 }} onClick={() => nav("/auth")}>Start Free</button>
+            <button className="ghost" style={{ padding: "8px 16px", fontSize: 13 }} onClick={() => { posthog?.capture("cta_clicked", { cta: "login", location: "header" }); nav("/auth"); }}>Log In</button>
+            <button className="glow" style={{ padding: "8px 18px", fontSize: 13 }} onClick={() => { posthog?.capture("cta_clicked", { cta: "start_free", location: "header" }); nav("/auth"); }}>Start Free</button>
           </div>
         </div>
       </nav>
@@ -187,8 +188,8 @@ export default function Landing() {
             </p>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-              <button className="glow" style={{ fontSize: 15, padding: "15px 36px" }} onClick={() => nav("/auth")}>Start Free — No Card →</button>
-              <button className="ghost" onClick={() => {   document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}>   See How It Works </button>
+              <button className="glow" style={{ fontSize: 15, padding: "15px 36px" }} onClick={() => { posthog?.capture("cta_clicked", { cta: "start_free", location: "hero" }); nav("/auth"); }}>Start Free — No Card →</button>
+              <button className="ghost" onClick={() => { posthog?.capture("cta_clicked", { cta: "how_it_works", location: "hero" }); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}>   See How It Works </button>
             </div>
 
             <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
@@ -418,7 +419,7 @@ export default function Landing() {
                     <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
                   </div>
                 ))}
-                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px" }} onClick={() => nav("/auth")}>Start Free</button>
+                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px" }} onClick={() => { posthog?.capture("pricing_cta_clicked", { plan: "free" }); nav("/auth"); }}>Start Free</button>
               </div>
             </Reveal>
 
@@ -437,7 +438,7 @@ export default function Landing() {
                     <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
                   </div>
                 ))}
-                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px", borderColor: accent, color: accent }} onClick={() => nav("/auth")}>Get Started →</button>
+                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px", borderColor: accent, color: accent }} onClick={() => { posthog?.capture("pricing_cta_clicked", { plan: "solo" }); nav("/auth"); }}>Get Started →</button>
               </div>
             </Reveal>
 
@@ -457,7 +458,7 @@ export default function Landing() {
                     <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
                   </div>
                 ))}
-                <button className="glow" style={{ width: "100%", justifyContent: "center", marginTop: 24, padding: "14px" }} onClick={() => nav("/auth")}>Start 7-Day Free Trial →</button>
+                <button className="glow" style={{ width: "100%", justifyContent: "center", marginTop: 24, padding: "14px" }} onClick={() => { posthog?.capture("pricing_cta_clicked", { plan: "pro" }); nav("/auth"); }}>Start 7-Day Free Trial →</button>
               </div>
             </Reveal>
 
@@ -475,7 +476,7 @@ export default function Landing() {
                     <span style={{ color: green, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>✓</span>{f}
                   </div>
                 ))}
-                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px", borderColor: accent, color: accent }}>Contact Sales</button>
+                <button className="ghost" style={{ width: "100%", marginTop: 24, padding: "13px", borderColor: accent, color: accent }} onClick={() => posthog?.capture("pricing_cta_clicked", { plan: "agency" })}>Contact Sales</button>
               </div>
             </Reveal>
 
@@ -564,7 +565,7 @@ export default function Landing() {
               <p style={{ fontSize: 16, color: "#9B9BB0", marginBottom: 36, maxWidth: 420, margin: "0 auto 36px" }}>
                 Indian freelancers use FlowDocs to close international clients — without the back-and-forth.
               </p>
-              <button className="glow" style={{ fontSize: 16, padding: "16px 44px" }} onClick={() => nav("/auth")}>Start Free — No Credit Card →</button>
+              <button className="glow" style={{ fontSize: 16, padding: "16px 44px" }} onClick={() => { posthog?.capture("cta_clicked", { cta: "start_free", location: "final_cta" }); nav("/auth"); }}>Start Free — No Credit Card →</button>
               <div style={{ marginTop: 16, fontSize: 12, color: "#6B6B80" }}>flowdocs.co.in</div>
             </div>
           </div>
