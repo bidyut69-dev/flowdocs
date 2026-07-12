@@ -102,8 +102,8 @@ export default function Landing() {
   }, []);
 
   const notifications = [
-    { top: "12%", right: "8px", icon: "✍️", title: "Contract Signed!", sub: "Acme Corp · just now", border: green },
-    { top: "52%", right: "8px", icon: "💸", title: "$1,750 received", sub: "Deposit paid", border: gold },
+    { top: "12%", right: "8px", icon: "✍️", title: "Contract Signed!", sub: "Sent via one link", border: green },
+    { top: "52%", right: "8px", icon: "💸", title: "Deposit Paid", sub: "Before work starts", border: gold },
     { top: "78%", left: "8px", icon: "🌍", title: "USD · EUR · GBP", sub: "Multi-currency", border: accent },
   ];
 
@@ -206,26 +206,18 @@ export default function Landing() {
             {/* Main floating card */}
             <div style={{ animation: "float 5s ease-in-out infinite", background: "#0E0E14", border: "1px solid #24243A", borderRadius: 20, padding: 22, width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,.7)", position: "relative" }}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${gold},${accent})`, borderRadius: "20px 20px 0 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: gold, fontFamily: "monospace", letterSpacing: 1.5, marginBottom: 4 }}>TOTAL EARNED</div>
-                  <div style={{ fontSize: 30, fontWeight: 900 }}>$12,400</div>
-                  <div style={{ fontSize: 12, color: green, marginTop: 3 }}>↑ 34% this month</div>
-                </div>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: `${green}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📊</div>
-              </div>
-              <div style={{ height: 1, background: "#24243A", margin: "0 0 14px" }} />
+              <div style={{ fontSize: 10, color: gold, fontFamily: "monospace", letterSpacing: 1.5, marginBottom: 18 }}>HOW IT WORKS</div>
               {[
-                { name: "Acme Corp (US)", type: "Contract + Deposit", status: "paid", amt: "$3,500", c: green },
-                { name: "Studio Berlin", type: "Proposal", status: "signed", amt: "€2,200", c: green },
-                { name: "TechBase UK", type: "Invoice", status: "pending", amt: "£1,800", c: gold },
+                { step: "1", icon: "🔗", title: "Send One Link", sub: "Contract + payment request, together" },
+                { step: "2", icon: "✍️", title: "Client Signs & Pays", sub: "Legally binding eSign + deposit" },
+                { step: "3", icon: "🚀", title: "You Start Work", sub: "No chasing, no waiting" },
               ].map((r, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < 2 ? "1px solid #24243A" : "none" }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: i < 2 ? "1px solid #24243A" : "none" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: `${gold}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{r.icon}</div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</div>
-                    <div style={{ fontSize: 11, color: "#6B6B80" }}>{r.type} · {r.amt}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{r.title}</div>
+                    <div style={{ fontSize: 11, color: "#6B6B80" }}>{r.sub}</div>
                   </div>
-                  <div style={{ fontSize: 10, color: r.c, background: r.c + "18", borderRadius: 6, padding: "3px 9px", fontFamily: "monospace", fontWeight: 700 }}>{r.status}</div>
                 </div>
               ))}
             </div>
