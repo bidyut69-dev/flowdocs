@@ -1,15 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./lib/supabase";
-import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import SignPage from "./pages/SignPage";
-import ForgotPassword from "./pages/ForgotPassword";
-import Onboarding from "./pages/Onboarding";
-import { PrivacyPolicy, TermsOfService } from "./pages/Legal";
 import CookieBanner from "./components/CookieBanner";
 import BugReport from "./components/BugReport";
+
+// Lazy-loaded pages — each becomes its own JS chunk, only fetched when visited.
+// This keeps the Landing page bundle small (no Dashboard/PDF/heavy-vendor code
+// gets pulled in just to show the marketing page).
+const Landing = lazy(() => import("./pages/Landing"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const SignPage = lazy(() => import("./pages/SignPage"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const PrivacyPolicy = lazy(() => import("./pages/Legal").then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfService = lazy(() => import("./pages/Legal").then(m => ({ default: m.TermsOfService })));
 
 const Loader = () => (
   <div style={{ minHeight: "100vh", background: "#0C0C0E", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
@@ -61,41 +66,43 @@ export default function App() {
     <BrowserRouter>
       <CookieBanner />
       {session && <BugReport session={session} />}
-      <Routes>
-        {/* Public pages */}
-        <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
-        <Route path="/sign/:token" element={<SignPage />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ForgotPassword />} />
+      <Suspense fallback={<Loader />}>
+        <Routes>
+          {/* Public pages */}
+          <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <Landing />} />
+          <Route path="/sign/:token" element={<SignPage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ForgotPassword />} />
 
-        {/* Auth */}
-        <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/dashboard" replace />} />
+          {/* Auth */}
+          <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/dashboard" replace />} />
 
-        {/* Onboarding — show for new users */}
-        <Route path="/onboarding" element={
-          session
-            ? <Onboarding session={session} profile={profile} onComplete={completeOnboarding} />
-            : <Navigate to="/auth" replace />
-        } />
+          {/* Onboarding — show for new users */}
+          <Route path="/onboarding" element={
+            session
+              ? <Onboarding session={session} profile={profile} onComplete={completeOnboarding} />
+              : <Navigate to="/auth" replace />
+          } />
 
-        {/* Protected app */}
-        <Route path="/dashboard/*" element={
-          session
-            ? needsOnboarding
-              ? <Navigate to="/onboarding" replace />
-              : <Dashboard session={session} />
-            : <Navigate to="/auth" replace />
-        } />
-        <Route path="/*" element={
-          session
-            ? needsOnboarding
-              ? <Navigate to="/onboarding" replace />
-              : <Dashboard session={session} />
-            : <Navigate to="/" replace />
-        } />
-      </Routes>
+          {/* Protected app */}
+          <Route path="/dashboard/*" element={
+            session
+              ? needsOnboarding
+                ? <Navigate to="/onboarding" replace />
+                : <Dashboard session={session} />
+              : <Navigate to="/auth" replace />
+          } />
+          <Route path="/*" element={
+            session
+              ? needsOnboarding
+                ? <Navigate to="/onboarding" replace />
+                : <Dashboard session={session} />
+              : <Navigate to="/" replace />
+          } />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
