@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   build: {
+    chunkSizeWarningLimit: 900, // pdf chunk is intentionally large (jsPDF + html2canvas)
     // Prevent Vite from eagerly preloading route-specific heavy chunks
     // (pdf, vendor) on every page. Without this, <link rel="modulepreload">
     // tags get injected in index.html for ALL reachable chunks, defeating
@@ -28,6 +29,8 @@ export default defineConfig({
           if (id.includes("@supabase")) return "supabase";
           if (id.includes("posthog")) return "posthog";
           if (id.includes("@vercel/analytics")) return "analytics";
+          if (id.includes("razorpay")) return "razorpay";
+          if (id.includes("@emotion") || id.includes("framer-motion")) return "ui";
 
           // jsPDF pulls in html2canvas + dompurify (+ possibly canvg) as
           // real dependencies for its image/HTML rendering features.
