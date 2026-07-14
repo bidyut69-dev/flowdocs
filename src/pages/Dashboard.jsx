@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { downloadPDF, generateAuditTrail } from "../lib/pdf";
 import { sendSigningEmail } from "../lib/email";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
@@ -308,6 +307,7 @@ export default function Dashboard({ session }) {
         if (data) freshDoc = { ...doc, ...data };
       }
       const signatureDataUrl = freshDoc.signature_data || freshDoc.signature_url || null;
+      const { downloadPDF } = await import("../lib/pdf");
       const ok = downloadPDF(freshDoc, profile, client, signatureDataUrl);
       if (ok) showToast("✓ PDF downloaded!");
       else showToast("PDF generation failed.", false);
@@ -332,8 +332,9 @@ export default function Dashboard({ session }) {
 
   const signOut = async () => { await supabase.auth.signOut(); };
 
-  const handleAuditTrail = (doc) => {
+  const handleAuditTrail = async (doc) => {
     try {
+      const { generateAuditTrail } = await import("../lib/pdf");
       const pdf = generateAuditTrail({ document: doc, signerName: doc.signer_name || "—", signerIp: doc.signer_ip || "—", signedAt: doc.signed_at, signatureUrl: doc.signature_url });
       pdf.save(`AuditTrail-${doc.title.replace(/\s+/g, "-")}.pdf`);
       showToast("✓ Audit trail downloaded!");
