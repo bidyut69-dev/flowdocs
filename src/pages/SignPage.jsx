@@ -75,21 +75,32 @@ export default function SignPage() {
       setLoading(true);
       const { data, error: err } = await supabase
         .from("documents")
-        .select("*, clients(name, email, company), profiles(name, company, email, razorpay_key_id, upi_id, bank_name, bank_account, bank_ifsc)")
+        .select("*, clients(name, email, company)")
         .eq("sign_token", token)
         .single();
 
       if (err || !data) {
         setError("Document not found or link is invalid.");
       } else {
-        setDoc(data);
+        // Freelancer name/company/email/payment info is fetched separately via
+        // a security-definer RPC, since anonymous sign-page visitors are not
+        // allowed to read the profiles table directly (RLS restricts profiles
+        // to auth.uid() = id). The RPC only returns the single freelancer row
+        // tied to this exact sign_token, never the whole profiles table.
+        const { data: freelancerData } = await supabase.rpc(
+          "get_payment_info_for_signing",
+          { p_sign_token: token }
+        );
+        const freelancer = Array.isArray(freelancerData) ? freelancerData[0] : freelancerData;
+        setDoc({ ...data, profiles: freelancer || null });
+
         if (!data.opened_at && data.status !== "signed" && data.status !== "paid") {
           supabase.from("documents")
             .update({ opened_at: new Date().toISOString() })
             .eq("sign_token", token)
             .then(() => {});
         }
-        
+
         // Router State Reconstruction
         if (data.status === "paid") setStep(data.intake_data ? "done" : "intake");
         else if (data.status === "signed") {
