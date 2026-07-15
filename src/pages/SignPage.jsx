@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { sendSignedConfirmation, sendPaymentReceived } from "../lib/email";
 import { openInvoicePayment, markInvoicePaid } from "../lib/payment";
+import { posthog } from "../lib/posthog";
 
 const C = {
   bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
@@ -41,6 +42,13 @@ function StepLine({ done }) {
 
 export default function SignPage() {
   const { token } = useParams();
+
+  // Privacy: this page displays the freelancer's bank account, UPI ID,
+  // and Razorpay key so the client can pay. None of that should ever
+  // end up in a PostHog session replay — stop recording immediately.
+  useEffect(() => {
+    posthog?.stopSessionRecording?.();
+  }, []);
 
   // Data
   const [doc, setDoc] = useState(null);
