@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 import CookieBanner from "./components/CookieBanner";
 import BugReport from "./components/BugReport";
+import Loader from "./components/Loader";
 
 // Lazy-loaded pages — each becomes its own JS chunk, only fetched when visited.
 // This keeps the Landing page bundle small (no Dashboard/PDF/heavy-vendor code
@@ -15,18 +16,6 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const PrivacyPolicy = lazy(() => import("./pages/Legal").then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService = lazy(() => import("./pages/Legal").then(m => ({ default: m.TermsOfService })));
-
-const Loader = () => (
-  <div style={{ minHeight: "100vh", background: "#0C0C0E", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-    <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: "#F5A623" }}>⚡ FlowDocs</div>
-    <div style={{ display: "flex", gap: 6 }}>
-      {[0,1,2].map(i => (
-        <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#F5A623", animation: "pulse 1.2s ease-in-out infinite", animationDelay: `${i * 0.2}s`, opacity: 0.4 }} />
-      ))}
-    </div>
-    <style>{`@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}`}</style>
-  </div>
-);
 
 export default function App() {
   const [session, setSession] = useState(undefined);

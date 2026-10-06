@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { PortalSkeleton } from "../components/Skeleton";
 
 const bg = "#F5F4F2";
 const bgAlt = "#EFEDE8";
@@ -93,15 +94,7 @@ export default function ClientPortal() {
   const totalPaid     = docs.filter(d => d.status === "paid").reduce((s, d) => s + (d.amount || 0), 0);
   const pendingCount  = docs.filter(d => d.status === "pending").length;
 
-  if (loading) return (
-    <div style={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: fontSans }}>
-      <div style={{ textAlign: "center", color: inkMid }}>
-        <div style={{ width: 28, height: 28, border: `3px solid ${line}`, borderTopColor: ink, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 14px" }} />
-        <div style={{ fontFamily: fontMono, fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase" }}>Loading documents…</div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    </div>
-  );
+  if (loading) return <PortalSkeleton />;
 
   if (error) return (
     <div style={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: fontSans, padding: 24 }}>

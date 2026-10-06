@@ -4,6 +4,7 @@ import { sendSigningEmail } from "../lib/email";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
 import Templates from "./Templates";
+import { DashboardShellSkeleton } from "../components/Skeleton";
 
 // ── Light theme palette (tasteskill-inspired) ──
 const C = {
@@ -408,11 +409,7 @@ export default function Dashboard({ session }) {
     clientRevenue[cName].docs += 1;
   });
 
-  if (loading) return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ color: C.gold, fontFamily: "Syne", fontSize: 18 }}>Loading workspace...</div>
-    </div>
-  );
+  if (loading) return <DashboardShellSkeleton />;
 
   const navItems = [
     { id: "dashboard", icon: "⊞", label: "Dashboard" },

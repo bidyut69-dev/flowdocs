@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { sendSignedConfirmation, sendPaymentReceived } from "../lib/email";
 import { openInvoicePayment, markInvoicePaid } from "../lib/payment";
 import { posthog } from "../lib/posthog";
+import { SignDocSkeleton } from "../components/Skeleton";
 
 // ── Light theme palette (tasteskill-inspired) ──
 const C = {
@@ -418,12 +419,7 @@ export default function SignPage() {
     </div>
   );
 
-  if (loading) return shell(
-    <div style={{ textAlign: "center", padding: 48, color: C.dim }}>
-      <div style={{ width: 28, height: 28, border: `3px solid ${C.border}`, borderTopColor: C.gold, borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-      Loading document metrics...
-    </div>
-  );
+  if (loading) return shell(<SignDocSkeleton />);
 
   if (error) return shell(
     <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 12, padding: "24px", textAlign: "center" }}>
