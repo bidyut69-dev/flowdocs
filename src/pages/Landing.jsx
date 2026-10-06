@@ -373,7 +373,7 @@ export default function Landing() {
             </div>
           </Reveal>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 18 }} className="pricing-grid">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 18 }} className="pricing-grid">
             {/* Free */}
             <Reveal>
               <div className="card" style={{ padding: 30, display: "flex", flexDirection: "column", height: "100%" }}>
@@ -392,6 +392,30 @@ export default function Landing() {
                   ))}
                 </div>
                 <button className="btn-light" style={{ width: "100%", marginTop: 24 }} onClick={() => nav("/auth")}>Start free</button>
+              </div>
+            </Reveal>
+
+            {/* Solo */}
+            <Reveal delay={0.04}>
+              <div className="card" style={{ padding: 30, display: "flex", flexDirection: "column", height: "100%" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <span className="mono" style={{ color: inkDeep }}>Solo</span>
+                  <span className="mono-sm">for starters</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                  <span style={{ fontFamily: fontDisplay, fontSize: 54, fontWeight: 500, letterSpacing: "-1.5px", lineHeight: 1 }}>₹299</span>
+                  <span style={{ fontSize: 15, color: inkFaint }}>/mo</span>
+                </div>
+                <div style={{ fontSize: 13, color: inkMid, marginTop: 6, marginBottom: 24 }}>No limits, no FlowDocs branding.</div>
+                <div style={{ height: 1, background: lineSoft, marginBottom: 18 }} />
+                <div style={{ flex: 1 }}>
+                  {["Unlimited documents", "Unlimited eSignatures", "Remove FlowDocs branding", "5 templates", "1 GB storage", "Email support"].map((f, i) => (
+                    <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", fontSize: 13.5, color: inkMid }}>
+                      <span style={{ color: stamp, fontWeight: 700 }}>✓</span>{f}
+                    </div>
+                  ))}
+                </div>
+                <button className="btn-light" style={{ width: "100%", marginTop: 24 }} onClick={() => nav("/auth")}>Get Solo</button>
               </div>
             </Reveal>
 
@@ -576,7 +600,7 @@ export default function Landing() {
         @media (max-width: 960px) {
           .hero-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
           .hero-cards { height: 460px !important; }
-          .pricing-grid { grid-template-columns: 1fr !important; }
+          .pricing-grid { grid-template-columns: repeat(2,1fr) !important; row-gap: 28px !important; }
           .steps-grid { grid-template-columns: repeat(2,1fr) !important; }
           .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
           .nav-desktop { display: none !important; }
@@ -585,6 +609,7 @@ export default function Landing() {
           .hero-cards { height: 420px !important; }
           .hero-cards .doc-card { transform: scale(.82) rotate(var(--r,0)) !important; transform-origin: center !important; }
           .steps-grid { grid-template-columns: 1fr !important; }
+          .pricing-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
