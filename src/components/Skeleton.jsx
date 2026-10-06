@@ -1,5 +1,5 @@
 // ── Skeleton Screen Components ──────────────────────────────────────────
-// Beautiful shimmer skeletons for dark theme
+// Shimmer skeletons for the light tasteskill-inspired theme
 
 const shimmerStyle = `
   @keyframes shimmer {
@@ -7,63 +7,62 @@ const shimmerStyle = `
     100% { background-position: 600px 0; }
   }
   .sk {
-    background: linear-gradient(90deg, #1C1C1F 25%, #2A2A2E 50%, #1C1C1F 75%);
+    background: linear-gradient(90deg, #EFEDE8 25%, #F5F4F2 50%, #EFEDE8 75%);
     background-size: 600px 100%;
     animation: shimmer 1.6s infinite linear;
-    border-radius: 6px;
+    border-radius: 8px;
   }
 `;
 
-function Sk({ w = "100%", h = 14, r = 6, style = {} }) {
+const CARD_BG = "#FFFFFF";
+const CARD_LINE = "#E7E5E0";
+
+function Sk({ w = "100%", h = 14, r = 8, style = {} }) {
   return (
     <div className="sk" style={{ width: w, height: h, borderRadius: r, flexShrink: 0, ...style }} />
   );
 }
 
-// ── Stat Card Skeleton ──
 function StatCardSkeleton() {
   return (
     <div style={{
-      background: "#141416", border: "1px solid #2A2A2E", borderRadius: 12,
-      padding: 20, position: "relative", overflow: "hidden",
+      background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 18,
+      padding: 24, position: "relative", overflow: "hidden",
     }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "#2A2A2E" }} />
-      <Sk w={80} h={10} style={{ marginBottom: 14 }} />
-      <Sk w={120} h={28} r={8} style={{ marginBottom: 10 }} />
+      <Sk w={80} h={10} style={{ marginBottom: 16 }} />
+      <Sk w={130} h={32} r={10} style={{ marginBottom: 12 }} />
       <Sk w={90} h={10} />
     </div>
   );
 }
 
-// ── Table Row Skeleton ──
 function TableRowSkeleton() {
   return (
-    <tr style={{ borderBottom: "1px solid #2A2A2E" }}>
-      <td style={{ padding: "18px 16px" }}>
-        <Sk w={160} h={14} style={{ marginBottom: 8 }} />
-        <Sk w={100} h={10} />
+    <tr style={{ borderBottom: `1px solid ${CARD_LINE}` }}>
+      <td style={{ padding: "20px 18px" }}>
+        <Sk w={180} h={14} style={{ marginBottom: 8 }} />
+        <Sk w={110} h={10} />
       </td>
-      <td style={{ padding: "18px 16px" }}><Sk w={60} h={10} /></td>
-      <td style={{ padding: "18px 16px" }}><Sk w={70} h={22} r={20} /></td>
-      <td style={{ padding: "18px 16px" }}><Sk w={70} h={12} /></td>
-      <td style={{ padding: "18px 16px" }}><Sk w={80} h={10} /></td>
-      <td style={{ padding: "18px 16px" }}>
+      <td style={{ padding: "20px 18px" }}><Sk w={60} h={10} /></td>
+      <td style={{ padding: "20px 18px" }}><Sk w={76} h={22} r={100} /></td>
+      <td style={{ padding: "20px 18px" }}><Sk w={80} h={14} /></td>
+      <td style={{ padding: "20px 18px" }}><Sk w={90} h={10} /></td>
+      <td style={{ padding: "20px 18px" }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <Sk w={64} h={28} r={8} />
-          <Sk w={54} h={28} r={8} />
+          <Sk w={72} h={30} r={10} />
+          <Sk w={60} h={30} r={10} />
         </div>
       </td>
     </tr>
   );
 }
 
-// ── Client Card Skeleton ──
 function ClientCardSkeleton() {
   return (
-    <div style={{ background: "#141416", border: "1px solid #2A2A2E", borderRadius: 12, padding: 18, display: "flex", alignItems: "center", gap: 16, marginBottom: 12 }}>
-      <Sk w={44} h={44} r={10} style={{ flexShrink: 0 }} />
+    <div style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 18, padding: 20, display: "flex", alignItems: "center", gap: 16, marginBottom: 12 }}>
+      <Sk w={44} h={44} r={12} style={{ flexShrink: 0 }} />
       <div style={{ flex: 1 }}>
-        <Sk w={120} h={14} style={{ marginBottom: 8 }} />
+        <Sk w={130} h={14} style={{ marginBottom: 8 }} />
         <Sk w={180} h={10} />
       </div>
       <div style={{ textAlign: "right" }}>
@@ -74,58 +73,53 @@ function ClientCardSkeleton() {
   );
 }
 
-// ── ESign Card Skeleton ──
 function ESignCardSkeleton() {
   return (
-    <div style={{ background: "#141416", border: "1px solid #2A2A2E", borderRadius: 12, padding: 20, marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+    <div style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 18, padding: 22, marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <Sk w={200} h={15} style={{ marginBottom: 8 }} />
+          <Sk w={220} h={15} style={{ marginBottom: 8 }} />
           <Sk w={140} h={10} />
         </div>
-        <Sk w={90} h={26} r={20} />
+        <Sk w={100} h={26} r={100} />
       </div>
-      <Sk w="100%" h={4} r={4} style={{ marginBottom: 14 }} />
+      <Sk w="100%" h={4} r={100} style={{ marginBottom: 16 }} />
       <div style={{ display: "flex", gap: 10 }}>
-        <Sk w={120} h={30} r={20} />
-        <Sk w={100} h={30} r={8} style={{ marginLeft: "auto" }} />
+        <Sk w={130} h={32} r={10} />
+        <Sk w={100} h={32} r={10} style={{ marginLeft: "auto" }} />
       </div>
     </div>
   );
 }
 
-// ── Dashboard Full Skeleton ──
 export function DashboardSkeleton() {
   return (
     <>
       <style>{shimmerStyle}</style>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
         <div>
-          <Sk w={280} h={28} r={8} style={{ marginBottom: 10 }} />
+          <Sk w={300} h={32} r={10} style={{ marginBottom: 12 }} />
           <Sk w={200} h={13} />
         </div>
-        <Sk w={140} h={38} r={8} />
+        <Sk w={150} h={42} r={14} />
       </div>
 
-      {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
         {[...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)}
       </div>
 
-      {/* Section header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <Sk w={150} h={20} r={6} />
-        <Sk w={260} h={36} r={8} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <Sk w={160} h={22} r={8} />
+        <Sk w={280} h={38} r={12} />
       </div>
 
-      {/* Table */}
-      <div style={{ background: "#141416", border: "1px solid #2A2A2E", borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
+      <div style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 20, overflow: "hidden", marginBottom: 28 }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid #2A2A2E" }}>
+            <tr style={{ borderBottom: `1px solid ${CARD_LINE}` }}>
               {[...Array(6)].map((_, i) => (
-                <th key={i} style={{ padding: "14px 16px", textAlign: "left" }}>
+                <th key={i} style={{ padding: "16px 18px", textAlign: "left" }}>
                   <Sk w={[80, 50, 60, 60, 50, 70][i]} h={10} />
                 </th>
               ))}
@@ -137,17 +131,16 @@ export function DashboardSkeleton() {
         </table>
       </div>
 
-      {/* Bottom 2-col */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
         {[0, 1].map(j => (
-          <div key={j} style={{ background: "#141416", border: "1px solid #2A2A2E", borderRadius: 12, padding: 20 }}>
-            <Sk w={160} h={18} style={{ marginBottom: 20 }} />
+          <div key={j} style={{ background: CARD_BG, border: `1px solid ${CARD_LINE}`, borderRadius: 20, padding: 24 }}>
+            <Sk w={170} h={20} style={{ marginBottom: 22 }} />
             {[...Array(4)].map((_, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, paddingBottom: 14, borderBottom: "1px solid #2A2A2E", marginBottom: 14 }}>
-                <Sk w={32} h={32} r={8} style={{ flexShrink: 0 }} />
+              <div key={i} style={{ display: "flex", gap: 14, paddingBottom: 14, borderBottom: `1px solid ${CARD_LINE}`, marginBottom: 14 }}>
+                <Sk w={36} h={36} r={10} style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <Sk w="80%" h={12} style={{ marginBottom: 8 }} />
-                  <Sk w={60} h={10} />
+                  <Sk w={70} h={10} />
                 </div>
               </div>
             ))}
@@ -158,7 +151,6 @@ export function DashboardSkeleton() {
   );
 }
 
-// ── Clients Page Skeleton ──
 export function ClientsSkeleton() {
   return (
     <>
@@ -168,7 +160,6 @@ export function ClientsSkeleton() {
   );
 }
 
-// ── ESign Page Skeleton ──
 export function ESignSkeleton() {
   return (
     <>
@@ -178,8 +169,7 @@ export function ESignSkeleton() {
   );
 }
 
-// ── Inline text skeleton ──
-export function SkeletonLine({ w = "100%", h = 14, r = 6, mb = 0 }) {
+export function SkeletonLine({ w = "100%", h = 14, r = 8, mb = 0 }) {
   return (
     <>
       <style>{shimmerStyle}</style>
@@ -187,5 +177,3 @@ export function SkeletonLine({ w = "100%", h = 14, r = 6, mb = 0 }) {
     </>
   );
 }
-
-// shimmerStyle is used internally only

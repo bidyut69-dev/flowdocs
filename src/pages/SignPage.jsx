@@ -5,13 +5,29 @@ import { sendSignedConfirmation, sendPaymentReceived } from "../lib/email";
 import { openInvoicePayment, markInvoicePaid } from "../lib/payment";
 import { posthog } from "../lib/posthog";
 
+// ── Light theme palette (tasteskill-inspired) ──
 const C = {
-  bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
-  gold: "#F5A623", goldDim: "#F5A62320", goldDim2: "#F5A62312",
-  text: "#F0EEE8", dim: "#7A7875", mid: "#B0ADA8",
-  green: "#22C55E", greenDim: "#22C55E20",
-  red: "#EF4444", redDim: "#EF444420",
+  bg: "#F5F4F2",        // warm cream background
+  surface: "#FFFFFF",   // white card surface
+  surface2: "#EFEDE8",  // panel / internal
+  border: "#E7E5E0",    // card borders
+  gold: "#C8820F",      // readable gold on light
+  goldDim: "#F5A62318", // soft gold wash
+  goldDim2: "#F5A62310",
+  goldSoft: "#F5A623",  // bright gold for fills
+  text: "#0A0A0A",      // primary ink
+  dim: "#A3A3A3",       // meta
+  mid: "#525252",       // body copy
+  green: "#1F6B46",     // success stamp
+  greenDim: "#1F6B4615",
+  red: "#B3432B",       // warm ink red
+  redDim: "#B3432B15",
+  lineSoft: "#EFEDE8",
 };
+
+const FD = "'Playfair Display', 'Fraunces', Georgia, serif";
+const FS = "'Manrope', 'Inter', system-ui, sans-serif";
+const FM = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
 // ── Step indicator ───────────────────────────────────────────────────────
 function StepBadge({ num, label, active, done }) {
@@ -19,15 +35,15 @@ function StepBadge({ num, label, active, done }) {
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
       <div style={{
         width: 32, height: 32, borderRadius: "50%", display: "flex",
-        alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700,
+        alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600,
         background: done ? C.green : active ? C.gold : C.surface2,
-        color: done || active ? "#0C0C0E" : C.dim,
+        color: done || active ? "#0A0A0A" : C.dim,
         border: `2px solid ${done ? C.green : active ? C.gold : C.border}`,
         transition: "all 0.3s",
       }}>
         {done ? "✓" : num}
       </div>
-      <span style={{ fontSize: 10, color: done ? C.green : active ? C.gold : C.dim, fontFamily: "'DM Mono', monospace", letterSpacing: 0.5 }}>
+      <span style={{ fontSize: 10, color: done ? C.green : active ? C.gold : C.dim, fontFamily: FM, letterSpacing: 0.5 }}>
         {label}
       </span>
     </div>
@@ -367,7 +383,7 @@ export default function SignPage() {
 
   // ── Page shell ───────────────────────────────────────────────────────
   const shell = (children) => (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 16px 48px" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FS, display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 16px 48px" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: none; } }
@@ -375,8 +391,8 @@ export default function SignPage() {
 
       {/* Logo */}
       <div style={{ marginBottom: 24, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
-        <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginTop: 2 }}>Secure Document Signing</div>
+        <div style={{ fontFamily: FD, fontSize: 20, fontWeight: 500, color: C.gold }}>⚡ FlowDocs</div>
+        <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM, marginTop: 2 }}>Secure Document Signing</div>
       </div>
 
       {/* Step indicator */}
@@ -412,19 +428,19 @@ export default function SignPage() {
   if (error) return shell(
     <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 12, padding: "24px", textAlign: "center" }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-      <div style={{ fontWeight: 700, color: C.red, marginBottom: 8 }}>{error}</div>
+      <div style={{ fontWeight: 600, color: C.red, marginBottom: 8 }}>{error}</div>
       <div style={{ fontSize: 13, color: C.dim }}>Contact support@flowdocs.co.in if this persists.</div>
     </div>
   );
 
   // ── STEP 1: Review ────────────────────────────────────────────────────
   if (step === "review") return shell(
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, overflow: "hidden" }}>
       <div style={{ padding: "24px 24px 20px", borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ fontSize: 10, color: C.gold, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 6 }}>
+        <div style={{ fontSize: 10, color: C.gold, letterSpacing: 2, textTransform: "uppercase", fontFamily: FM, marginBottom: 6 }}>
           {doc.type}
         </div>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 12 }}>
+        <div style={{ fontFamily: FD, fontSize: 22, fontWeight: 500, color: C.text, marginBottom: 12 }}>
           {doc.title}
         </div>
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
@@ -441,21 +457,21 @@ export default function SignPage() {
           {doc.amount > 0 && (
             <div>
               <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Total Value</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: C.gold, fontFamily: "'Syne', sans-serif" }}>{fmt(doc.amount)}</div>
+              <div style={{ fontSize: 18, fontWeight: 500, color: C.gold, fontFamily: FD }}>{fmt(doc.amount)}</div>
             </div>
           )}
         </div>
       </div>
 
       <div style={{ padding: "20px 24px", maxHeight: 320, overflowY: "auto" }}>
-        <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>Document Content</div>
-        <pre style={{ fontFamily: "'DM Mono', monospace", fontSize: 12.5, color: C.mid, lineHeight: 1.85, whiteSpace: "pre-wrap", margin: 0 }}>
+        <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM, marginBottom: 12 }}>Document Content</div>
+        <pre style={{ fontFamily: FM, fontSize: 12.5, color: C.mid, lineHeight: 1.85, whiteSpace: "pre-wrap", margin: 0 }}>
           {doc.content?.description || "Please review this document carefully before signing."}
         </pre>
       </div>
 
       {doc.amount > 0 && (
-        <div style={{ margin: "0 24px 20px", background: C.goldDim2, border: `1px solid ${C.gold}30`, borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ margin: "0 24px 20px", background: C.goldDim2, border: `1px solid ${C.gold}30`, borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ fontSize: 12, color: C.gold, fontWeight: 600, marginBottom: 6 }}>💰 Payment on Signing</div>
           <div style={{ fontSize: 13, color: C.mid }}>After signing, you'll be asked to pay a <strong style={{ color: C.text }}>50% deposit ({fmt(doc.amount * 0.5)})</strong> via UPI, card, or net banking.</div>
         </div>
@@ -463,9 +479,9 @@ export default function SignPage() {
 
       <div style={{ padding: "0 24px 24px" }}>
         <button onClick={() => setStep("sign")} style={{
-          width: "100%", background: C.gold, color: "#0C0C0E", border: "none",
-          borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 700,
-          cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+          width: "100%", background: C.gold, color: "#0A0A0A", border: "none",
+          borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 600,
+          cursor: "pointer", fontFamily: FS,
         }}>
           I've Read This — Proceed to Sign →
         </button>
@@ -480,16 +496,16 @@ export default function SignPage() {
 
   // ── STEP 2: Sign ──────────────────────────────────────────────────────
   if (step === "sign") return shell(
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "28px 24px" }}>
-      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 800, color: C.text, marginBottom: 4 }}>Sign Document</div>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: "28px 24px" }}>
+      <div style={{ fontFamily: FD, fontSize: 20, fontWeight: 500, color: C.text, marginBottom: 4 }}>Sign Document</div>
       <div style={{ fontSize: 13, color: C.dim, marginBottom: 24 }}>{doc.title}</div>
 
       <div style={{ marginBottom: 18 }}>
-        <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", display: "block", marginBottom: 8 }}>
+        <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM, display: "block", marginBottom: 8 }}>
           Your Full Legal Name *
         </label>
         <input
-          style={{ width: "100%", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", fontSize: 14, color: C.text, fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box" }}
+          style={{ width: "100%", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", fontSize: 14, color: C.text, fontFamily: FS, outline: "none", boxSizing: "border-box" }}
           placeholder="Type your full name exactly"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -498,7 +514,7 @@ export default function SignPage() {
       </div>
 
       <div style={{ marginBottom: 18 }}>
-        <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", display: "block", marginBottom: 8 }}>
+        <label style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM, display: "block", marginBottom: 8 }}>
           Draw Your Signature *
         </label>
         <canvas
@@ -507,11 +523,11 @@ export default function SignPage() {
         />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
           <span style={{ fontSize: 11, color: C.dim }}>✍ Draw with finger or mouse</span>
-          <button onClick={clearCanvas} style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}40`, borderRadius: 6, padding: "3px 10px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Clear</button>
+          <button onClick={clearCanvas} style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}40`, borderRadius: 10, padding: "3px 10px", cursor: "pointer", fontFamily: FS }}>Clear</button>
         </div>
       </div>
 
-      <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px", marginBottom: 20 }}>
+      <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 14, padding: "14px", marginBottom: 20 }}>
         <label style={{ display: "flex", gap: 12, cursor: "pointer", alignItems: "flex-start" }}>
           <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 2, accentColor: C.gold, width: 16, height: 16, flexShrink: 0 }} />
           <span style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.7 }}>
@@ -521,13 +537,13 @@ export default function SignPage() {
       </div>
 
       {signError && (
-        <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
+        <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 12, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
           {signError}
         </div>
       )}
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => setStep("review")} style={{ padding: "12px 16px", background: "transparent", border: `1px solid ${C.border}`, color: C.mid, borderRadius: 10, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600 }}>
+        <button onClick={() => setStep("review")} style={{ padding: "12px 16px", background: "transparent", border: `1px solid ${C.border}`, color: C.mid, borderRadius: 14, cursor: "pointer", fontFamily: FS, fontSize: 14, fontWeight: 600 }}>
           ← Back
         </button>
         <button
@@ -535,11 +551,11 @@ export default function SignPage() {
           disabled={signing || !agreed}
           style={{
             flex: 1, background: signing ? C.surface2 : agreed ? C.gold : C.surface2,
-            color: signing ? C.gold : agreed ? "#0C0C0E" : C.dim,
+            color: signing ? C.gold : agreed ? "#0A0A0A" : C.dim,
             border: signing ? `1px solid ${C.gold}` : "none",
-            borderRadius: 10, padding: "13px", fontSize: 15, fontWeight: 700,
+            borderRadius: 14, padding: "13px", fontSize: 15, fontWeight: 600,
             cursor: signing || !agreed ? "not-allowed" : "pointer",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: FS,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
           }}
         >
@@ -571,14 +587,14 @@ export default function SignPage() {
     // Deposit amount card — shared between both modes
     const depositCard = (
       <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", marginBottom: 20 }}>
-        <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>Deposit Amount</div>
+        <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM, marginBottom: 12 }}>Deposit Amount</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           {[25, 50, 100].map(pct => (
             <button key={pct} onClick={() => setDepositPct(pct)} style={{
-              flex: 1, padding: "10px 8px", borderRadius: 8, border: `1px solid ${depositPct === pct ? C.gold : C.border}`,
+              flex: 1, padding: "10px 8px", borderRadius: 12, border: `1px solid ${depositPct === pct ? C.gold : C.border}`,
               background: depositPct === pct ? C.goldDim : "transparent",
               color: depositPct === pct ? C.gold : C.mid,
-              fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontFamily: FM, fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}>
               {pct}%
               <div style={{ fontSize: 11, fontWeight: 400, marginTop: 2 }}>{fmt(doc.amount * pct / 100)}</div>
@@ -590,25 +606,25 @@ export default function SignPage() {
           <span style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{fmt(doc.amount)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: `1px solid ${C.border}` }}>
-          <span style={{ fontSize: 16, color: C.text, fontWeight: 700 }}>Deposit ({depositPct}%)</span>
-          <span style={{ fontSize: 22, color: C.gold, fontWeight: 800, fontFamily: "'Syne', sans-serif" }}>{fmt(depositAmt)}</span>
+          <span style={{ fontSize: 16, color: C.text, fontWeight: 600 }}>Deposit ({depositPct}%)</span>
+          <span style={{ fontSize: 22, color: C.gold, fontWeight: 500, fontFamily: FD }}>{fmt(depositAmt)}</span>
         </div>
       </div>
     );
 
     return shell(
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "28px 24px" }}>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: "28px 24px" }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: C.green, marginBottom: 6 }}>Document Signed!</div>
+          <div style={{ fontFamily: FD, fontSize: 22, fontWeight: 500, color: C.green, marginBottom: 6 }}>Document Signed!</div>
           <div style={{ fontSize: 14, color: C.mid }}>One last step — pay your deposit to confirm the project.</div>
         </div>
 
         {depositCard}
 
         {payError && (
-          <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
+          <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 12, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
             {payError}
           </div>
         )}
@@ -618,14 +634,14 @@ export default function SignPage() {
           <>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 20 }}>
               {["💳 Cards", "📱 UPI", "🏦 Net Banking", "💼 Wallets"].map((m, i) => (
-                <span key={i} style={{ fontSize: 11, color: C.dim, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 8px" }}>{m}</span>
+                <span key={i} style={{ fontSize: 11, color: C.dim, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "4px 8px" }}>{m}</span>
               ))}
             </div>
             <button onClick={handlePay} disabled={paying} style={{
               width: "100%", background: paying ? C.surface2 : C.gold,
-              color: paying ? C.gold : "#0C0C0E", border: paying ? `1px solid ${C.gold}` : "none",
-              borderRadius: 10, padding: "15px", fontSize: 15, fontWeight: 700,
-              cursor: paying ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
+              color: paying ? C.gold : "#0A0A0A", border: paying ? `1px solid ${C.gold}` : "none",
+              borderRadius: 14, padding: "15px", fontSize: 15, fontWeight: 600,
+              cursor: paying ? "not-allowed" : "pointer", fontFamily: FS,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12,
             }}>
               {paying ? (
@@ -640,7 +656,7 @@ export default function SignPage() {
         ) : (
           /* ── PATH B: No Razorpay key — Manual UPI / Bank transfer ── */
           <div>
-            <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM, marginBottom: 12 }}>
               📱 Pay Manually
             </div>
 
@@ -649,16 +665,16 @@ export default function SignPage() {
               <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: C.dim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>UPI ID</div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, color: C.text, fontWeight: 600 }}>{upiId}</span>
+                  <span style={{ fontFamily: FM, fontSize: 15, color: C.text, fontWeight: 600 }}>{upiId}</span>
                   <button
                     onClick={() => { navigator.clipboard?.writeText(upiId); }}
-                    style={{ fontSize: 11, color: C.gold, background: "transparent", border: `1px solid ${C.gold}40`, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap" }}
+                    style={{ fontSize: 11, color: C.gold, background: "transparent", border: `1px solid ${C.gold}40`, borderRadius: 10, padding: "4px 10px", cursor: "pointer", fontFamily: FS, whiteSpace: "nowrap" }}
                   >
                     Copy
                   </button>
                 </div>
                 {upiDeepLink && (
-                  <a href={upiDeepLink} style={{ display: "block", marginTop: 14, textAlign: "center", background: C.gold, color: "#0C0C0E", borderRadius: 8, padding: "12px", fontSize: 14, fontWeight: 700, textDecoration: "none", fontFamily: "'DM Sans', sans-serif" }}>
+                  <a href={upiDeepLink} style={{ display: "block", marginTop: 14, textAlign: "center", background: C.gold, color: "#0A0A0A", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 600, textDecoration: "none", fontFamily: FS }}>
                     📱 Pay {fmt(depositAmt)} via UPI App
                   </a>
                 )}
@@ -677,10 +693,10 @@ export default function SignPage() {
                   <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
                     <span style={{ fontSize: 12, color: C.dim }}>{label}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.text }}>{val}</span>
+                      <span style={{ fontFamily: FM, fontSize: 13, color: C.text }}>{val}</span>
                       <button
                         onClick={() => navigator.clipboard?.writeText(val)}
-                        style={{ fontSize: 10, color: C.gold, background: "transparent", border: `1px solid ${C.gold}40`, borderRadius: 4, padding: "2px 7px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                        style={{ fontSize: 10, color: C.gold, background: "transparent", border: `1px solid ${C.gold}40`, borderRadius: 4, padding: "2px 7px", cursor: "pointer", fontFamily: FS }}
                       >
                         Copy
                       </button>
@@ -703,9 +719,9 @@ export default function SignPage() {
             {/* Confirm button */}
             <button onClick={handleManualPayDone} disabled={paying} style={{
               width: "100%", background: paying ? C.surface2 : C.green,
-              color: paying ? C.green : "#0C0C0E", border: paying ? `1px solid ${C.green}` : "none",
-              borderRadius: 10, padding: "14px", fontSize: 15, fontWeight: 700,
-              cursor: paying ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
+              color: paying ? C.green : "#0A0A0A", border: paying ? `1px solid ${C.green}` : "none",
+              borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 600,
+              cursor: paying ? "not-allowed" : "pointer", fontFamily: FS,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8, marginTop: 4,
             }}>
               {paying ? (
@@ -721,7 +737,7 @@ export default function SignPage() {
           </div>
         )}
 
-        <button onClick={skipPay} style={{ width: "100%", background: "transparent", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", padding: "8px", fontFamily: "'DM Sans', sans-serif" }}>
+        <button onClick={skipPay} style={{ width: "100%", background: "transparent", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", padding: "8px", fontFamily: FS }}>
           Skip for now — I'll pay later
         </button>
       </div>
@@ -736,9 +752,9 @@ export default function SignPage() {
     ];
 
     return shell(
-      <div style={{ background: C.surface, border: `1px solid ${intakeSuccess ? C.green : C.border}`, borderRadius: 16, padding: "32px 24px", textAlign: "center" }}>
+      <div style={{ background: C.surface, border: `1px solid ${intakeSuccess ? C.green : C.border}`, borderRadius: 20, padding: "32px 24px", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>{intakeSuccess ? "🚀" : "📋"}</div>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: intakeSuccess ? C.green : C.gold, marginBottom: 8 }}>
+        <div style={{ fontFamily: FD, fontSize: 22, fontWeight: 500, color: intakeSuccess ? C.green : C.gold, marginBottom: 8 }}>
           {intakeSuccess ? "You're all set!" : "Almost done!"}
         </div>
         <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.7, marginBottom: 24, maxWidth: 440, margin: "0 auto 24px" }}>
@@ -749,7 +765,7 @@ export default function SignPage() {
 
         {!intakeSuccess && (
           <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "20px", textAlign: "left", marginBottom: 24 }}>
-            <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 11, color: C.gold, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
               <span>⚡</span> Project Details
             </div>
 
@@ -779,19 +795,19 @@ export default function SignPage() {
                   <textarea
                     name={`intake_field_${idx}`}
                     rows={3}
-                    style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", fontSize: 13, color: C.text, fontFamily: "'DM Sans', sans-serif", outline: "none", resize: "vertical", boxSizing: "border-box" }}
+                    style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 12px", fontSize: 13, color: C.text, fontFamily: FS, outline: "none", resize: "vertical", boxSizing: "border-box" }}
                     placeholder="Add your response here..."
                   />
                 </div>
               ))}
 
               {intakeError && (
-                <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
+                <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 12, padding: "10px 14px", fontSize: 13, color: C.red, marginBottom: 16 }}>
                   {intakeError}
                 </div>
               )}
 
-              <button type="submit" disabled={intakeSubmitting} style={{ width: "100%", background: C.green, color: "#0C0C0E", border: "none", borderRadius: 8, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginTop: 8 }}>
+              <button type="submit" disabled={intakeSubmitting} style={{ width: "100%", background: C.green, color: "#0A0A0A", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FS, marginTop: 8 }}>
                 {intakeSubmitting ? "Submitting..." : "Submit Details"}
               </button>
             </form>
@@ -799,7 +815,7 @@ export default function SignPage() {
         )}
 
         {!intakeSuccess && (
-          <button onClick={() => setStep("done")} style={{ background: "transparent", border: "none", color: C.dim, fontSize: 12, cursor: "pointer", padding: "8px", fontFamily: "'DM Sans', sans-serif" }}>
+          <button onClick={() => setStep("done")} style={{ background: "transparent", border: "none", color: C.dim, fontSize: 12, cursor: "pointer", padding: "8px", fontFamily: FS }}>
             Skip for now
           </button>
         )}
@@ -810,16 +826,16 @@ export default function SignPage() {
   // ── STEP 5: Done ───────────────────────────────────────────────────────
   if (step === "done") {
     return shell(
-      <div style={{ background: C.surface, border: `1px solid ${C.green}40`, borderRadius: 16, padding: "40px 24px", textAlign: "center" }}>
+      <div style={{ background: C.surface, border: `1px solid ${C.green}40`, borderRadius: 20, padding: "40px 24px", textAlign: "center" }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>🚀</div>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: C.green, marginBottom: 10 }}>
+        <div style={{ fontFamily: FD, fontSize: 24, fontWeight: 500, color: C.green, marginBottom: 10 }}>
           You're all set!
         </div>
         <div style={{ fontSize: 14, color: C.mid, lineHeight: 1.7, marginBottom: 28 }}>
           Agreement signed and everything is in order. We'll be in touch shortly.
         </div>
         {doc?.signed_at && (
-          <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>
+          <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 14, padding: "12px 16px", fontSize: 11, color: C.dim, fontFamily: FM }}>
             ✓ Verification Hash: {doc.id.slice(0, 8).toUpperCase()}-{new Date(doc.signed_at).getTime()}
           </div>
         )}

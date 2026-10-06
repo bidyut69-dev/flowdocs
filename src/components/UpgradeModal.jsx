@@ -2,11 +2,26 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { openRazorpayCheckout, activateProPlan } from "../lib/payment";
 
-const C = {
-  bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
-  gold: "#F5A623", goldDim: "#F5A62318", text: "#F0EEE8", dim: "#7A7875",
-  mid: "#B0ADA8", green: "#22C55E", greenDim: "#22C55E20", red: "#EF4444",
-};
+const bg = "#F5F4F2";
+const bgAlt = "#EFEDE8";
+const card = "#FFFFFF";
+const inkDark = "#151515";
+const ink = "#0A0A0A";
+const inkMid = "#525252";
+const inkFaint = "#A3A3A3";
+const line = "#E7E5E0";
+const lineSoft = "#EFEDE8";
+const gold = "#C8820F";
+const goldSoft = "#F5A623";
+const goldGlow = "#F5A62315";
+const stamp = "#1F6B46";
+const stampDim = "#1F6B4615";
+const red = "#B3432B";
+const redDim = "#B3432B15";
+
+const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
+const fontSans = "'Manrope', 'Inter', system-ui, sans-serif";
+const fontMono = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
 const PLANS = {
   solo: {
@@ -52,7 +67,6 @@ export default function UpgradeModal({ session, profile, onClose, onUpgraded }) 
 
   const plan = PLANS[selectedPlan];
 
-  // Returns amount in rupees (payment.js converts to paise)
   const getAmount = () => {
     if (selectedPlan === "solo") return billing === "annual" ? 2990 : 299;
     return billing === "annual" ? 7500 : 750;
@@ -72,40 +86,22 @@ export default function UpgradeModal({ session, profile, onClose, onUpgraded }) 
 
     try {
       await openRazorpayCheckout({
-        user: {
-          id: session.user.id,
-          email: session.user.email,
-          name: profile?.name,
-        },
+        user: { id: session.user.id, email: session.user.email, name: profile?.name },
         plan: plan.razorpayPlan,
-        amount: getAmount(), // ✅ fixed: was declared but never used
+        amount: getAmount(),
         onSuccess: async (response) => {
-          const ok = await activateProPlan(
-            supabase,
-            session.user.id,
-            response.razorpay_payment_id,
-            selectedPlan  // "solo" ya "pro" — sahi naam pass karo
-          );
+          const ok = await activateProPlan(supabase, session.user.id, response.razorpay_payment_id, selectedPlan);
           setLoading(false);
           if (ok) {
             setSuccess(true);
-            setTimeout(() => {
-              onUpgraded?.();
-              onClose?.();
-            }, 2500);
+            setTimeout(() => { onUpgraded?.(); onClose?.(); }, 2500);
           } else {
-            setError(
-              "Payment received but activation failed. Contact support@flowdocs.co.in"
-            );
+            setError("Payment received but activation failed. Contact support@flowdocs.co.in");
           }
         },
-        onFailure: (msg) => {
-          setLoading(false);
-          setError(msg);
-        },
+        onFailure: (msg) => { setLoading(false); setError(msg); },
       });
     } catch {
-      // openRazorpayCheckout threw unexpectedly (e.g. script load failure)
       setError("Payment could not be initialized. Please try again.");
     } finally {
       setLoading(false);
@@ -115,192 +111,185 @@ export default function UpgradeModal({ session, profile, onClose, onUpgraded }) 
   return (
     <div
       style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999,
+        position: "fixed", inset: 0, background: "rgba(10,10,10,0.55)", zIndex: 9999,
         display: "flex", alignItems: "center", justifyContent: "center",
-        backdropFilter: "blur(6px)", padding: 16,
+        backdropFilter: "blur(10px)", padding: 16,
       }}
       onClick={onClose}
     >
       <div
         style={{
-          background: C.surface, border: `1px solid ${C.gold}`,
-          borderRadius: 20, padding: "32px 28px", width: "100%", maxWidth: 500,
+          background: card, border: `1px solid ${line}`,
+          borderRadius: 24, padding: "36px 32px", width: "100%", maxWidth: 540,
           maxHeight: "92vh", overflowY: "auto", position: "relative",
+          boxShadow: "0 40px 80px -30px rgba(0,0,0,.4)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Gold top bar */}
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: 3,
-          background: C.gold, borderRadius: "20px 20px 0 0",
-        }} />
+        {/* gold glow */}
+        <div style={{ position: "absolute", top: -80, left: "50%", transform: "translateX(-50%)", width: 400, height: 240, borderRadius: "50%", background: `${goldSoft}18`, filter: "blur(70px)", pointerEvents: "none" }} />
 
         {/* Close button */}
         <button
           onClick={onClose}
           style={{
-            position: "absolute", top: 14, right: 16,
-            background: "none", border: "none", color: C.dim,
-            cursor: "pointer", fontSize: 22,
+            position: "absolute", top: 16, right: 16, zIndex: 2,
+            background: lineSoft, border: "none", color: inkMid,
+            cursor: "pointer", fontSize: 18, width: 32, height: 32, borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
           }}
         >
           ×
         </button>
 
-        {success ? (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-            <div style={{
-              fontFamily: "'Syne', sans-serif", fontSize: 22,
-              fontWeight: 800, color: C.green, marginBottom: 8,
-            }}>
-              Welcome to {plan.label}!
-            </div>
-            <div style={{ fontSize: 14, color: C.mid }}>All features are now unlocked.</div>
-          </div>
-        ) : (
-          <>
-            {/* Header */}
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{
-                fontSize: 11, color: C.gold, letterSpacing: 2,
-                fontFamily: "'DM Mono', monospace", marginBottom: 8,
-              }}>
-                UPGRADE YOUR PLAN
+        <div style={{ position: "relative" }}>
+          {success ? (
+            <div style={{ textAlign: "center", padding: "28px 0" }}>
+              <div style={{ width: 64, height: 64, borderRadius: 18, background: stampDim, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", color: stamp, fontSize: 30 }}>🎉</div>
+              <div style={{ fontFamily: fontDisplay, fontSize: 28, fontWeight: 500, letterSpacing: "-.5px", color: ink, marginBottom: 10 }}>
+                Welcome to <span style={{ fontStyle: "italic", color: gold }}>{plan.label}</span>
               </div>
-              <div style={{
-                fontFamily: "'Syne', sans-serif", fontSize: 22,
-                fontWeight: 800, color: C.text,
-              }}>
-                Choose what fits you
+              <div style={{ fontSize: 14, color: inkMid }}>All features are now unlocked.</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ textAlign: "center", marginBottom: 28 }}>
+                <div style={{ fontFamily: fontMono, fontSize: 10.5, color: gold, fontWeight: 500, letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 12 }}>§ Upgrade</div>
+                <div style={{ fontFamily: fontDisplay, fontSize: 30, fontWeight: 500, letterSpacing: "-.6px", color: ink, lineHeight: 1.1 }}>
+                  Choose what <span style={{ fontStyle: "italic", color: gold }}>fits</span> you
+                </div>
               </div>
-            </div>
 
-            {/* Billing toggle */}
-            <div style={{
-              display: "flex", background: C.surface2, borderRadius: 10,
-              padding: 4, marginBottom: 20,
-            }}>
-              {["monthly", "annual"].map((b) => (
-                <button
-                  key={b}
-                  onClick={() => setBilling(b)}
-                  style={{
-                    flex: 1, padding: "8px", borderRadius: 7, border: "none",
-                    background: billing === b ? C.gold : "transparent",
-                    color: billing === b ? "#0C0C0E" : C.dim,
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontWeight: 700, fontSize: 13, cursor: "pointer",
-                  }}
-                >
-                  {b === "monthly" ? "Monthly" : "Annual (Save 17%)"}
-                </button>
-              ))}
-            </div>
+              {/* Billing toggle */}
+              <div style={{
+                display: "flex", background: bgAlt, borderRadius: 12,
+                padding: 5, marginBottom: 22, border: `1px solid ${line}`,
+              }}>
+                {["monthly", "annual"].map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => setBilling(b)}
+                    style={{
+                      flex: 1, padding: "9px", borderRadius: 9, border: "none",
+                      background: billing === b ? ink : "transparent",
+                      color: billing === b ? "#fff" : inkMid,
+                      fontFamily: fontMono, fontWeight: 500, fontSize: 11.5,
+                      letterSpacing: ".1em", textTransform: "uppercase",
+                      cursor: "pointer",
+                      boxShadow: billing === b ? "0 6px 14px -6px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.14)" : "none",
+                      transition: "all .3s cubic-bezier(.22,1,.36,1)",
+                    }}
+                  >
+                    {b === "monthly" ? "Monthly" : "Annual · Save 17%"}
+                  </button>
+                ))}
+              </div>
 
-            {/* Plan selector */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-              {Object.values(PLANS).map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => setSelectedPlan(p.id)}
-                  style={{
-                    flex: 1, padding: "16px 14px", borderRadius: 12, cursor: "pointer",
-                    border: `2px solid ${selectedPlan === p.id ? C.gold : C.border}`,
-                    background: selectedPlan === p.id ? C.goldDim : C.surface2,
-                    transition: "all 0.15s", position: "relative",
-                  }}
-                >
-                  {p.badge && (
-                    <div style={{
-                      position: "absolute", top: -10, left: "50%",
-                      transform: "translateX(-50%)",
-                      background: selectedPlan === p.id ? C.gold : C.border,
-                      color: selectedPlan === p.id ? "#0C0C0E" : C.dim,
-                      fontSize: 9, fontWeight: 700, padding: "2px 10px",
-                      borderRadius: 10, fontFamily: "'DM Mono', monospace",
-                      whiteSpace: "nowrap",
-                    }}>
-                      {p.badge}
+              {/* Plan selector */}
+              <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                {Object.values(PLANS).map((p) => {
+                  const sel = selectedPlan === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedPlan(p.id)}
+                      style={{
+                        flex: 1, padding: "20px 16px", borderRadius: 16, cursor: "pointer",
+                        border: `${sel ? 2 : 1}px solid ${sel ? ink : line}`,
+                        background: sel ? bg : card,
+                        transition: "all .3s cubic-bezier(.22,1,.36,1)", position: "relative",
+                        boxShadow: sel ? "0 10px 24px -16px rgba(15,15,15,.3)" : "none",
+                      }}
+                    >
+                      {p.badge && (
+                        <div style={{
+                          position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)",
+                          background: sel ? ink : card,
+                          color: sel ? "#fff" : inkMid,
+                          fontSize: 9.5, fontWeight: 600, padding: "4px 12px",
+                          borderRadius: 100, fontFamily: fontMono,
+                          letterSpacing: ".14em", textTransform: "uppercase",
+                          border: `1px solid ${sel ? ink : line}`,
+                          whiteSpace: "nowrap",
+                          boxShadow: sel ? "0 6px 14px -4px rgba(0,0,0,.3)" : "none",
+                        }}>
+                          {p.badge}
+                        </div>
+                      )}
+                      <div style={{
+                        fontFamily: fontDisplay, fontSize: 22, fontWeight: 500,
+                        color: ink, marginBottom: 6, letterSpacing: "-.3px",
+                      }}>
+                        {p.label}
+                      </div>
+                      <div style={{
+                        fontFamily: fontMono, fontSize: 12.5, letterSpacing: ".08em",
+                        color: sel ? gold : inkMid, fontWeight: 500,
+                      }}>
+                        {billing === "annual"
+                          ? p.id === "solo" ? "₹2,990/yr" : "₹7,500/yr"
+                          : p.price}
+                      </div>
                     </div>
-                  )}
-                  <div style={{
-                    fontFamily: "'Syne', sans-serif", fontSize: 18,
-                    fontWeight: 800,
-                    color: selectedPlan === p.id ? C.gold : C.text,
-                    marginBottom: 4,
-                  }}>
-                    {p.label}
-                  </div>
-                  <div style={{
-                    fontSize: 14,
-                    color: selectedPlan === p.id ? C.gold : C.mid,
-                    fontFamily: "'DM Mono', monospace",
-                  }}>
-                    {billing === "annual"
-                      ? p.id === "solo" ? "₹2,990/yr" : "₹7,500/yr"
-                      : p.price}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Features list */}
-            <div style={{ marginBottom: 20 }}>
-              {plan.features.map((f, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "7px 0",
-                    borderBottom: i < plan.features.length - 1 ? `1px solid ${C.border}` : "none",
-                    fontSize: 13.5, color: C.mid,
-                  }}
-                >
-                  <span style={{ color: C.green, fontSize: 12, flexShrink: 0 }}>✓</span>
-                  {f}
-                </div>
-              ))}
-            </div>
-
-            {/* Error message */}
-            {error && (
-              <div style={{
-                background: "#EF444420", border: "1px solid #EF4444",
-                borderRadius: 8, padding: "10px 14px",
-                fontSize: 13, color: "#EF4444", marginBottom: 16,
-              }}>
-                {error}
+                  );
+                })}
               </div>
-            )}
 
-            {/* CTA button */}
-            <button
-              onClick={handleUpgrade}
-              disabled={loading}
-              style={{
-                width: "100%",
-                background: loading ? C.surface2 : C.gold,
-                color: loading ? C.dim : "#0C0C0E",
-                border: "none", borderRadius: 10, padding: "14px",
-                fontSize: 15, fontWeight: 700,
-                cursor: loading ? "not-allowed" : "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              {loading
-                ? "Opening payment..."
-                : `Upgrade to ${plan.label} — ${getLabel()} →`}
-            </button>
+              {/* Features list */}
+              <div style={{ background: bgAlt, border: `1px solid ${line}`, borderRadius: 14, padding: "16px 18px", marginBottom: 22 }}>
+                {plan.features.map((f, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "7px 0",
+                      borderBottom: i < plan.features.length - 1 ? `1px solid ${line}` : "none",
+                      fontSize: 13.5, color: inkMid,
+                    }}
+                  >
+                    <span style={{ color: stamp, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    {f}
+                  </div>
+                ))}
+              </div>
 
-            {/* Trust badges */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 14 }}>
-              {["🔒 Secure", "↩ Cancel anytime", "📧 Invoice provided"].map((t, i) => (
-                <span key={i} style={{ fontSize: 11, color: C.dim }}>{t}</span>
-              ))}
-            </div>
-          </>
-        )}
+              {error && (
+                <div style={{
+                  background: redDim, border: `1px solid ${red}40`,
+                  borderRadius: 12, padding: "11px 15px",
+                  fontSize: 13, color: red, marginBottom: 18,
+                }}>
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={handleUpgrade}
+                disabled={loading}
+                style={{
+                  width: "100%",
+                  background: loading ? bgAlt : ink,
+                  color: loading ? inkMid : "#fff",
+                  border: "none", borderRadius: 14, padding: "15px",
+                  fontSize: 14.5, fontWeight: 600,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontFamily: fontSans,
+                  boxShadow: loading ? "none" : "0 14px 30px -12px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14)",
+                  outline: loading ? "none" : "1px solid rgba(0,0,0,.3)", outlineOffset: -1,
+                  transition: "all .3s cubic-bezier(.22,1,.36,1)",
+                }}
+              >
+                {loading ? "Opening payment…" : `Upgrade to ${plan.label} — ${getLabel()} →`}
+              </button>
+
+              <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 16, flexWrap: "wrap" }}>
+                {["🔒 Secure", "↩ Cancel anytime", "📧 Invoice provided"].map((t, i) => (
+                  <span key={i} style={{ fontFamily: fontMono, fontSize: 10.5, color: inkFaint, letterSpacing: ".1em", textTransform: "uppercase" }}>{t}</span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

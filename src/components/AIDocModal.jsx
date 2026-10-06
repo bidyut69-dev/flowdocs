@@ -1,22 +1,36 @@
 import { useState } from "react";
 import { generateProposal, generateContract, generateInvoiceItems, generateFollowUpEmail, generateNDA } from "../lib/ai";
 
-const C = {
-  bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
-  gold: "#F5A623", goldDim: "#F5A62318", text: "#F0EEE8", dim: "#7A7875",
-  mid: "#B0ADA8", green: "#22C55E", greenDim: "#22C55E20", red: "#EF4444", redDim: "#EF444420",
-  blue: "#60A5FA",
-};
+const bg = "#F5F4F2";
+const bgAlt = "#EFEDE8";
+const card = "#FFFFFF";
+const ink = "#0A0A0A";
+const inkMid = "#525252";
+const inkFaint = "#A3A3A3";
+const line = "#E7E5E0";
+const lineSoft = "#EFEDE8";
+const gold = "#C8820F";
+const goldSoft = "#F5A623";
+const goldGlow = "#F5A62315";
+const stamp = "#1F6B46";
+const stampDim = "#1F6B4615";
+const red = "#B3432B";
+const redDim = "#B3432B15";
+
+const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
+const fontSans = "'Manrope', 'Inter', system-ui, sans-serif";
+const fontMono = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
 const inp = {
-  width: "100%", background: C.surface2, border: `1px solid ${C.border}`,
-  borderRadius: 8, padding: "10px 12px", fontSize: 13.5, color: C.text,
-  fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box", marginTop: 6,
+  width: "100%", background: card, border: `1px solid ${line}`,
+  borderRadius: 12, padding: "12px 14px", fontSize: 13.5, color: ink,
+  fontFamily: fontSans, outline: "none", boxSizing: "border-box", marginTop: 6,
+  transition: "border-color .2s, box-shadow .2s",
 };
 
 const lbl = {
-  fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase",
-  fontFamily: "'DM Mono', monospace", display: "block", marginTop: 14,
+  fontFamily: fontMono, fontSize: 10, color: inkMid, fontWeight: 500,
+  letterSpacing: ".14em", textTransform: "uppercase", display: "block", marginTop: 16,
 };
 
 const AI_TYPES = [
@@ -76,51 +90,90 @@ export default function AIDocModal({ profile, onGenerated, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)", padding: 16 }} onClick={onClose}>
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, width: "100%", maxWidth: 580, maxHeight: "92vh", overflowY: "auto", position: "relative" }} onClick={e => e.stopPropagation()}>
-
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(10,10,10,0.5)", zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)", padding: 16 }}
+      onClick={onClose}
+    >
+      <style>{`
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .ai-input:focus{border-color:${ink}!important;box-shadow:0 0 0 4px rgba(10,10,10,.06)}
+      `}</style>
+      <div
+        style={{ background: card, border: `1px solid ${line}`, borderRadius: 24, width: "100%", maxWidth: 600, maxHeight: "92vh", overflowY: "auto", position: "relative", boxShadow: "0 40px 80px -30px rgba(0,0,0,.4)" }}
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div style={{ padding: "24px 28px 20px", borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: C.surface, zIndex: 10, borderRadius: "20px 20px 0 0" }}>
-          <div style={{ height: 3, background: `linear-gradient(90deg, ${C.gold}, ${C.blue})`, marginBottom: 18, marginLeft: -28, marginRight: -28, marginTop: -24 }} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "28px 32px 20px", borderBottom: `1px solid ${lineSoft}`, position: "sticky", top: 0, background: card, zIndex: 10, borderRadius: "24px 24px 0 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.text }}>✨ AI Document Generator</div>
-              <div style={{ fontSize: 12, color: C.dim, marginTop: 3 }}>Powered by Google Gemini · Free</div>
+              <div style={{ fontFamily: fontMono, fontSize: 10.5, color: gold, fontWeight: 500, letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 8 }}>§ AI Draft</div>
+              <div style={{ fontFamily: fontDisplay, fontSize: 24, fontWeight: 500, letterSpacing: "-.5px", color: ink, lineHeight: 1.15 }}>
+                Draft with <span style={{ fontStyle: "italic", color: gold }}>intention</span>
+              </div>
+              <div style={{ fontSize: 12, color: inkMid, marginTop: 6, fontFamily: fontMono, letterSpacing: ".08em" }}>Google Gemini · Free</div>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", fontSize: 22 }}>×</button>
+            <button
+              onClick={onClose}
+              style={{ background: lineSoft, border: "none", color: inkMid, cursor: "pointer", fontSize: 18, width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+            >×</button>
           </div>
 
-          {/* Type tabs */}
-          <div style={{ display: "flex", gap: 6, marginTop: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, marginTop: 18, flexWrap: "wrap" }}>
             {AI_TYPES.map(t => (
-              <button key={t.id} onClick={() => { setType(t.id); setResult(""); setError(""); }} style={{
-                padding: "7px 12px", borderRadius: 8, cursor: "pointer",
-                background: type === t.id ? C.goldDim : C.surface2,
-                border: `1px solid ${type === t.id ? C.gold : C.border}`,
-                color: type === t.id ? C.gold : C.dim,
-                fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 600,
-                display: "flex", alignItems: "center", gap: 5,
-              }}>
+              <button
+                key={t.id}
+                onClick={() => { setType(t.id); setResult(""); setError(""); }}
+                style={{
+                  padding: "8px 14px", borderRadius: 100, cursor: "pointer",
+                  background: type === t.id ? ink : card,
+                  border: `1px solid ${type === t.id ? ink : line}`,
+                  color: type === t.id ? "#fff" : inkMid,
+                  fontFamily: fontMono, fontSize: 11, fontWeight: 500, letterSpacing: ".08em", textTransform: "uppercase",
+                  display: "flex", alignItems: "center", gap: 6,
+                  boxShadow: type === t.id ? "0 6px 14px -6px rgba(0,0,0,.4)" : "none",
+                  transition: "all .3s cubic-bezier(.22,1,.36,1)",
+                }}
+              >
                 {t.icon} {t.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: "20px 28px 28px" }}>
+        <div style={{ padding: "24px 32px 32px" }}>
           {result ? (
             <div>
-              <div style={{ background: C.greenDim, border: `1px solid ${C.green}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ color: C.green, fontSize: 18 }}>✓</span>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.green }}>AI document generated! Copy and use.</div>
+              <div style={{ background: stampDim, border: `1px solid ${stamp}40`, borderRadius: 14, padding: "14px 18px", marginBottom: 18, display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ width: 24, height: 24, borderRadius: "50%", background: stamp, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>✓</span>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: stamp }}>Generated. Copy and send it.</div>
               </div>
-              <textarea readOnly value={result} style={{ ...inp, minHeight: 300, resize: "vertical", lineHeight: 1.7, fontSize: 12.5, color: C.mid, fontFamily: "'DM Mono', monospace", marginTop: 0 }} />
-              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-                <button onClick={handleCopy} style={{ flex: 1, background: copied ? C.greenDim : C.goldDim, border: `1px solid ${copied ? C.green : C.gold}`, color: copied ? C.green : C.gold, borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                  {copied ? "✓ Copied!" : "📋 Copy to Clipboard"}
+              <textarea
+                readOnly
+                value={result}
+                style={{ ...inp, minHeight: 320, resize: "vertical", lineHeight: 1.75, fontSize: 12.5, color: inkMid, fontFamily: fontMono, marginTop: 0, background: bgAlt }}
+              />
+              <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                <button
+                  onClick={handleCopy}
+                  style={{
+                    flex: 1, background: copied ? stamp : ink, color: "#fff", border: "none",
+                    borderRadius: 12, padding: "13px", fontSize: 13.5, fontWeight: 600, cursor: "pointer",
+                    fontFamily: fontSans,
+                    boxShadow: "0 10px 22px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14)",
+                    outline: "1px solid rgba(0,0,0,.3)", outlineOffset: -1,
+                    transition: "all .3s cubic-bezier(.22,1,.36,1)",
+                  }}
+                >
+                  {copied ? "✓ Copied" : "📋 Copy to clipboard"}
                 </button>
-                <button onClick={() => setResult("")} style={{ flex: 1, background: "transparent", border: `1px solid ${C.border}`, color: C.mid, borderRadius: 8, padding: "11px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                <button
+                  onClick={() => setResult("")}
+                  style={{
+                    flex: 1, background: card, border: `1px solid ${line}`, color: ink,
+                    borderRadius: 12, padding: "13px", fontSize: 13.5, fontWeight: 500, cursor: "pointer",
+                    fontFamily: fontSans, transition: "all .3s cubic-bezier(.22,1,.36,1)",
+                  }}
+                >
                   ↺ Regenerate
                 </button>
               </div>
@@ -128,19 +181,19 @@ export default function AIDocModal({ profile, onGenerated, onClose }) {
           ) : (
             <>
               <label style={lbl}>Project Title *</label>
-              <input style={inp} placeholder="e.g. E-commerce Website Redesign" value={form.projectTitle} onChange={set("projectTitle")} />
+              <input className="ai-input" style={inp} placeholder="e.g. E-commerce Website Redesign" value={form.projectTitle} onChange={set("projectTitle")} />
 
               {type !== "invoice" && (
                 <>
                   <label style={lbl}>Client Name *</label>
-                  <input style={inp} placeholder="e.g. Nova Corp" value={form.clientName} onChange={set("clientName")} />
+                  <input className="ai-input" style={inp} placeholder="e.g. Nova Corp" value={form.clientName} onChange={set("clientName")} />
                 </>
               )}
 
               {["proposal", "contract", "invoice"].includes(type) && (
                 <>
                   <label style={lbl}>Project Type</label>
-                  <select style={{ ...inp, color: C.text }} value={form.projectType} onChange={set("projectType")}>
+                  <select className="ai-input" style={{ ...inp, color: ink }} value={form.projectType} onChange={set("projectType")}>
                     {["Web Development","Mobile App","UI/UX Design","Graphic Design","Content Writing","SEO & Marketing","Video Editing","Consulting","Other"].map(o => (
                       <option key={o}>{o}</option>
                     ))}
@@ -151,59 +204,68 @@ export default function AIDocModal({ profile, onGenerated, onClose }) {
               {["proposal", "contract", "invoice"].includes(type) && (
                 <>
                   <label style={lbl}>Budget / Amount</label>
-                  <input style={inp} placeholder="e.g. $1500 or ₹50,000" value={form.budget} onChange={set("budget")} />
+                  <input className="ai-input" style={inp} placeholder="e.g. $1500 or ₹50,000" value={form.budget} onChange={set("budget")} />
                 </>
               )}
 
               {["proposal", "contract"].includes(type) && (
                 <>
                   <label style={lbl}>Timeline</label>
-                  <input style={inp} placeholder="e.g. 4 weeks" value={form.timeline} onChange={set("timeline")} />
+                  <input className="ai-input" style={inp} placeholder="e.g. 4 weeks" value={form.timeline} onChange={set("timeline")} />
                   <label style={lbl}>Brief Scope (optional)</label>
-                  <textarea style={{ ...inp, minHeight: 72, resize: "vertical" }} placeholder="e.g. Landing page + 5 inner pages, responsive design" value={form.scope} onChange={set("scope")} />
+                  <textarea className="ai-input" style={{ ...inp, minHeight: 80, resize: "vertical" }} placeholder="e.g. Landing page + 5 inner pages, responsive design" value={form.scope} onChange={set("scope")} />
                 </>
               )}
 
               {type === "followup" && (
                 <>
                   <label style={lbl}>Days Since Last Contact</label>
-                  <input style={inp} type="number" placeholder="7" value={form.daysSince} onChange={set("daysSince")} />
+                  <input className="ai-input" style={inp} type="number" placeholder="7" value={form.daysSince} onChange={set("daysSince")} />
                 </>
               )}
 
               {error && (
-                <div style={{ background: C.redDim, border: `1px solid ${C.red}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.red, marginTop: 14 }}>{error}</div>
+                <div style={{ background: redDim, border: `1px solid ${red}40`, borderRadius: 12, padding: "11px 15px", fontSize: 13, color: red, marginTop: 16 }}>{error}</div>
               )}
 
               {!import.meta.env.VITE_GEMINI_API_KEY && (
-                <div style={{ background: "#F5A62318", border: `1px solid ${C.gold}`, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.gold, marginTop: 14 }}>
-                  ⚠️ Add VITE_GEMINI_API_KEY to .env — Get free key at aistudio.google.com
+                <div style={{ background: goldGlow, border: `1px solid ${goldSoft}40`, borderRadius: 12, padding: "11px 15px", fontSize: 12.5, color: gold, marginTop: 16, display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.5 }}>
+                  <span style={{ fontSize: 15 }}>⚠️</span>
+                  <div>Add <strong style={{ fontFamily: fontMono, fontWeight: 600 }}>VITE_GEMINI_API_KEY</strong> to .env — free key at aistudio.google.com</div>
                 </div>
               )}
 
-              <button onClick={handleGenerate} disabled={loading} style={{
-                width: "100%", marginTop: 20, background: loading ? C.surface2 : C.gold,
-                color: loading ? C.dim : "#0C0C0E", border: "none", borderRadius: 10,
-                padding: "14px", fontSize: 15, fontWeight: 700,
-                cursor: loading ? "not-allowed" : "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              }}>
+              <button
+                onClick={handleGenerate}
+                disabled={loading}
+                style={{
+                  width: "100%", marginTop: 22, background: loading ? bgAlt : ink,
+                  color: loading ? inkMid : "#fff", border: "none", borderRadius: 14,
+                  padding: "15px", fontSize: 14.5, fontWeight: 600,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  fontFamily: fontSans,
+                  boxShadow: loading ? "none" : "0 14px 30px -12px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14)",
+                  outline: loading ? "none" : "1px solid rgba(0,0,0,.3)", outlineOffset: -1,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  transition: "all .3s cubic-bezier(.22,1,.36,1)",
+                }}
+              >
                 {loading ? (
                   <>
-                    <span style={{ width: 16, height: 16, border: `2px solid ${C.dim}`, borderTopColor: C.gold, borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
-                    AI is writing...
+                    <span style={{ width: 16, height: 16, border: `2px solid ${line}`, borderTopColor: ink, borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
+                    AI is writing…
                   </>
                 ) : (
                   `✨ Generate ${AI_TYPES.find(t => t.id === type)?.label}`
                 )}
               </button>
-              <div style={{ fontSize: 11, color: C.dim, textAlign: "center", marginTop: 10 }}>Free · Google Gemini 1.5 Flash</div>
+              <div style={{ fontFamily: fontMono, fontSize: 10, color: inkFaint, textAlign: "center", marginTop: 12, letterSpacing: ".12em", textTransform: "uppercase" }}>
+                Free · Google Gemini 1.5 Flash
+              </div>
             </>
           )}
         </div>
       </div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

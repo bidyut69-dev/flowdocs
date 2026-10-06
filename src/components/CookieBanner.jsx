@@ -1,9 +1,18 @@
 import { useState, useEffect } from "react";
 
-const C = {
-  bg: "#0C0C0E", surface: "#141416", border: "#2A2A2E", surface2: "#1C1C1F",
-  gold: "#F5A623", goldDim: "#F5A62320", text: "#F0EEE8", dim: "#7A7875", mid: "#B0ADA8",
-};
+const bg = "#F5F4F2";
+const card = "#FFFFFF";
+const ink = "#0A0A0A";
+const inkMid = "#525252";
+const inkFaint = "#A3A3A3";
+const line = "#E7E5E0";
+const lineSoft = "#EFEDE8";
+const gold = "#C8820F";
+const goldSoft = "#F5A623";
+
+const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
+const fontSans = "'Manrope', 'Inter', system-ui, sans-serif";
+const fontMono = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
@@ -18,8 +27,6 @@ export default function CookieBanner() {
     localStorage.setItem("fd_cookie_consent", all ? "all" : "essential");
     localStorage.setItem("fd_cookie_date", new Date().toISOString());
     setVisible(false);
-
-    // Load analytics only if accepted all
     if (all && typeof window !== "undefined") {
       window.fd_analytics_enabled = true;
     }
@@ -34,72 +41,72 @@ export default function CookieBanner() {
           from { transform: translateY(100%); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
         }
+        .cb-primary{background:${ink};color:#fff;border:none;border-radius:12px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:${fontSans};box-shadow:0 10px 22px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14);outline:1px solid rgba(0,0,0,.3);outline-offset:-1px;transition:all .3s cubic-bezier(.22,1,.36,1)}
+        .cb-primary:hover{transform:translateY(-1px)}
+        .cb-ghost{background:${card};color:${ink};border:1px solid ${line};border-radius:12px;padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer;font-family:${fontSans};transition:all .3s cubic-bezier(.22,1,.36,1)}
+        .cb-ghost:hover{border-color:${inkFaint};transform:translateY(-1px)}
       `}</style>
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 99999,
-        padding: "12px 16px", animation: "slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-        background: "rgba(12, 12, 14, 0.85)", backdropFilter: "blur(12px)",
-        borderTop: `1px solid ${C.border}`,
+        position: "fixed", bottom: 16, left: 16, right: 16, zIndex: 99999,
+        animation: "slideUpBanner 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
+        display: "flex", justifyContent: "center", pointerEvents: "none",
       }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <div style={{
+          maxWidth: 920, width: "100%", background: card,
+          border: `1px solid ${line}`, borderRadius: 20,
+          boxShadow: "0 24px 60px -20px rgba(15,15,15,.25)",
+          padding: showDetail ? "22px 24px" : "16px 20px",
+          pointerEvents: "auto",
+        }}>
           {!showDetail ? (
-            /* Simple banner */
             <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 280 }}>
-                <span style={{ fontSize: 14, color: C.text, fontFamily: "'DM Sans', sans-serif" }}>
-                  🍪 We use cookies to improve your experience and analyze usage.{" "}
-                  <span style={{ color: C.gold, cursor: "pointer", textDecoration: "underline", fontSize: 13 }}
-                    onClick={() => setShowDetail(true)}>Manage preferences</span>
-                </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 280 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${goldSoft}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🍪</div>
+                <div>
+                  <div style={{ fontSize: 13.5, color: ink, fontFamily: fontSans, lineHeight: 1.5, fontWeight: 500 }}>
+                    We use cookies to improve your experience.
+                  </div>
+                  <div style={{ fontSize: 12.5, color: inkMid, marginTop: 2 }}>
+                    <span style={{ color: gold, cursor: "pointer", fontWeight: 600, textDecoration: "underline", textDecorationColor: `${goldSoft}60`, textUnderlineOffset: 3 }} onClick={() => setShowDetail(true)}>Manage preferences</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-                <button onClick={() => accept(false)} style={{
-                  padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`,
-                  background: "transparent", color: C.mid, cursor: "pointer", fontSize: 13,
-                  fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-                }}>Essential only</button>
-                <button onClick={() => accept(true)} style={{
-                  padding: "8px 20px", borderRadius: 8, border: "none",
-                  background: C.gold, color: "#0C0C0E", cursor: "pointer", fontSize: 13,
-                  fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
-                }}>Accept All</button>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button className="cb-ghost" onClick={() => accept(false)}>Essential only</button>
+                <button className="cb-primary" onClick={() => accept(true)}>Accept all</button>
               </div>
             </div>
           ) : (
-            /* Detailed preferences */
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text }}>Cookie Preferences</div>
-                <button onClick={() => setShowDetail(false)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", fontSize: 18 }}>×</button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+                <div>
+                  <div style={{ fontFamily: fontMono, fontSize: 10.5, color: inkMid, fontWeight: 500, letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 6 }}>§ Cookie preferences</div>
+                  <div style={{ fontFamily: fontDisplay, fontSize: 22, fontWeight: 500, letterSpacing: "-.3px", color: ink }}>Choose what you share</div>
+                </div>
+                <button onClick={() => setShowDetail(false)} style={{ background: lineSoft, border: "none", color: inkMid, cursor: "pointer", fontSize: 16, width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
               </div>
               {[
                 { name: "Essential", desc: "Required for login, security, and basic functionality.", locked: true },
-                { name: "Analytics", desc: "Helps us understand how you use FlowDocs (PostHog/Google Analytics).", locked: false },
+                { name: "Analytics", desc: "Helps us understand how you use FlowDocs (PostHog / Google Analytics).", locked: false },
                 { name: "Preferences", desc: "Remembers your settings and UI preferences.", locked: false },
               ].map((cookie, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "12px 0", borderBottom: `1px solid ${C.border}` }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: C.text, marginBottom: 3 }}>{cookie.name}</div>
-                    <div style={{ fontSize: 12, color: C.dim }}>{cookie.desc}</div>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "14px 0", borderBottom: i < 2 ? `1px solid ${lineSoft}` : "none" }}>
+                  <div style={{ flex: 1, paddingRight: 16 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13.5, color: ink, marginBottom: 4 }}>{cookie.name}</div>
+                    <div style={{ fontSize: 12.5, color: inkMid, lineHeight: 1.5 }}>{cookie.desc}</div>
                   </div>
                   {cookie.locked ? (
-                    <span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace", marginTop: 4, flexShrink: 0 }}>Always on</span>
+                    <span style={{ fontSize: 10, color: inkMid, fontFamily: fontMono, letterSpacing: ".14em", textTransform: "uppercase", background: lineSoft, padding: "4px 10px", borderRadius: 100, flexShrink: 0 }}>Always on</span>
                   ) : (
-                    <div style={{ width: 40, height: 22, background: C.gold, borderRadius: 11, cursor: "pointer", flexShrink: 0, position: "relative" }}>
-                      <div style={{ position: "absolute", right: 2, top: 2, width: 18, height: 18, background: "#0C0C0E", borderRadius: "50%" }} />
+                    <div style={{ width: 40, height: 22, background: goldSoft, borderRadius: 100, cursor: "pointer", flexShrink: 0, position: "relative", boxShadow: `0 4px 10px -4px ${goldSoft}80` }}>
+                      <div style={{ position: "absolute", right: 2, top: 2, width: 18, height: 18, background: "#fff", borderRadius: "50%", boxShadow: "0 2px 4px rgba(0,0,0,.2)" }} />
                     </div>
                   )}
                 </div>
               ))}
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
-                <button onClick={() => accept(false)} style={{
-                  padding: "8px 16px", borderRadius: 8, border: `1px solid ${C.border}`,
-                  background: "transparent", color: C.mid, cursor: "pointer", fontSize: 13, fontFamily: "'DM Sans', sans-serif",
-                }}>Save Preferences</button>
-                <button onClick={() => accept(true)} style={{
-                  padding: "8px 20px", borderRadius: 8, border: "none",
-                  background: C.gold, color: "#0C0C0E", cursor: "pointer", fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
-                }}>Accept All</button>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
+                <button className="cb-ghost" onClick={() => accept(false)}>Save preferences</button>
+                <button className="cb-primary" onClick={() => accept(true)}>Accept all</button>
               </div>
             </div>
           )}

@@ -1,9 +1,18 @@
 import { useNavigate } from "react-router-dom";
 
-const C = {
-  bg: "#0C0C0E", surface: "#141416", border: "#2A2A2E",
-  gold: "#F5A623", text: "#F0EEE8", dim: "#7A7875", mid: "#B0ADA8",
-};
+const bg = "#F5F4F2";
+const bgAlt = "#EFEDE8";
+const card = "#FFFFFF";
+const ink = "#0A0A0A";
+const inkMid = "#525252";
+const inkFaint = "#A3A3A3";
+const line = "#E7E5E0";
+const gold = "#C8820F";
+const goldSoft = "#F5A623";
+
+const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
+const fontSans = "'Manrope', 'Inter', system-ui, sans-serif";
+const fontMono = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
 const COMPANY = "FlowDocs";
 const EMAIL = "support@flowdocs.co.in";
@@ -13,38 +22,65 @@ const DATE = "April 5, 2026";
 function LegalLayout({ title, children }) {
   const nav = useNavigate();
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'DM Sans', sans-serif", padding: "32px 16px" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap');
-        h2 { font-family: 'Syne', sans-serif; font-size: 18px; color: #F0EEE8; margin: 28px 0 10px; }
-        h3 { font-size: 14px; color: #F5A623; margin: 18px 0 6px; font-weight: 700; }
-        p { color: #B0ADA8; font-size: 13.5px; line-height: 1.8; margin-bottom: 10px; }
-        li { color: #B0ADA8; font-size: 13.5px; line-height: 1.8; margin-bottom: 4px; }
-        ul { padding-left: 20px; margin-bottom: 10px; }
-        a { color: #F5A623; }
+    <div style={{ minHeight: "100vh", background: bg, fontFamily: fontSans, padding: "32px 20px" }}>
+      <style>{`
+        *{box-sizing:border-box;margin:0;padding:0}
+        .legal-content h2 { font-family: ${fontDisplay}; font-size: 24px; font-weight: 500; color: ${ink}; margin: 36px 0 12px; letter-spacing: -.3px; }
+        .legal-content h2:first-child { margin-top: 0; }
+        .legal-content h3 { font-family: ${fontMono}; font-size: 11.5px; font-weight: 600; color: ${gold}; margin: 20px 0 6px; letter-spacing: .12em; text-transform: uppercase; }
+        .legal-content p { color: ${inkMid}; font-size: 14.5px; line-height: 1.75; margin-bottom: 12px; }
+        .legal-content li { color: ${inkMid}; font-size: 14.5px; line-height: 1.75; margin-bottom: 6px; }
+        .legal-content ul { padding-left: 22px; margin-bottom: 14px; }
+        .legal-content a { color: ${gold}; text-decoration: underline; text-decoration-color: ${goldSoft}60; text-underline-offset: 3px; font-weight: 500; transition: color .2s; }
+        .legal-content a:hover { color: ${goldSoft}; }
+        .legal-content strong { color: ${ink}; font-weight: 600; }
       `}</style>
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 40 }}>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 800, color: C.gold, cursor: "pointer" }}
-            onClick={() => nav("/")}>⚡ FlowDocs</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => nav("/")}>
+            <div style={{ width: 30, height: 30, background: ink, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: fontDisplay, boxShadow: "0 6px 14px -6px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)" }}>F</div>
+            <span style={{ fontFamily: fontDisplay, fontSize: 19, fontWeight: 600, letterSpacing: "-.3px", color: ink }}>FlowDocs</span>
+          </div>
           <div style={{ flex: 1 }} />
-          <button onClick={() => nav(-1)} style={{ background: "none", border: `1px solid ${C.border}`, color: C.dim, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>← Back</button>
+          <button
+            onClick={() => nav(-1)}
+            style={{
+              background: card, border: `1px solid ${line}`, color: ink,
+              borderRadius: 12, padding: "9px 18px", cursor: "pointer",
+              fontSize: 13, fontFamily: fontSans, fontWeight: 500,
+              boxShadow: "0 3px 10px -2px rgba(0,0,0,.04)", transition: "all .3s cubic-bezier(.22,1,.36,1)",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.borderColor = inkFaint; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = line; }}
+          >← Back</button>
         </div>
 
-        {/* Title */}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "28px 32px", marginBottom: 24 }}>
-          <div style={{ fontSize: 10, color: C.gold, letterSpacing: 2, textTransform: "uppercase", fontFamily: "monospace", marginBottom: 10 }}>Legal Document</div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 800, color: C.text, marginBottom: 6 }}>{title}</div>
-          <div style={{ fontSize: 12, color: C.dim }}>Last updated: {DATE} · {COMPANY} · <a href={`mailto:${EMAIL}`}>{EMAIL}</a></div>
+        {/* Title card */}
+        <div style={{ background: card, border: `1px solid ${line}`, borderRadius: 24, padding: "36px 40px", marginBottom: 20, boxShadow: "0 2px 10px -2px rgba(0,0,0,.03)" }}>
+          <div style={{ fontFamily: fontMono, fontSize: 10.5, color: inkMid, fontWeight: 500, letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 14 }}>§ Legal Document</div>
+          <h1 style={{ fontFamily: fontDisplay, fontSize: 44, fontWeight: 500, color: ink, letterSpacing: "-1px", lineHeight: 1.1, marginBottom: 12 }}>{title}</h1>
+          <div style={{ fontSize: 13, color: inkMid, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+            <span>Last updated: <strong style={{ color: ink, fontWeight: 600 }}>{DATE}</strong></span>
+            <span style={{ opacity: .5 }}>·</span>
+            <span>{COMPANY}</span>
+            <span style={{ opacity: .5 }}>·</span>
+            <a href={`mailto:${EMAIL}`} style={{ color: gold, textDecoration: "underline", textDecorationColor: `${goldSoft}60`, textUnderlineOffset: 3, fontWeight: 500 }}>{EMAIL}</a>
+          </div>
         </div>
 
         {/* Content */}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "28px 32px" }}>
+        <div className="legal-content" style={{ background: card, border: `1px solid ${line}`, borderRadius: 24, padding: "40px 44px", boxShadow: "0 2px 10px -2px rgba(0,0,0,.03)" }}>
           {children}
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 32, fontSize: 12, color: C.dim }}>
-          © {new Date().getFullYear()} {COMPANY} · <span style={{ color: C.gold, cursor: "pointer" }} onClick={() => nav("/privacy")}>Privacy Policy</span> · <span style={{ color: C.gold, cursor: "pointer" }} onClick={() => nav("/terms")}>Terms of Service</span>
+        <div style={{ textAlign: "center", marginTop: 32, fontFamily: fontMono, fontSize: 11, color: inkFaint, letterSpacing: ".14em", textTransform: "uppercase" }}>
+          © {new Date().getFullYear()} {COMPANY}
+          <span style={{ margin: "0 10px", opacity: .5 }}>·</span>
+          <span style={{ color: inkMid, cursor: "pointer" }} onClick={() => nav("/privacy")}>Privacy</span>
+          <span style={{ margin: "0 10px", opacity: .5 }}>·</span>
+          <span style={{ color: inkMid, cursor: "pointer" }} onClick={() => nav("/terms")}>Terms</span>
         </div>
       </div>
     </div>
@@ -79,10 +115,10 @@ export function PrivacyPolicy() {
       <h2>3. Data Sharing</h2>
       <p>We do not sell your data. We share data only with:</p>
       <ul>
-        <li><strong style={{ color: C.text }}>Supabase</strong> — database and authentication infrastructure</li>
-        <li><strong style={{ color: C.text }}>Resend</strong> — transactional email delivery</li>
-        <li><strong style={{ color: C.text }}>Razorpay</strong> — payment processing (we never see your card details)</li>
-        <li><strong style={{ color: C.text }}>Law enforcement</strong> — only when legally required</li>
+        <li><strong>Supabase</strong> — database and authentication infrastructure</li>
+        <li><strong>Resend</strong> — transactional email delivery</li>
+        <li><strong>Razorpay</strong> — payment processing (we never see your card details)</li>
+        <li><strong>Law enforcement</strong> — only when legally required</li>
       </ul>
 
       <h2>4. Data Security</h2>
@@ -90,11 +126,11 @@ export function PrivacyPolicy() {
 
       <h2>5. Your Rights (GDPR / India DPDP Act)</h2>
       <ul>
-        <li><strong style={{ color: C.text }}>Access</strong> — Request a copy of your data</li>
-        <li><strong style={{ color: C.text }}>Correction</strong> — Update incorrect information</li>
-        <li><strong style={{ color: C.text }}>Deletion</strong> — Request account and data deletion</li>
-        <li><strong style={{ color: C.text }}>Portability</strong> — Export your data in JSON format</li>
-        <li><strong style={{ color: C.text }}>Objection</strong> — Opt out of analytics tracking</li>
+        <li><strong>Access</strong> — Request a copy of your data</li>
+        <li><strong>Correction</strong> — Update incorrect information</li>
+        <li><strong>Deletion</strong> — Request account and data deletion</li>
+        <li><strong>Portability</strong> — Export your data in JSON format</li>
+        <li><strong>Objection</strong> — Opt out of analytics tracking</li>
       </ul>
       <p>To exercise these rights, email <a href={`mailto:${EMAIL}`}>{EMAIL}</a>. We respond within 30 days.</p>
 

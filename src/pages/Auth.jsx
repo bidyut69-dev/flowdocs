@@ -2,33 +2,29 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-const C = {
-  bg: "#0C0C0E", surface: "#141416", border: "#2A2A2E", surface2: "#1C1C1F",
-  gold: "#F5A623", text: "#F0EEE8", dim: "#7A7875", mid: "#B0ADA8",
-  green: "#22C55E", red: "#EF4444",
-};
+// ── Palette ──────────────────────────────────────────────────────────────
+const bg = "#F5F4F2";
+const bgAlt = "#EFEDE8";
+const card = "#FFFFFF";
+const ink = "#0A0A0A";
+const inkDeep = "#151515";
+const inkMid = "#525252";
+const inkFaint = "#A3A3A3";
+const line = "#E7E5E0";
+const lineSoft = "#EFEDE8";
+const gold = "#C8820F";
+const goldSoft = "#F5A623";
+const stamp = "#1F6B46";
+const red = "#B3432B";
 
-const S = {
-  page: { minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif", padding: 16 },
-  card: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "40px 36px" },
-  logo: { fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: C.gold, marginBottom: 4 },
-  logoSub: { fontSize: 10, color: C.dim, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginBottom: 28 },
-  heading: { fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 4 },
-  sub: { fontSize: 13, color: C.dim, marginBottom: 24 },
-  label: { fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", display: "block", marginBottom: 6, marginTop: 14 },
-  input: { width: "100%", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "11px 14px", fontSize: 13.5, color: C.text, fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box" },
-  btn: { width: "100%", background: C.gold, color: "#0C0C0E", border: "none", borderRadius: 8, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginTop: 16, transition: "opacity 0.15s" },
-  toggle: { textAlign: "center", marginTop: 20, fontSize: 13, color: C.dim },
-  link: { color: C.gold, cursor: "pointer", fontWeight: 600 },
-  alert: (ok) => ({ background: ok ? "#22C55E20" : "#EF444420", border: `1px solid ${ok ? C.green : C.red}`, borderRadius: 8, padding: "11px 14px", fontSize: 13, color: ok ? C.green : C.red, marginBottom: 12, marginTop: 4 }),
-};
+const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
+const fontSans = "'Manrope', 'Inter', system-ui, sans-serif";
+const fontMono = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
-// Email validation
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 }
 
-// Google SVG icon
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -97,68 +93,106 @@ export default function Auth() {
     if (error) { setMsg({ text: error.message, ok: false }); setGoogleLoading(false); }
   };
 
-  const eyeBtn = { background: "none", border: "none", color: C.dim, cursor: "pointer", position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, padding: 0 };
+  const inputStyle = {
+    width: "100%", background: "#fff", border: `1px solid ${line}`, borderRadius: 12,
+    padding: "13px 15px", fontSize: 14, color: ink, fontFamily: fontSans, outline: "none",
+    boxSizing: "border-box", transition: "border-color .2s, box-shadow .2s",
+  };
+
+  const labelStyle = {
+    fontFamily: fontMono, fontSize: 10, color: inkMid, fontWeight: 500,
+    textTransform: "uppercase", letterSpacing: ".14em", display: "block",
+    marginBottom: 7, marginTop: 14,
+  };
+
+  const eyeBtn = {
+    background: "none", border: "none", color: inkFaint, cursor: "pointer",
+    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+    fontSize: 14, padding: 4,
+  };
 
   return (
-    <div style={S.page}>
-      <div style={{ width: "100%", maxWidth: 420 }}>
-        <div style={{ height: 3, background: C.gold, borderRadius: "16px 16px 0 0" }} />
-        <div style={S.card}>
-          <div style={S.logo}>⚡ FlowDocs</div>
-          <div style={S.logoSub}>Freelancer Suite</div>
-          <div style={S.heading}>{mode === "login" ? "Welcome back" : "Get started free"}</div>
-          <div style={S.sub}>{mode === "login" ? "Sign in to your workspace" : "Create your account"}</div>
+    <div style={{ minHeight: "100vh", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: fontSans, padding: 16, position: "relative", overflow: "hidden" }}>
+      <style>{`
+        *{box-sizing:border-box;margin:0;padding:0}
+        @keyframes ping{75%,100%{transform:scale(2);opacity:0}}
+        .input-focus:focus{border-color:${ink}!important;box-shadow:0 0 0 4px rgba(10,10,10,.06)}
+        .btn-dark{position:relative;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:${ink};color:#fff;border:none;padding:14px;border-radius:14px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:${fontSans};box-shadow:0 14px 30px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);transition:all .3s cubic-bezier(.22,1,.36,1);outline:1px solid rgba(0,0,0,.3);outline-offset:-1px}
+        .btn-dark:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 20px 40px -12px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.2)}
+        .btn-dark:disabled{opacity:.55;cursor:not-allowed}
+        .btn-google{width:100%;background:#fff;color:${ink};border:1px solid ${line};border-radius:14px;padding:12px 14px;font-size:14px;font-weight:500;cursor:pointer;font-family:${fontSans};display:flex;align-items:center;justify-content:center;gap:10px;transition:all .3s cubic-bezier(.22,1,.36,1);box-shadow:0 3px 10px -2px rgba(0,0,0,.04)}
+        .btn-google:hover:not(:disabled){border-color:${inkFaint};transform:translateY(-1px);box-shadow:0 10px 22px -6px rgba(0,0,0,.1)}
+      `}</style>
 
-          {msg && <div style={S.alert(msg.ok)}>{msg.text}</div>}
+      {/* soft gold glow */}
+      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 400, borderRadius: "50%", background: `${goldSoft}10`, filter: "blur(80px)", pointerEvents: "none" }} />
+
+      <div style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 28, cursor: "pointer" }} onClick={() => nav("/")}>
+          <div style={{ width: 32, height: 32, background: ink, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 15, fontFamily: fontDisplay, boxShadow: "0 6px 14px -6px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12)" }}>F</div>
+          <span style={{ fontFamily: fontDisplay, fontSize: 20, fontWeight: 600, letterSpacing: "-.3px" }}>FlowDocs</span>
+        </div>
+
+        {/* Card */}
+        <div style={{ background: card, border: `1px solid ${line}`, borderRadius: 24, padding: "40px 36px", boxShadow: "0 24px 60px -30px rgba(15,15,15,.18)" }}>
+          <div style={{ fontFamily: fontMono, fontSize: 10.5, color: inkMid, fontWeight: 500, letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 14 }}>
+            § {mode === "login" ? "Sign in" : "Create account"}
+          </div>
+          <h1 style={{ fontFamily: fontDisplay, fontSize: 32, fontWeight: 500, letterSpacing: "-.8px", lineHeight: 1.1, color: ink, marginBottom: 10 }}>
+            {mode === "login" ? <>Welcome <span style={{ fontStyle: "italic", color: gold }}>back</span></> : <>Get started <span style={{ fontStyle: "italic", color: gold }}>free</span></>}
+          </h1>
+          <p style={{ fontSize: 14, color: inkMid, marginBottom: 28, lineHeight: 1.5 }}>
+            {mode === "login" ? "Sign in to your FlowDocs workspace." : "Create your account — no credit card needed."}
+          </p>
+
+          {msg && (
+            <div style={{
+              background: msg.ok ? `${stamp}12` : `${red}12`,
+              border: `1px solid ${msg.ok ? stamp : red}40`,
+              borderRadius: 12, padding: "12px 14px", fontSize: 13,
+              color: msg.ok ? stamp : red, marginBottom: 18, lineHeight: 1.5,
+            }}>{msg.text}</div>
+          )}
 
           {/* Google */}
-          <button onClick={handleGoogle} disabled={googleLoading} style={{
-            width: "100%", background: C.surface2, color: C.text,
-            border: `1px solid ${C.border}`, borderRadius: 8, padding: "11px 14px",
-            fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-            opacity: googleLoading ? 0.6 : 1,
-          }}>
+          <button className="btn-google" onClick={handleGoogle} disabled={googleLoading}>
             <GoogleIcon />
-            {googleLoading ? "Redirecting..." : `${mode === "login" ? "Sign in" : "Sign up"} with Google`}
+            {googleLoading ? "Redirecting…" : `${mode === "login" ? "Sign in" : "Sign up"} with Google`}
           </button>
 
           {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
-            <div style={{ flex: 1, height: 1, background: C.border }} />
-            <span style={{ fontSize: 12, color: C.dim }}>or continue with email</span>
-            <div style={{ flex: 1, height: 1, background: C.border }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 6px" }}>
+            <div style={{ flex: 1, height: 1, background: line }} />
+            <span style={{ fontFamily: fontMono, fontSize: 10, color: inkFaint, letterSpacing: ".14em", textTransform: "uppercase" }}>or email</span>
+            <div style={{ flex: 1, height: 1, background: line }} />
           </div>
 
-          {/* Name — signup only */}
           {mode === "signup" && (
             <>
-              <label style={S.label}>Full Name *</label>
-              <input style={S.input} placeholder="Your full name" value={form.name} onChange={set("name")} />
+              <label style={labelStyle}>Full Name</label>
+              <input className="input-focus" style={inputStyle} placeholder="Your full name" value={form.name} onChange={set("name")} />
             </>
           )}
 
-          {/* Email */}
-          <label style={S.label}>Email *</label>
+          <label style={labelStyle}>Email</label>
           <input
-            style={{
-              ...S.input,
-              borderColor: form.email && !isValidEmail(form.email) ? C.red : C.border,
-            }}
+            className="input-focus"
+            style={{ ...inputStyle, borderColor: form.email && !isValidEmail(form.email) ? red : line }}
             type="email"
             placeholder="you@example.com"
             value={form.email}
             onChange={set("email")}
           />
           {form.email && !isValidEmail(form.email) && (
-            <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Please enter a valid email address</div>
+            <div style={{ fontSize: 11.5, color: red, marginTop: 5 }}>Please enter a valid email address</div>
           )}
 
-          {/* Password */}
-          <label style={S.label}>Password *</label>
+          <label style={labelStyle}>Password</label>
           <div style={{ position: "relative" }}>
             <input
-              style={S.input}
+              className="input-focus"
+              style={inputStyle}
               type={showPass ? "text" : "password"}
               placeholder="Min. 6 characters"
               value={form.password}
@@ -167,19 +201,16 @@ export default function Auth() {
             <button style={eyeBtn} onClick={() => setShowPass(!showPass)}>{showPass ? "🙈" : "👁"}</button>
           </div>
           {form.password && form.password.length < 6 && (
-            <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Password must be at least 6 characters</div>
+            <div style={{ fontSize: 11.5, color: red, marginTop: 5 }}>Password must be at least 6 characters</div>
           )}
 
-          {/* Confirm Password — signup only */}
           {mode === "signup" && (
             <>
-              <label style={S.label}>Confirm Password *</label>
+              <label style={labelStyle}>Confirm Password</label>
               <div style={{ position: "relative" }}>
                 <input
-                  style={{
-                    ...S.input,
-                    borderColor: form.confirmPassword && form.password !== form.confirmPassword ? C.red : C.border,
-                  }}
+                  className="input-focus"
+                  style={{ ...inputStyle, borderColor: form.confirmPassword && form.password !== form.confirmPassword ? red : line }}
                   type={showConfirm ? "text" : "password"}
                   placeholder="Re-enter your password"
                   value={form.confirmPassword}
@@ -189,41 +220,35 @@ export default function Auth() {
                 <button style={eyeBtn} onClick={() => setShowConfirm(!showConfirm)}>{showConfirm ? "🙈" : "👁"}</button>
               </div>
               {form.confirmPassword && form.password !== form.confirmPassword && (
-                <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Passwords do not match</div>
+                <div style={{ fontSize: 11.5, color: red, marginTop: 5 }}>Passwords do not match</div>
               )}
             </>
           )}
 
-          {/* Forgot password */}
           {mode === "login" && (
-            <div style={{ textAlign: "right", marginTop: 8 }}>
-              <span style={{ fontSize: 12, color: C.gold, cursor: "pointer" }} onClick={() => nav("/forgot-password")}>
+            <div style={{ textAlign: "right", marginTop: 10 }}>
+              <span style={{ fontSize: 12.5, color: gold, cursor: "pointer", fontWeight: 600, textDecoration: "underline", textDecorationColor: `${goldSoft}60`, textUnderlineOffset: 4 }} onClick={() => nav("/forgot-password")}>
                 Forgot password?
               </span>
             </div>
           )}
 
-          <button
-            style={{ ...S.btn, opacity: loading ? 0.6 : 1 }}
-            onClick={handleSubmit}
-            disabled={loading}
-            onKeyDown={e => e.key === "Enter" && handleSubmit()}
-          >
-            {loading ? "Please wait..." : mode === "login" ? "Sign In →" : "Create Account →"}
+          <button className="btn-dark" style={{ marginTop: 22 }} onClick={handleSubmit} disabled={loading}>
+            {loading ? "Please wait…" : mode === "login" ? "Sign In →" : "Create Account →"}
           </button>
 
-          <div style={S.toggle}>
+          <div style={{ textAlign: "center", marginTop: 22, fontSize: 13.5, color: inkMid }}>
             {mode === "login" ? "No account? " : "Already registered? "}
-            <span style={S.link} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMsg(null); setForm({ name: "", email: "", password: "", confirmPassword: "" }); }}>
-              {mode === "login" ? "Sign Up" : "Sign In"}
+            <span style={{ color: ink, cursor: "pointer", fontWeight: 600, textDecoration: "underline", textDecorationColor: `${goldSoft}80`, textUnderlineOffset: 4, textDecorationThickness: 2 }} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMsg(null); setForm({ name: "", email: "", password: "", confirmPassword: "" }); }}>
+              {mode === "login" ? "Sign up" : "Sign in"}
             </span>
           </div>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: C.dim }}>
-          <span style={{ cursor: "pointer" }} onClick={() => nav("/privacy")}>Privacy Policy</span>
-          {" · "}
-          <span style={{ cursor: "pointer" }} onClick={() => nav("/terms")}>Terms of Service</span>
+        <div style={{ textAlign: "center", marginTop: 22, fontFamily: fontMono, fontSize: 10.5, color: inkFaint, letterSpacing: ".14em", textTransform: "uppercase" }}>
+          <span style={{ cursor: "pointer" }} onClick={() => nav("/privacy")}>Privacy</span>
+          <span style={{ margin: "0 10px", opacity: .5 }}>·</span>
+          <span style={{ cursor: "pointer" }} onClick={() => nav("/terms")}>Terms</span>
         </div>
       </div>
     </div>

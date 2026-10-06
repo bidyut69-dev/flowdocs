@@ -5,13 +5,33 @@ import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
 import Templates from "./Templates";
 
+// ── Light theme palette (tasteskill-inspired) ──
 const C = {
-  bg: "#0C0C0E", surface: "#141416", surface2: "#1C1C1F", border: "#2A2A2E",
-  gold: "#F5A623", goldDim: "#F5A62320", text: "#F0EEE8", dim: "#7A7875",
-  mid: "#B0ADA8", green: "#22C55E", greenDim: "#22C55E20", red: "#EF4444",
-  redDim: "#EF444420", blue: "#60A5FA", blueDim: "#60A5FA20",
-  purple: "#A78BFA", purpleDim: "#A78BFA20",
+  bg: "#F5F4F2",        // warm cream background
+  surface: "#0A0A0A",   // white card surface
+  surface2: "#EFEDE8",  // panel / inputs / internal
+  border: "#E7E5E0",    // card borders
+  gold: "#C8820F",      // readable gold on light
+  goldDim: "#F5A62318", // soft gold wash
+  goldSoft: "#F5A623",  // bright gold for fills
+  text: "#0A0A0A",      // primary ink
+  dim: "#A3A3A3",       // meta
+  mid: "#525252",       // body copy
+  green: "#1F6B46",     // success stamp
+  greenDim: "#1F6B4615",
+  red: "#B3432B",       // warm ink red
+  redDim: "#B3432B15",
+  blue: "#2563EB",
+  blueDim: "#2563EB15",
+  purple: "#7C3AED",
+  purpleDim: "#7C3AED15",
+  ink: "#0A0A0A",
+  inkDeep: "#151515",
 };
+
+const FD = "'Playfair Display', 'Fraunces', Georgia, serif";
+const FS = "'Manrope', 'Inter', system-ui, sans-serif";
+const FM = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
 const APP_URL = import.meta.env.VITE_APP_URL?.replace(/\/$/, "") || window.location.origin;
 
@@ -37,24 +57,24 @@ const calcGST = (subtotal, taxType, taxRate = 18) => {
 
 const btn = (variant = "primary") => ({
   background: variant === "primary" ? `linear-gradient(135deg, ${C.gold}, #E8941A)` : "transparent",
-  color: variant === "primary" ? "#0C0C0E" : C.mid,
+  color: variant === "primary" ? "#0A0A0A" : C.mid,
   border: variant === "primary" ? "none" : `1px solid ${C.border}`,
-  borderRadius: 9, padding: variant === "primary" ? "10px 20px" : "8px 14px",
-  fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+  borderRadius: 12, padding: variant === "primary" ? "10px 20px" : "8px 14px",
+  fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FS,
   transition: "all 0.2s", display: "inline-flex", alignItems: "center", gap: 6,
   boxShadow: variant === "primary" ? `0 4px 16px ${C.gold}30` : "none",
 });
 const input = {
   width: "100%", background: C.surface2, border: `1px solid ${C.border}`,
-  borderRadius: 8, padding: "10px 12px", fontSize: 13.5, color: C.text,
-  fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box",
+  borderRadius: 11, padding: "10px 12px", fontSize: 13.5, color: C.text,
+  fontFamily: FS, outline: "none", boxSizing: "border-box",
 };
 const label = {
   fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase",
-  fontFamily: "'DM Mono', monospace", display: "block", marginBottom: 6, marginTop: 14,
+  fontFamily: FM, display: "block", marginBottom: 6, marginTop: 14,
 };
 const card = {
-  background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20,
+  background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 20,
 };
 const badge = (status) => {
   const map = {
@@ -68,7 +88,7 @@ const badge = (status) => {
   return {
     display: "inline-flex", alignItems: "center", gap: 5,
     padding: "4px 10px", borderRadius: 20, fontSize: 11.5,
-    fontWeight: 600, fontFamily: "'DM Mono', monospace",
+    fontWeight: 600, fontFamily: FM,
     background: s.bg, color: s.color,
   };
 };
@@ -80,8 +100,8 @@ function Toast({ msg, onClose }) {
     <div style={{
       position: "fixed", bottom: 24, right: 24, zIndex: 9999,
       background: C.surface, border: `1px solid ${msg.ok ? C.green : C.red}`,
-      color: msg.ok ? C.green : C.red, borderRadius: 10, padding: "12px 20px",
-      fontSize: 13.5, fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+      color: msg.ok ? C.green : C.red, borderRadius: 14, padding: "12px 20px",
+      fontSize: 13.5, fontFamily: FS, boxShadow: "0 20px 44px -16px rgba(15,15,15,.25)",
       animation: "slideUp 0.25s ease",
     }}>
       {msg.text}
@@ -92,16 +112,16 @@ function Toast({ msg, onClose }) {
 function Modal({ title, sub, onClose, children, width = 500 }) {
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000,
-      display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)",
+      position: "fixed", inset: 0, background: "rgba(10,10,10,0.5)", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(10px)",
     }} onClick={onClose}>
       <div style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16,
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20,
         padding: 32, width, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 700, color: C.text }}>{title}</div>
+            <div style={{ fontFamily: FD, fontSize: 18, fontWeight: 600, color: C.text }}>{title}</div>
             {sub && <div style={{ fontSize: 12, color: C.dim, marginTop: 4 }}>{sub}</div>}
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
@@ -117,8 +137,8 @@ function StatCard({ label: lbl, value, sub, accent }) {
   return (
     <div style={{ ...card, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: accentMap[accent] || C.gold }} />
-      <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>{lbl}</div>
-      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 26, fontWeight: 700, color: C.text, margin: "8px 0 4px" }}>{value}</div>
+      <div style={{ fontSize: 10, color: C.dim, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: FM }}>{lbl}</div>
+      <div style={{ fontFamily: FD, fontSize: 26, fontWeight: 600, color: C.text, margin: "8px 0 4px" }}>{value}</div>
       <div style={{ fontSize: 12, color: C.dim }}>{sub}</div>
     </div>
   );
@@ -406,7 +426,7 @@ export default function Dashboard({ session }) {
   ];
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, fontFamily: FS }}>
       <style>{`
         @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
@@ -421,7 +441,7 @@ export default function Dashboard({ session }) {
         button:active { transform: translateY(0); }
         .fd-table-row:hover td { background: ${C.surface2} !important; }
         .fd-nav-item:hover { background: ${C.goldDim} !important; color: ${C.gold} !important; }
-        .stat-card:hover { transform: translateY(-3px) !important; box-shadow: 0 12px 40px rgba(0,0,0,0.4) !important; }
+        .stat-card:hover { transform: translateY(-3px) !important; box-shadow: 0 24px 48px -28px rgba(15,15,15,.22) !important; border-color: #D4D1CA !important; }
         .fd-sidebar { display: flex; }
         .fd-main { margin-left: 220px; }
         .fd-mobile-topbar { display: none !important; }
@@ -429,7 +449,7 @@ export default function Dashboard({ session }) {
         .fd-overlay { display: none !important; }
         @media (max-width: 768px) {
           .fd-sidebar { transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
-          .fd-sidebar.open { transform: translateX(0) !important; box-shadow: 4px 0 32px rgba(0,0,0,0.6); }
+          .fd-sidebar.open { transform: translateX(0) !important; box-shadow: 4px 0 32px rgba(15,15,15,0.15); }
           .fd-main { margin-left: 0 !important; padding: 16px 12px 80px !important; }
           .fd-mobile-topbar { display: flex !important; }
           .fd-bottom-nav { display: flex !important; }
@@ -448,39 +468,39 @@ export default function Dashboard({ session }) {
       `}</style>
 
       {sidebarOpen && (
-        <div className="fd-overlay" onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 14, backdropFilter: "blur(2px)" }} />
+        <div className="fd-overlay" onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,10,10,0.4)", zIndex: 14, backdropFilter: "blur(2px)" }} />
       )}
 
       <div className="fd-mobile-topbar" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 13, background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "12px 16px", alignItems: "center", justifyContent: "space-between", height: 54 }}>
-        <button onClick={() => setSidebarOpen(true)} style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: C.gold, fontSize: 18, display: "flex", alignItems: "center", gap: 6, fontFamily: "'DM Sans', sans-serif" }}>
+        <button onClick={() => setSidebarOpen(true)} style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 11, padding: "6px 10px", cursor: "pointer", color: C.gold, fontSize: 18, display: "flex", alignItems: "center", gap: 6, fontFamily: FS }}>
           <span>☰</span>
         </button>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, color: C.gold }}>⚡ FlowDocs</div>
-        <button onClick={() => handleNewDoc()} style={{ background: C.gold, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#0C0C0E", fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>+ New</button>
+        <div style={{ fontFamily: FD, fontSize: 18, fontWeight: 500, color: C.gold }}>⚡ FlowDocs</div>
+        <button onClick={() => handleNewDoc()} style={{ background: C.gold, border: "none", borderRadius: 11, padding: "6px 12px", cursor: "pointer", color: "#0A0A0A", fontSize: 13, fontWeight: 600, fontFamily: FS }}>+ New</button>
       </div>
 
-      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{ width: 220, background: `linear-gradient(180deg, ${C.surface} 0%, #101012 100%)`, borderRight: `1px solid ${C.border}`, flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 15, overflowY: "auto" }}>
+      <aside className={`fd-sidebar${sidebarOpen ? " open" : ""}`} style={{ width: 220, background: `linear-gradient(180deg, ${C.surface} 0%, ${C.surface2} 100%)`, borderRight: `1px solid ${C.border}`, flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 15, overflowY: "auto" }}>
         {/* Logo */}
         <div style={{ padding: "0 20px 20px", borderBottom: `1px solid ${C.border}30`, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, background: `linear-gradient(135deg, ${C.gold}, #FFD700)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FlowDocs</div>
-            <div style={{ fontSize: 9, color: C.dim, letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace", marginTop: 2 }}>Freelancer Suite</div>
+            <div style={{ fontFamily: FD, fontSize: 18, fontWeight: 500, background: `linear-gradient(135deg, ${C.gold}, #FFD700)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FlowDocs</div>
+            <div style={{ fontSize: 9, color: C.dim, letterSpacing: 2, textTransform: "uppercase", fontFamily: FM, marginTop: 2 }}>Freelancer Suite</div>
           </div>
           <button onClick={() => setSidebarOpen(false)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 4 }}>×</button>
         </div>
 
         {/* User avatar */}
         <div style={{ padding: "0 16px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: `1px solid ${C.border}30`, marginBottom: 8 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.gold}40, ${C.gold}20)`, border: `1px solid ${C.gold}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: C.gold, flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 14, background: `linear-gradient(135deg, ${C.gold}40, ${C.gold}20)`, border: `1px solid ${C.gold}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 500, color: C.gold, flexShrink: 0 }}>
             {(profile?.name || session.user.email || "U")[0].toUpperCase()}
           </div>
           <div style={{ overflow: "hidden" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.name || "User"}</div>
-            <div style={{ fontSize: 10, color: C.dim, fontFamily: "'DM Mono', monospace" }}>{profile?.plan?.toUpperCase() || "FREE"} PLAN</div>
+            <div style={{ fontSize: 10, color: C.dim, fontFamily: FM }}>{profile?.plan?.toUpperCase() || "FREE"} PLAN</div>
           </div>
         </div>
 
-        <div style={{ fontSize: 9, color: C.dim, padding: "0 20px 8px", letterSpacing: 2, textTransform: "uppercase", fontFamily: "'DM Mono', monospace" }}>Workspace</div>
+        <div style={{ fontSize: 9, color: C.dim, padding: "0 20px 8px", letterSpacing: 2, textTransform: "uppercase", fontFamily: FM }}>Workspace</div>
 
         {navItems.map(n => (
           <div key={n.id} className="fd-nav-item" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", fontSize: 13.5, color: page === n.id ? C.gold : C.mid, background: page === n.id ? `linear-gradient(90deg, ${C.goldDim}, transparent)` : "transparent", borderLeft: `3px solid ${page === n.id ? C.gold : "transparent"}`, transition: "all 0.2s", fontWeight: page === n.id ? 600 : 400, marginRight: 8, borderRadius: "0 8px 8px 0" }}
@@ -493,25 +513,25 @@ export default function Dashboard({ session }) {
         <div style={{ marginTop: "auto" }}>
           <div style={{ padding: "0 16px 16px" }}>
             {profile?.plan === "pro" || profile?.plan === "solo" ? (
-              <div style={{ background: `linear-gradient(135deg, ${C.goldDim}, transparent)`, border: `1px solid ${C.gold}40`, borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace" }}>⚡ {(profile.plan || "PRO").toUpperCase()} PLAN</div>
+              <div style={{ background: `linear-gradient(135deg, ${C.goldDim}, transparent)`, border: `1px solid ${C.gold}40`, borderRadius: 14, padding: "10px 14px", marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, fontFamily: FM }}>⚡ {(profile.plan || "PRO").toUpperCase()} PLAN</div>
                 <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>Unlimited docs</div>
               </div>
             ) : (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
+                <div style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 14, padding: "10px 14px", marginBottom: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, fontFamily: "'DM Mono', monospace" }}>FREE PLAN</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, fontFamily: FM }}>FREE PLAN</div>
                     <div style={{ fontSize: 11, color: documents.length >= 3 ? C.red : C.dim }}>{documents.length}/3</div>
                   </div>
                   <div style={{ background: C.border, borderRadius: 4, height: 3 }}>
                     <div style={{ width: `${Math.min((documents.length / 3) * 100, 100)}%`, height: "100%", background: documents.length >= 3 ? C.red : `linear-gradient(90deg, ${C.gold}, #FFD700)`, borderRadius: 4, transition: "width 0.3s" }} />
                   </div>
                 </div>
-                <button onClick={() => setShowUpgrade(true)} style={{ width: "100%", background: `linear-gradient(135deg, ${C.gold}, #E8941A)`, color: "#0C0C0E", border: "none", borderRadius: 9, padding: "10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: `0 4px 16px ${C.gold}30` }}>⚡ Upgrade to Pro</button>
+                <button onClick={() => setShowUpgrade(true)} style={{ width: "100%", background: `linear-gradient(135deg, ${C.gold}, #E8941A)`, color: "#0A0A0A", border: "none", borderRadius: 12, padding: "10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FS, boxShadow: `0 4px 16px ${C.gold}30` }}>⚡ Upgrade to Pro</button>
               </div>
             )}
-            <div onClick={signOut} style={{ fontSize: 12, color: C.dim, cursor: "pointer", padding: "8px 4px", display: "flex", alignItems: "center", gap: 8, borderRadius: 8, transition: "all 0.2s" }}>
+            <div onClick={signOut} style={{ fontSize: 12, color: C.dim, cursor: "pointer", padding: "8px 4px", display: "flex", alignItems: "center", gap: 8, borderRadius: 11, transition: "all 0.2s" }}>
               <span>⏏</span> Sign out
             </div>
           </div>
@@ -540,7 +560,7 @@ export default function Dashboard({ session }) {
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
               <div>
-                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: C.text }}>
+                <div style={{ fontFamily: FD, fontSize: 24, fontWeight: 600, color: C.text }}>
                   Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {profile?.name?.split(" ")[0] || "there"} 👋
                 </div>
                 <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>{pendingSign} pending signature{pendingSign !== 1 ? "s" : ""} · {overdue} overdue</div>
@@ -561,7 +581,7 @@ export default function Dashboard({ session }) {
               <StatCard label="Pending Sign" value={pendingSign} sub="Awaiting response" accent="blue" />
               <StatCard label="Overdue" value={overdue} sub="Action needed" accent="red" />
             </div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 14 }}>Recent Documents</div>
+            <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 14 }}>Recent Documents</div>
             <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => handleNewDoc()} />
           </>
         )}
@@ -629,9 +649,9 @@ export default function Dashboard({ session }) {
             <div>
               <label style={label}>Client</label>
               {clients.length === 0 ? (
-                <div style={{ background: C.goldDim, border: `1px solid ${C.gold}40`, borderRadius: 8, padding: "10px 14px" }}>
+                <div style={{ background: C.goldDim, border: `1px solid ${C.gold}40`, borderRadius: 11, padding: "10px 14px" }}>
                   <div style={{ fontSize: 12, color: C.gold, marginBottom: 6 }}>⚠ Pehle ek client add karo</div>
-                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }} onClick={() => { setModal(null); setPage("clients"); setTimeout(() => setModal("newClient"), 100); }}>+ Add Client →</button>
+                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 10, padding: "5px 12px", cursor: "pointer" }} onClick={() => { setModal(null); setPage("clients"); setTimeout(() => setModal("newClient"), 100); }}>+ Add Client →</button>
                 </div>
               ) : (
                 <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.client_id} onChange={e => setDocForm({ ...docForm, client_id: e.target.value })}>
@@ -642,7 +662,7 @@ export default function Dashboard({ session }) {
               )}
               {docForm.client_id === "__new__" && (
                 <div style={{ marginTop: 6 }}>
-                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer" }} onClick={() => { setModal("newClient"); }}>+ Add New Client →</button>
+                  <button style={{ fontSize: 12, color: C.gold, background: "none", border: `1px solid ${C.gold}`, borderRadius: 10, padding: "5px 12px", cursor: "pointer" }} onClick={() => { setModal("newClient"); }}>+ Add New Client →</button>
                 </div>
               )}
             </div>
@@ -669,14 +689,14 @@ export default function Dashboard({ session }) {
                   <input style={input} placeholder="Description" value={item.description} onChange={e => { const it = [...invoiceItems]; it[i].description = e.target.value; setInvoiceItems(it); }} />
                   <input style={input} placeholder="Qty" type="number" value={item.qty} onChange={e => { const it = [...invoiceItems]; it[i].qty = e.target.value; setInvoiceItems(it); }} />
                   <input style={input} placeholder={`Rate ${CURRENCIES[docForm.currency]?.symbol}`} type="number" value={item.rate} onChange={e => { const it = [...invoiceItems]; it[i].rate = e.target.value; setInvoiceItems(it); }} />
-                  <button onClick={() => setInvoiceItems(invoiceItems.filter((_, j) => j !== i))} style={{ background: C.redDim, border: `1px solid ${C.red}`, color: C.red, borderRadius: 8, cursor: "pointer" }}>×</button>
+                  <button onClick={() => setInvoiceItems(invoiceItems.filter((_, j) => j !== i))} style={{ background: C.redDim, border: `1px solid ${C.red}`, color: C.red, borderRadius: 11, cursor: "pointer" }}>×</button>
                 </div>
               ))}
               <button style={{ ...btn("ghost"), marginTop: 4, fontSize: 12 }} onClick={() => setInvoiceItems([...invoiceItems, { description: "", qty: 1, rate: "" }])}>+ Add Item</button>
             </>
           )}
-          <div style={{ marginTop: 14, padding: 14, background: C.surface2, borderRadius: 10, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace", marginBottom: 10 }}>🏛 GST / TAX SETTINGS</div>
+          <div style={{ marginTop: 14, padding: 14, background: C.surface2, borderRadius: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, fontFamily: FM, marginBottom: 10 }}>🏛 GST / TAX SETTINGS</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
                 <label style={{ ...label, marginTop: 0 }}>Tax Type</label>
@@ -698,12 +718,12 @@ export default function Dashboard({ session }) {
               const gst = calcGST(sub, docForm.tax_type, parseFloat(docForm.tax_rate));
               const sym = CURRENCIES[docForm.currency]?.symbol || "₹";
               return (
-                <div style={{ marginTop: 10, padding: 10, background: C.bg, borderRadius: 8, fontSize: 12 }}>
+                <div style={{ marginTop: 10, padding: 10, background: C.bg, borderRadius: 11, fontSize: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>Subtotal</span><span>{sym}{sub.toFixed(2)}</span></div>
                   {gst.cgst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>CGST ({docForm.tax_rate / 2}%)</span><span>{sym}{gst.cgst.toFixed(2)}</span></div>}
                   {gst.sgst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>SGST ({docForm.tax_rate / 2}%)</span><span>{sym}{gst.sgst.toFixed(2)}</span></div>}
                   {gst.igst > 0 && <div style={{ display: "flex", justifyContent: "space-between", color: C.dim, marginBottom: 4 }}><span>IGST ({docForm.tax_rate}%)</span><span>{sym}{gst.igst.toFixed(2)}</span></div>}
-                  <div style={{ display: "flex", justifyContent: "space-between", color: C.gold, fontWeight: 700, borderTop: `1px solid ${C.border}`, paddingTop: 6, marginTop: 4 }}><span>Total</span><span>{sym}{gst.total.toFixed(2)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: C.gold, fontWeight: 600, borderTop: `1px solid ${C.border}`, paddingTop: 6, marginTop: 4 }}><span>Total</span><span>{sym}{gst.total.toFixed(2)}</span></div>
                 </div>
               );
             })()}
@@ -792,8 +812,8 @@ export default function Dashboard({ session }) {
               </select>
             </div>
           </div>
-          <div style={{ marginTop: 14, padding: 14, background: C.surface2, borderRadius: 10, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Mono', monospace", marginBottom: 10 }}>🏛 GST DETAILS (Optional)</div>
+          <div style={{ marginTop: 14, padding: 14, background: C.surface2, borderRadius: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, fontFamily: FM, marginBottom: 10 }}>🏛 GST DETAILS (Optional)</div>
             <label style={{ ...label, marginTop: 0 }}>Client GSTIN</label>
             <input style={{ ...input, background: C.bg }} placeholder="e.g. 27AABCT1234F1Z5" value={clientForm.gstin} onChange={e => setClientForm({ ...clientForm, gstin: e.target.value })} />
             <label style={label}>Address</label>
@@ -816,9 +836,9 @@ export default function Dashboard({ session }) {
           { id: "invoices", icon: "◎", label: "Invoice" },
           { id: "clients", icon: "👤", label: "Clients" },
         ].map(n => (
-          <div key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", padding: "4px 10px", borderRadius: 10, background: page === n.id ? C.goldDim : "transparent", transition: "all 0.15s", minWidth: 52 }}>
+          <div key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", padding: "4px 10px", borderRadius: 14, background: page === n.id ? C.goldDim : "transparent", transition: "all 0.15s", minWidth: 52 }}>
             <span style={{ fontSize: 18, color: page === n.id ? C.gold : C.dim, lineHeight: 1 }}>{n.icon}</span>
-            <span style={{ fontSize: 10, color: page === n.id ? C.gold : C.dim, fontWeight: page === n.id ? 700 : 400, fontFamily: "'DM Mono', monospace", letterSpacing: 0.5 }}>{n.label}</span>
+            <span style={{ fontSize: 10, color: page === n.id ? C.gold : C.dim, fontWeight: page === n.id ? 700 : 400, fontFamily: FM, letterSpacing: 0.5 }}>{n.label}</span>
           </div>
         ))}
       </nav>
@@ -830,7 +850,7 @@ function PageHeader({ title, sub, onNew, btnLabel }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
       <div>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: C.text }}>{title}</div>
+        <div style={{ fontFamily: FD, fontSize: 24, fontWeight: 600, color: C.text }}>{title}</div>
         <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>{sub}</div>
       </div>
       {onNew && <button style={btn()} onClick={onNew}>{btnLabel}</button>}
@@ -845,18 +865,18 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div style={{ fontSize: 13, color: C.dim }}>{filtered.length} document{filtered.length !== 1 ? "s" : ""}</div>
-        <div style={{ display: "flex", gap: 4, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 4, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 4, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 11, padding: 4, flexWrap: "wrap" }}>
           {["All", "Proposal", "Contract", "Invoice", "NDA"].map(f => (
-            <button key={f} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", border: "none", background: filter === f ? C.surface2 : "transparent", color: filter === f ? C.text : C.dim, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }} onClick={() => setFilter(f)}>{f}</button>
+            <button key={f} style={{ padding: "5px 12px", borderRadius: 10, fontSize: 12, cursor: "pointer", border: "none", background: filter === f ? C.surface2 : "transparent", color: filter === f ? C.text : C.dim, fontFamily: FS, fontWeight: 500 }} onClick={() => setFilter(f)}>{f}</button>
           ))}
         </div>
       </div>
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", overflowX: "auto" }}>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, overflow: "hidden", overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               {["Document", "Type", "Status", "Amount", "Date", "Actions"].map(h => (
-                <th key={h} style={{ textAlign: "left", padding: "12px 16px", fontSize: 10, color: C.dim, textTransform: "uppercase", letterSpacing: 1, fontFamily: "'DM Mono', monospace", fontWeight: 500 }}>{h}</th>
+                <th key={h} style={{ textAlign: "left", padding: "12px 16px", fontSize: 10, color: C.dim, textTransform: "uppercase", letterSpacing: 1, fontFamily: FM, fontWeight: 500 }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -872,11 +892,11 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                     <div style={{ fontWeight: 600, fontSize: 14, color: C.text, cursor: "pointer" }} onClick={() => onEdit?.(doc)}>{doc.title}</div>
                     <div style={{ fontSize: 12, color: C.dim, marginTop: 2 }}>
                       {client?.name || "—"}
-                      {doc.invoice_number && <span style={{ marginLeft: 6, fontSize: 10, color: C.gold, fontFamily: "'DM Mono', monospace" }}>{doc.invoice_number}</span>}
+                      {doc.invoice_number && <span style={{ marginLeft: 6, fontSize: 10, color: C.gold, fontFamily: FM }}>{doc.invoice_number}</span>}
                       {doc.recurring_active && <span style={{ marginLeft: 6, fontSize: 9, background: C.purpleDim, color: C.purple, padding: "1px 6px", borderRadius: 10 }}>🔄 {doc.recurring_frequency}</span>}
                     </div>
                   </td>
-                  <td style={{ padding: "14px 16px" }}><span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>{doc.type}</span></td>
+                  <td style={{ padding: "14px 16px" }}><span style={{ fontSize: 11, color: C.dim, fontFamily: FM }}>{doc.type}</span></td>
                   <td style={{ padding: "14px 16px" }}>
                     <span style={badge(doc.status)}>
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
@@ -884,11 +904,11 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                     </span>
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.text }}>{doc.amount ? fmtCur(doc.amount, cur) : "—"}</span>
-                    {doc.tax_type && doc.tax_type !== "none" && <div style={{ fontSize: 9, color: C.dim, fontFamily: "'DM Mono', monospace" }}>+{doc.tax_type === "cgst_sgst" ? "GST" : "IGST"} {doc.tax_rate}%</div>}
+                    <span style={{ fontFamily: FM, fontSize: 13, color: C.text }}>{doc.amount ? fmtCur(doc.amount, cur) : "—"}</span>
+                    {doc.tax_type && doc.tax_type !== "none" && <div style={{ fontSize: 9, color: C.dim, fontFamily: FM }}>+{doc.tax_type === "cgst_sgst" ? "GST" : "IGST"} {doc.tax_rate}%</div>}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace" }}>{new Date(doc.created_at).toLocaleDateString("en-IN")}</span>
+                    <span style={{ fontSize: 11, color: C.dim, fontFamily: FM }}>{new Date(doc.created_at).toLocaleDateString("en-IN")}</span>
                     {doc.due_date && <div style={{ fontSize: 9, color: new Date(doc.due_date) < new Date() ? C.red : C.dim }}>Due: {new Date(doc.due_date).toLocaleDateString("en-IN")}</div>}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
@@ -991,25 +1011,25 @@ function ClientsPage({ clients, documents, profile, onSharePortal }) {
         const cur = profile?.default_currency || "INR";
         return (
           <div key={c.id} style={{ ...card, display: "flex", alignItems: "center", gap: 16, marginBottom: 12, transition: "border-color 0.15s", flexWrap: "wrap" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: color + "20", color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800 }}>{c.name[0]}</div>
+            <div style={{ width: 44, height: 44, borderRadius: 14, flexShrink: 0, background: color + "20", color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FD, fontSize: 18, fontWeight: 500 }}>{c.name[0]}</div>
             <div style={{ flex: 1, minWidth: 150 }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{c.name}</div>
               <div style={{ fontSize: 12, color: C.dim, marginTop: 2 }}>
                 {c.company && `${c.company} · `}{c.country || ""}{c.email && ` · ${c.email}`}
-                {c.gstin && <span style={{ marginLeft: 6, fontSize: 10, color: C.gold, fontFamily: "'DM Mono', monospace" }}>GST: {c.gstin}</span>}
+                {c.gstin && <span style={{ marginLeft: 6, fontSize: 10, color: C.gold, fontFamily: FM }}>GST: {c.gstin}</span>}
               </div>
               {c.phone && <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>📱 {c.phone}</div>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, color: C.text }}>{fmtCur(total, cur)}</div>
+                <div style={{ fontFamily: FM, fontSize: 14, color: C.text }}>{fmtCur(total, cur)}</div>
                 <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>{clientDocs.length} document{clientDocs.length !== 1 ? "s" : ""}</div>
               </div>
               {/* ── NEW: Share Client Portal button ── */}
               {c.email && (
                 <button
                   onClick={() => onSharePortal?.(c)}
-                  style={{ fontSize: 11, color: C.blue, background: C.blueDim, border: `1px solid ${C.blue}40`, borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}
+                  style={{ fontSize: 11, color: C.blue, background: C.blueDim, border: `1px solid ${C.blue}40`, borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontFamily: FS, fontWeight: 600 }}
                 >
                   🔗 Share Portal
                 </button>
@@ -1041,14 +1061,14 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
         <StatCard label="Tax Collected" value={fmtCur(taxCollected, cur)} sub="GST/IGST" accent="purple" />
       </div>
       <div style={{ ...card, marginBottom: 20 }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Monthly Revenue</div>
+        <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 16 }}>Monthly Revenue</div>
         {Object.keys(monthlyRevenue).length === 0 ? (
           <div style={{ textAlign: "center", padding: 40, color: C.dim, fontSize: 13 }}>No paid invoices yet. Revenue chart will appear here.</div>
         ) : (
           <div style={{ display: "flex", gap: 8, alignItems: "flex-end", height: 160, padding: "0 10px" }}>
             {Object.entries(monthlyRevenue).slice(-12).map(([month, amount]) => (
               <div key={month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                <div style={{ fontSize: 10, color: C.gold, fontFamily: "'DM Mono', monospace" }}>{fmtCur(amount, cur)}</div>
+                <div style={{ fontSize: 10, color: C.gold, fontFamily: FM }}>{fmtCur(amount, cur)}</div>
                 <div style={{ width: "100%", maxWidth: 40, background: `linear-gradient(180deg, ${C.gold}, ${C.gold}40)`, borderRadius: "4px 4px 0 0", transition: "height 0.5s", height: `${Math.max((amount / maxMonthly) * 120, 8)}px` }} />
                 <div style={{ fontSize: 10, color: C.dim }}>{month}</div>
               </div>
@@ -1058,19 +1078,19 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div style={card}>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Revenue by Client</div>
+          <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 16 }}>Revenue by Client</div>
           {Object.entries(clientRevenue).sort((a, b) => b[1].total - a[1].total).slice(0, 8).map(([name, data]) => (
             <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
               <div>
                 <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{name}</div>
                 <div style={{ fontSize: 11, color: C.dim }}>{data.docs} docs · {fmtCur(data.paid, cur)} paid</div>
               </div>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.gold }}>{fmtCur(data.total, cur)}</div>
+              <div style={{ fontFamily: FM, fontSize: 13, color: C.gold }}>{fmtCur(data.total, cur)}</div>
             </div>
           ))}
         </div>
         <div style={card}>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Document Breakdown</div>
+          <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 16 }}>Document Breakdown</div>
           {Object.entries(typeBreakdown).map(([type, count]) => {
             const colors = { Proposal: C.blue, Contract: C.gold, Invoice: C.green, NDA: C.purple };
             const pct = documents.length > 0 ? (count / documents.length) * 100 : 0;
@@ -1086,8 +1106,8 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
             );
           })}
           <div style={{ marginTop: 20, padding: 12, background: C.surface2, borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: C.dim, fontFamily: "'DM Mono', monospace", marginBottom: 6 }}>COLLECTION RATE</div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 700, color: totalBilled > 0 ? C.green : C.dim }}>
+            <div style={{ fontSize: 11, color: C.dim, fontFamily: FM, marginBottom: 6 }}>COLLECTION RATE</div>
+            <div style={{ fontFamily: FD, fontSize: 28, fontWeight: 600, color: totalBilled > 0 ? C.green : C.dim }}>
               {totalBilled > 0 ? `${((totalPaid / totalBilled) * 100).toFixed(0)}%` : "—"}
             </div>
           </div>
@@ -1118,7 +1138,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
   return (
     <div style={{ maxWidth: 700 }}>
       <div style={{ ...card, marginBottom: 20 }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 16 }}>Business Information</div>
+        <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 16 }}>Business Information</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div><label style={{ ...label, marginTop: 0 }}>Business Name</label><input style={input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
           <div><label style={{ ...label, marginTop: 0 }}>Company</label><input style={input} value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} /></div>
@@ -1135,7 +1155,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
         <textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
       </div>
       <div style={{ ...card, marginBottom: 20, borderColor: C.gold }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.gold, marginBottom: 4 }}>🏛 GST & Tax Details</div>
+        <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.gold, marginBottom: 4 }}>🏛 GST & Tax Details</div>
         <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>Required for GST-compliant invoices</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div><label style={{ ...label, marginTop: 0 }}>GSTIN</label><input style={input} placeholder="e.g. 27AABCT1234F1Z5" value={form.gstin} onChange={e => setForm({ ...form, gstin: e.target.value })} /></div>
@@ -1148,7 +1168,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
         </select>
       </div>
       <div style={{ ...card, marginBottom: 20 }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 4 }}>💳 Payment Details</div>
+        <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 4 }}>💳 Payment Details</div>
         <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>Shown on invoices for bank transfer & UPI payments</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div><label style={{ ...label, marginTop: 0 }}>Bank Name</label><input style={input} placeholder="e.g. HDFC Bank" value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} /></div>
@@ -1162,11 +1182,11 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
       {/* Razorpay Integration */}
       <div style={{ ...card, marginBottom: 20, border: `1px solid ${form.razorpay_key_id ? "#22c55e40" : C.border}` }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: C.text }}>
+          <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text }}>
             ⚡ Razorpay Integration
           </div>
           {form.razorpay_key_id && (
-            <span style={{ fontSize: 11, color: "#22c55e", background: "#22c55e15", border: "1px solid #22c55e40", borderRadius: 20, padding: "2px 10px", fontFamily: "'DM Mono', monospace" }}>
+            <span style={{ fontSize: 11, color: "#22c55e", background: "#22c55e15", border: "1px solid #22c55e40", borderRadius: 20, padding: "2px 10px", fontFamily: FM }}>
               ● Connected
             </span>
           )}
@@ -1185,7 +1205,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
           Go to Razorpay Dashboard → Settings → API Keys → copy your <strong style={{ color: C.text }}>Key ID</strong>. Never paste your Secret Key here.
         </div>
         {form.razorpay_key_id && !form.razorpay_key_id.startsWith("rzp_") && (
-          <div style={{ marginTop: 8, fontSize: 12, color: "#f59e0b", background: "#f59e0b15", border: "1px solid #f59e0b40", borderRadius: 8, padding: "8px 12px" }}>
+          <div style={{ marginTop: 8, fontSize: 12, color: "#f59e0b", background: "#f59e0b15", border: "1px solid #f59e0b40", borderRadius: 11, padding: "8px 12px" }}>
             ⚠️ Key ID should start with "rzp_live_" (production) or "rzp_test_" (test mode) — please double-check.
           </div>
         )}
