@@ -118,11 +118,11 @@ const CURRENCIES = [
 
 const PLANS = [
   { name: "Free", tag: "forever", price: "₹0", per: "", blurb: "Dip a toe in. No card needed.", cta: "Start free",
-    features: ["3 documents / month", "Legal eSign", "Basic templates", "Email support"] },
+    features: ["3 documents / month", "eSignature with audit trail", "Basic templates", "Email support"] },
   { name: "Solo", tag: "for starters", price: "₹299", per: "/mo", blurb: "No limits, no FlowDocs branding.", cta: "Get Solo",
     features: ["Unlimited documents", "Unlimited eSignatures", "Remove FlowDocs branding", "5 templates", "1 GB storage", "Email support"] },
   { name: "Pro", tag: "7-day trial", price: "₹750", per: "/mo", blurb: "Everything active freelancers need.", cta: "Start trial →", featured: true,
-    features: ["Unlimited documents", "Legal eSign", "GST invoices", "Razorpay payments", "Auto reminders", "9 templates"] },
+    features: ["Unlimited documents", "eSignature with audit trail", "GST invoices", "Razorpay payments", "Auto reminders", "9 templates"] },
   { name: "Agency", tag: "for teams", price: "₹1,999", per: "/mo", blurb: "For studios running 10+ clients.", cta: "Contact sales", noNav: true,
     features: ["Everything in Pro", "5 team members", "White-label branding", "Client portal", "API access", "Dedicated support"] },
 ];
@@ -428,7 +428,7 @@ export default function Landing() {
             </div>
 
             <div className="hero-fade" style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              {["Free forever plan", "IT Act 2000 eSign", "USD · EUR · GBP"].map((t, i) => (
+              {["Free forever plan", "Audit trail included", "USD · EUR · GBP"].map((t, i) => (
                 <span key={i} className="mono-sm" style={{ display: "flex", alignItems: "center", gap: 6, color: inkMid }}>
                   <span style={{ color: stamp, fontSize: 11 }}>✓</span>{t}
                 </span>
@@ -492,7 +492,7 @@ export default function Landing() {
                       <div style={{ fontFamily: fontDisplay, fontSize: 14, fontWeight: 500 }}>Priya Sharma</div>
                       <div className="mono-sm" style={{ fontSize: 9.5 }}>oct 06, 2026 · 14:32 IST</div>
                     </div>
-                    <div style={{ fontSize: 10, color: stamp, fontWeight: 600 }}>✓ Aadhaar</div>
+                    <div style={{ fontSize: 10, color: stamp, fontWeight: 600 }}>✓ Timestamped</div>
                   </div>
                 </div>
               </div>
@@ -540,14 +540,14 @@ export default function Landing() {
       <section style={{ padding: "0 28px 20px" }}>
         <div data-reveal style={{ maxWidth: 1200, margin: "0 auto", background: card, border: `1px solid ${line}`, borderRadius: 24, padding: "8px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", boxShadow: "0 1px 2px rgba(0,0,0,.03)" }} className="stats-grid">
           {[
-            { val: 10, suf: "×", label: "Cheaper than DocuSign" },
-            { val: 2, suf: " min", label: "To send first contract" },
+            { val: 0, suf: "", pre: "₹", label: "To start, no card" },
+            { val: 1, suf: "", label: "Link to sign and pay" },
             { val: 8, suf: "", label: "Currencies supported" },
-            { val: 100, suf: "%", label: "Legally binding eSign" },
+            { val: 4, suf: "", label: "Steps from draft to paid" },
           ].map((s, i) => (
             <div key={i} className="stat-cell" style={{ padding: "28px 20px", borderLeft: i > 0 ? `1px solid ${lineSoft}` : "none", textAlign: "center" }}>
               <div style={{ fontFamily: fontDisplay, fontSize: 42, fontWeight: 600, letterSpacing: "-1px", lineHeight: 1, marginBottom: 10, color: ink, fontVariantNumeric: "tabular-nums" }}>
-                <span className="count" data-to={s.val} data-suf={s.suf}>{`${s.val}${s.suf}`}</span>
+                {s.pre}<span className="count" data-to={s.val} data-suf={s.suf}>{`${s.val}${s.suf}`}</span>
               </div>
               <div className="mono-sm" style={{ color: inkMid }}>{s.label}</div>
             </div>
@@ -607,9 +607,9 @@ export default function Landing() {
 
           <div className="spot-grid bento" onPointerMove={trackSpotlight} style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 16 }}>
             <div data-reveal className="card spot b-wide" style={{ gridColumn: "span 4", padding: 30, minHeight: 260, overflow: "hidden" }}>
-              <div className="mono-sm" style={{ marginBottom: 12, color: gold }}>Legal eSign</div>
-              <div style={{ fontFamily: fontDisplay, fontSize: 28, fontWeight: 500, letterSpacing: "-.5px", marginBottom: 10, maxWidth: 420 }}>Binding under the IT Act 2000, verified with Aadhaar.</div>
-              <p style={{ fontSize: 14, color: inkMid, lineHeight: 1.6, maxWidth: 420 }}>Every signature is timestamped and saved with the signed document.</p>
+              <div className="mono-sm" style={{ marginBottom: 12, color: gold }}>eSignature</div>
+              <div style={{ fontFamily: fontDisplay, fontSize: 28, fontWeight: 500, letterSpacing: "-.5px", marginBottom: 10, maxWidth: 420 }}>Signed on any phone, with a record you can show.</div>
+              <p style={{ fontSize: 14, color: inkMid, lineHeight: 1.6, maxWidth: 420 }}>Every signature is timestamped, and an audit trail PDF is kept with the signed document.</p>
               <svg viewBox="0 0 300 90" width="300" height="90" aria-hidden="true" className="b-art" style={{ position: "absolute", right: 24, bottom: 18 }}>
                 <path d="M10,60 Q40,15 66,52 Q92,86 120,40 Q150,8 180,50 Q204,78 232,32 L290,56" stroke={ink} strokeOpacity=".85" strokeWidth="2.4" fill="none" strokeLinecap="round" />
                 <line x1="10" y1="80" x2="290" y2="80" stroke={line} strokeDasharray="4 4" />
@@ -679,7 +679,7 @@ export default function Landing() {
                       </div>
                     ))}
                   </div>
-                  <button className={p.featured ? "btn-dark" : "btn-light"} style={{ width: "100%", marginTop: 24, position: "relative", zIndex: 1 }} onClick={p.noNav ? undefined : () => nav("/auth")}>{p.cta}</button>
+                  <button className={p.featured ? "btn-dark" : "btn-light"} style={{ width: "100%", marginTop: 24, position: "relative", zIndex: 1 }} onClick={p.noNav ? () => { window.location.href = "mailto:support@flowdocs.co.in?subject=FlowDocs%20Agency%20plan"; } : () => nav("/auth")}>{p.cta}</button>
                 </div>
               </div>
             ))}
@@ -718,7 +718,7 @@ export default function Landing() {
                 <p style={{ fontSize: 13, color: "#A3A3A3", marginBottom: 32 }}>Your rate never increases. Even when we raise prices.</p>
 
                 <div className="founding-feats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px", textAlign: "left", marginBottom: 32, padding: "0 10px" }}>
-                  {["Unlimited documents", "Legal eSign", "GST invoices", "Razorpay payments", "Auto reminders", "9 templates"].map((f, i) => (
+                  {["Unlimited documents", "eSignature with audit trail", "GST invoices", "Razorpay payments", "Auto reminders", "9 templates"].map((f, i) => (
                     <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#D4D4D4" }}>
                       <span style={{ color: goldSoft, fontWeight: 700 }}>✓</span>{f}
                     </div>
@@ -761,7 +761,7 @@ export default function Landing() {
             </p>
             <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
               <Magnetic><button className="btn-dark" style={{ padding: "16px 32px", fontSize: 15 }} onClick={() => nav("/auth")}>Start free, no card →</button></Magnetic>
-              <Magnetic strength={0.25}><button className="btn-light" style={{ padding: "15px 28px", fontSize: 14 }} onClick={() => nav("/auth")}>Browse templates</button></Magnetic>
+              <Magnetic strength={0.25}><button className="btn-light" style={{ padding: "15px 28px", fontSize: 14 }} onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}>See pricing</button></Magnetic>
             </div>
             <div className="mono-sm" style={{ marginTop: 24, color: inkFaint }}>flowdocs.co.in</div>
           </div>
