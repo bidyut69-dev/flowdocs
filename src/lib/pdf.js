@@ -25,6 +25,30 @@ const calcGST = (subtotal, taxType, taxRate = 18) => {
   return { cgst: 0, sgst: 0, igst: 0, total: subtotal };
 };
 
+// ── Signature image helper ────────────────────────────────────────────
+// jsPDF.addImage needs image data; it cannot load a remote https URL and
+// fails silently inside try/catch. Prefer the base64 data URL saved at sign
+// time; if only a URL exists, fetch it and convert to a data URL.
+export async function toImageDataUrl(src) {
+  if (!src) return null;
+  if (src.startsWith("data:image/")) return src;
+  try {
+    const res = await fetch(src);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+const imageFormat = (dataUrl) => (/^data:image\/jpe?g/i.test(dataUrl) ? "JPEG" : "PNG");
+
 // ── New page helper ───────────────────────────────────────────────────
 function addNewPage(pdf) {
   const W = 210, H = 297;
@@ -316,7 +340,7 @@ export function generatePDF({ document: doc, profile, client, signatureDataUrl =
   pdf.text("CLIENT SIGNATURE", 20, y + 8);
 
   if (signatureDataUrl) {
-    try { pdf.addImage(signatureDataUrl, "PNG", 18, y + 11, 75, 26); } catch (e) { console.warn("Signature render failed:", e); }
+    try { pdf.addImage(signatureDataUrl, imageFormat(signatureDataUrl), 18, y + 11, 75, 26); } catch (e) { console.warn("Signature render failed:", e); }
     pdf.setDrawColor(...GREEN); pdf.setLineWidth(0.3);
     pdf.line(18, y + 39, 90, y + 39);
     pdf.setFontSize(7); pdf.setTextColor(...GREEN);
@@ -387,7 +411,9 @@ export function getPDFBlob(doc, profile, client, signatureDataUrl = null) {
 }
 
 // ── Audit Trail ───────────────────────────────────────────────────────
-export function generateAuditTrail({ document: doc, signerName, signerIp, signedAt, signatureUrl }) {
+// Async: may need to fetch the signature image. Callers must await it.
+export async function generateAuditTrail({ document: doc, signerName, signerIp, signedAt, signatureData, signatureUrl }) {
+  const signature = await toImageDataUrl(signatureData || signatureUrl);
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const W = 210, H = 297;
 
@@ -444,8 +470,8 @@ export function generateAuditTrail({ document: doc, signerName, signerIp, signed
   pdf.setFontSize(11); pdf.setTextColor(...GOLD); pdf.setFont("helvetica", "bold");
   pdf.text("Captured Signature", 15, y); y += 8;
   pdf.setFillColor(...SURFACE); pdf.roundedRect(14, y, W - 28, 35, 3, 3, "F");
-  if (signatureUrl) {
-    try { pdf.addImage(signatureUrl, "PNG", 20, y + 4, 80, 26); } catch (e) { console.warn("Audit signature render failed:", e); }
+  if (signature) {
+    try { pdf.addImage(signature, imageFormat(signature), 20, y + 4, 80, 26); } catch (e) { console.warn("Audit signature render failed:", e); }
   }
   pdf.setDrawColor(...GREEN); pdf.setLineWidth(0.3); pdf.line(20, y + 32, 100, y + 32);
   pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor(...GREEN);

@@ -327,8 +327,8 @@ export default function Dashboard({ session }) {
         const { data } = await supabase.from("documents").select("signature_data, signature_url, signed_at, signer_name").eq("id", doc.id).single();
         if (data) freshDoc = { ...doc, ...data };
       }
-      const signatureDataUrl = freshDoc.signature_data || freshDoc.signature_url || null;
-      const { downloadPDF } = await import("../lib/pdf");
+      const { downloadPDF, toImageDataUrl } = await import("../lib/pdf");
+      const signatureDataUrl = await toImageDataUrl(freshDoc.signature_data || freshDoc.signature_url);
       const ok = downloadPDF(freshDoc, profile, client, signatureDataUrl);
       if (ok) showToast("✓ PDF downloaded!");
       else showToast("PDF generation failed.", false);
@@ -355,8 +355,18 @@ export default function Dashboard({ session }) {
 
   const handleAuditTrail = async (doc) => {
     try {
+      // The list query may not carry the latest signature, so fetch it fresh.
+      const { data: fresh } = await supabase.from("documents").select("signature_data, signature_url, signer_name, signed_at").eq("id", doc.id).single();
+      const d = { ...doc, ...(fresh || {}) };
       const { generateAuditTrail } = await import("../lib/pdf");
-      const pdf = generateAuditTrail({ document: doc, signerName: doc.signer_name || "—", signerIp: doc.signer_ip || "—", signedAt: doc.signed_at, signatureUrl: doc.signature_url });
+      const pdf = await generateAuditTrail({
+        document: d,
+        signerName: d.signer_name || "-",
+        signerIp: d.signer_ip || "-",
+        signedAt: d.signed_at,
+        signatureData: d.signature_data,
+        signatureUrl: d.signature_url,
+      });
       pdf.save(`AuditTrail-${doc.title.replace(/\s+/g, "-")}.pdf`);
       showToast("✓ Audit trail downloaded!");
     } catch (err) { showToast("Audit trail failed: " + err.message, false); }
