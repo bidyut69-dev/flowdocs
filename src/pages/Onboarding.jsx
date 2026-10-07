@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { posthog } from "../lib/posthog";
 
 const bg = "#F5F4F2";
 const bgAlt = "#EFEDE8";
@@ -198,6 +199,7 @@ export default function Onboarding({ session, profile, onComplete }) {
 
     setLoading(false);
     if (docError) return setError(docError.message);
+    posthog?.capture("document_created", { source: "onboarding", type: doc.type, template: selected });
     setDocCreated(doc);
     setStep(4);
   };
@@ -206,6 +208,7 @@ export default function Onboarding({ session, profile, onComplete }) {
     if (!docCreated?.sign_token) return;
     const url = `${window.location.origin}/sign/${docCreated.sign_token}`;
     navigator.clipboard.writeText(url);
+    posthog?.capture("document_sent", { channel: "copy_link", source: "onboarding", type: docCreated.type });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

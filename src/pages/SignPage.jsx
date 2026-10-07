@@ -282,6 +282,7 @@ export default function SignPage() {
       }
 
       if (updateErr) return setSignError("Signing failed: " + updateErr.message);
+      posthog?.capture("document_signed", { type: doc.type, has_amount: doc.amount > 0 });
 
       if (doc.profiles?.email) {
         sendSignedConfirmation({
@@ -325,6 +326,7 @@ export default function SignPage() {
       return;
     }
 
+    posthog?.capture("payment_started", { method: "razorpay", currency: doc.currency || "INR" });
     await openInvoicePayment({
       user: {
         name: doc.clients?.name || name,
@@ -336,6 +338,7 @@ export default function SignPage() {
       razorpayKey: doc.profiles?.razorpay_key_id || null, // freelancer's own key
       onSuccess: async (response) => {
         await markInvoicePaid(supabase, doc, response.razorpay_payment_id);
+        posthog?.capture("payment_completed", { method: "razorpay", currency: doc.currency || "INR" });
         if (doc.profiles?.email) {
           sendPaymentReceived({
             to: doc.profiles.email,
@@ -359,6 +362,8 @@ export default function SignPage() {
   // ── Manual Pay: client confirms they've paid via UPI/bank ─────────────
   const handleManualPayDone = async () => {
     setPaying(true);
+    // Completion is recorded when the freelancer verifies it in the dashboard.
+    posthog?.capture("payment_started", { method: "manual", currency: doc.currency || "INR" });
     try {
       const { error } = await supabase.rpc("mark_payment_pending", { p_sign_token: token });
       if (missingFn(error)) {

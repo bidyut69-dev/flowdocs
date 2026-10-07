@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { sendSigningEmail } from "../lib/email";
+import { posthog } from "../lib/posthog";
 import UpgradeModal from "../components/UpgradeModal";
 import AIDocModal from "../components/AIDocModal";
 import Templates from "./Templates";
@@ -78,6 +79,19 @@ const card = {
   background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 20,
 };
 const STATUS_LABEL = { payment_pending: "Awaiting verification" };
+
+// Pre-filled into the new-document form from the first-run empty state, so a
+// new user can send a real contract without writing one from scratch.
+const SAMPLE_CONTRACT = `Scope of work
+1. Design a 5-page website: Home, About, Services, Gallery, Contact.
+2. Two rounds of revisions on the approved design.
+3. Mobile-friendly build, handed over with login details.
+
+Timeline: 3 weeks from the deposit date.
+
+Payment: 50% deposit to start, 50% on handover.
+
+Ownership: all rights pass to the client after the final payment.`;
 const statusLabel = (st) => STATUS_LABEL[st] || (st ? st.charAt(0).toUpperCase() + st.slice(1) : "");
 
 const badge = (status) => {
@@ -241,6 +255,7 @@ export default function Dashboard({ session }) {
       invoice_number: docForm.type === "Invoice" ? `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}` : null,
     }).select("*, clients(name, email, company)").single();
     if (error) return showToast(error.message, false);
+    posthog?.capture("document_created", { source: "dashboard", type: data.type, has_client: !!data.client_id, first: documents.length === 0 });
     setDocuments([data, ...documents]);
     setModal(null);
     setDocForm({ title: "", type: "Proposal", client_id: "", amount: "", description: "", currency: "INR", tax_type: "none", tax_rate: "18", hsn_sac: "", due_date: "", recurring_frequency: "", notes: "" });
@@ -297,6 +312,7 @@ export default function Dashboard({ session }) {
       if (error) return showToast("Failed: " + error.message, false);
       setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, status: "pending" } : d));
     }
+    posthog?.capture("document_sent", { channel: client?.email ? "email" : "copy_link", type: doc.type });
     if (client?.email) {
       try {
         const emailOk = await sendSigningEmail({
@@ -318,6 +334,7 @@ export default function Dashboard({ session }) {
     const url = `${APP_URL}/sign/${doc.sign_token}`;
     const msg = encodeURIComponent(`Hi ${client?.name || ""},\n\n${profile?.name || "I"} has sent you a ${doc.type} to review and sign:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 View & Sign: ${url}\n\nPowered by FlowDocs`);
     const phone = client?.phone ? client.phone.replace(/[^0-9]/g, "") : "";
+    posthog?.capture("document_sent", { channel: "whatsapp", type: doc.type });
     window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
     showToast("✓ Opening WhatsApp...");
   };
@@ -341,6 +358,7 @@ export default function Dashboard({ session }) {
 
   const copyLink = (doc) => {
     const url = `${APP_URL}/sign/${doc.sign_token}`;
+    posthog?.capture("document_sent", { channel: "copy_link", type: doc.type });
     navigator.clipboard.writeText(url).then(() => showToast("✓ Signing link copied!"));
   };
 
@@ -350,6 +368,7 @@ export default function Dashboard({ session }) {
     if (!confirmed) return;
     const { error } = await supabase.from("documents").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", doc.id);
     if (!error) {
+      posthog?.capture("payment_completed", { method: doc.status === "payment_pending" ? "manual_verified" : "manual", currency: doc.currency || "INR" });
       setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, status: "paid", paid_at: new Date().toISOString() } : d));
       showToast("✓ Invoice marked as paid! 💰");
     } else showToast("Failed: " + error.message, false);
@@ -403,6 +422,19 @@ export default function Dashboard({ session }) {
   };
 
   const defaultCur = profile?.default_currency || "INR";
+
+  const startSampleContract = () => {
+    posthog?.capture("cta_clicked", { cta: "first_contract", location: "dashboard_empty" });
+    setDocForm(f => ({
+      ...f,
+      type: "Contract",
+      title: "Website design for your client",
+      amount: "25000",
+      currency: defaultCur,
+      description: SAMPLE_CONTRACT,
+    }));
+    setModal("newDoc");
+  };
   const totalBilled = documents.reduce((s, d) => s + (d.amount || 0), 0);
   const collected = documents.filter(d => d.status === "paid").reduce((s, d) => s + (d.amount || 0), 0);
   const pendingSign = documents.filter(d => d.status === "pending").length;
@@ -619,8 +651,20 @@ export default function Dashboard({ session }) {
               <StatCard label="Pending Sign" value={pendingSign} sub="Awaiting response" accent="blue" />
               <StatCard label="Overdue" value={overdue} sub="Action needed" accent="red" />
             </div>
-            <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 14 }}>Recent Documents</div>
-            <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => handleNewDoc()} />
+            {!loading && documents.length === 0 ? (
+              <section aria-labelledby="first-doc-title" style={{ ...card, padding: "36px 28px", textAlign: "center" }}>
+                <div id="first-doc-title" style={{ fontFamily: FD, fontSize: 24, fontWeight: 600, color: C.text }}>Create your first contract</div>
+                <p style={{ fontSize: 14, color: C.mid, lineHeight: 1.6, maxWidth: 440, margin: "10px auto 22px" }}>
+                  Start from a sample, change the client and the amount, then send one link. Your client signs and pays the deposit on the same page.
+                </p>
+                <button style={{ ...btn(), fontSize: 15, padding: "12px 22px" }} onClick={startSampleContract}>Create your first contract</button>
+              </section>
+            ) : (
+              <>
+                <div style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 14 }}>Recent Documents</div>
+                <DocsTable docs={documents.slice(0, 6)} clients={clients} profile={profile} onSend={sendDoc} onDownload={handleDownload} onCopyLink={copyLink} onWhatsApp={shareWhatsApp} onEdit={openEditDoc} onMarkPaid={markPaid} onAuditTrail={handleAuditTrail} onNew={() => handleNewDoc()} />
+              </>
+            )}
           </>
         )}
 
