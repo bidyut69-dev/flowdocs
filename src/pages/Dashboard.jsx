@@ -77,11 +77,15 @@ const label = {
 const card = {
   background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 20,
 };
+const STATUS_LABEL = { payment_pending: "Awaiting verification" };
+const statusLabel = (st) => STATUS_LABEL[st] || (st ? st.charAt(0).toUpperCase() + st.slice(1) : "");
+
 const badge = (status) => {
   const map = {
     signed: { bg: C.greenDim, color: C.green },
     paid: { bg: C.greenDim, color: C.green },
     pending: { bg: C.goldDim, color: C.gold },
+    payment_pending: { bg: C.goldDim, color: C.gold },
     overdue: { bg: C.redDim, color: C.red },
     draft: { bg: C.surface2, color: C.dim },
   };
@@ -323,7 +327,7 @@ export default function Dashboard({ session }) {
       showToast("Generating PDF...");
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
       let freshDoc = doc;
-      if (doc.status === "signed") {
+      if (["signed", "payment_pending", "paid"].includes(doc.status)) {
         const { data } = await supabase.from("documents").select("signature_data, signature_url, signed_at, signer_name").eq("id", doc.id).single();
         if (data) freshDoc = { ...doc, ...data };
       }
@@ -403,6 +407,7 @@ export default function Dashboard({ session }) {
   const collected = documents.filter(d => d.status === "paid").reduce((s, d) => s + (d.amount || 0), 0);
   const pendingSign = documents.filter(d => d.status === "pending").length;
   const overdue = documents.filter(d => d.status === "overdue").length;
+  const awaitingVerification = documents.filter(d => d.status === "payment_pending");
 
   const monthlyRevenue = {};
   documents.filter(d => d.status === "paid").forEach(d => {
@@ -582,6 +587,32 @@ export default function Dashboard({ session }) {
                 <button style={btn()} onClick={() => handleNewDoc()}>+ New Document</button>
               </div>
             </div>
+            {awaitingVerification.length > 0 && (
+              <section aria-labelledby="awaiting-title" style={{ ...card, borderColor: C.gold, background: C.goldDim, marginBottom: 24 }}>
+                <div id="awaiting-title" style={{ fontFamily: FD, fontSize: 16, fontWeight: 600, color: C.text }}>
+                  Awaiting verification ({awaitingVerification.length})
+                </div>
+                <p style={{ fontSize: 13, color: C.mid, marginTop: 4, marginBottom: 14, lineHeight: 1.5 }}>
+                  These clients said they paid by UPI or bank transfer. Check your bank app, then mark each one as paid.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {awaitingVerification.map(doc => {
+                    const client = clients.find(c => c.id === doc.client_id) || doc.clients;
+                    return (
+                      <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{doc.title}</div>
+                          <div style={{ fontSize: 12, color: C.dim, marginTop: 2 }}>
+                            {client?.name || "No client"} · {fmtCur(doc.amount, doc.currency || defaultCur)}
+                          </div>
+                        </div>
+                        <button style={{ ...btn(), fontSize: 13, padding: "8px 14px" }} onClick={() => markPaid(doc)}>Mark as paid</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
             <div className="fd-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
               <StatCard label="Total Billed" value={fmtCur(totalBilled, defaultCur)} sub="All time" accent="gold" />
               <StatCard label="Collected" value={fmtCur(collected, defaultCur)} sub="Paid invoices" accent="green" />
@@ -762,7 +793,7 @@ export default function Dashboard({ session }) {
           <input style={input} value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
           <label style={label}>Status</label>
           <select style={{ ...input, color: C.text }} value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
-            <option value="draft">Draft</option><option value="pending">Pending</option><option value="signed">Signed</option><option value="paid">Paid</option><option value="overdue">Overdue</option>
+            <option value="draft">Draft</option><option value="pending">Pending</option><option value="signed">Signed</option><option value="payment_pending">Awaiting verification</option><option value="paid">Paid</option><option value="overdue">Overdue</option>
           </select>
           {editDoc.type !== "Invoice" && (
             <>
@@ -907,7 +938,7 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                   <td style={{ padding: "14px 16px" }}>
                     <span style={badge(doc.status)}>
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
-                      {doc.status?.charAt(0).toUpperCase() + doc.status?.slice(1)}
+                      {statusLabel(doc.status)}
                     </span>
                   </td>
                   <td style={{ padding: "14px 16px" }}>
@@ -928,13 +959,13 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                       {doc.status === "pending" && (clients.find(c => c.id === doc.client_id) || doc.clients)?.email && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }} onClick={() => onSend(doc)} title="Send reminder email">📧 Remind</button>
                       )}
-                      {(doc.status === "pending" || doc.status === "signed") && doc.type === "Invoice" && (
+                      {(doc.status === "payment_pending" || ((doc.status === "pending" || doc.status === "signed") && doc.type === "Invoice")) && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.green, borderColor: C.green, background: C.greenDim }} onClick={() => onMarkPaid(doc)}>✓ Paid</button>
                       )}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#25D366", borderColor: "#25D366", background: "#25D36618" }} onClick={() => onWhatsApp(doc)} title="Share on WhatsApp">💬 WA</button>
                       {doc.sign_token && <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }} onClick={() => onCopyLink(doc)} title="Copy signing link">🔗</button>}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }} onClick={() => onDownload(doc)}>PDF</button>
-                      {doc.status === "signed" && <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#A78BFA", borderColor: "#A78BFA", background: "#A78BFA18" }} onClick={() => onAuditTrail?.(doc)} title="Download Audit Trail">🔏</button>}
+                      {["signed", "payment_pending", "paid"].includes(doc.status) && doc.signed_at && <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#A78BFA", borderColor: "#A78BFA", background: "#A78BFA18" }} onClick={() => onAuditTrail?.(doc)} title="Download Audit Trail">🔏</button>}
                       <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px" }} onClick={() => onEdit(doc)} title="Edit">✎</button>
                     </div>
                   </td>
