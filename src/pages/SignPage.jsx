@@ -6,6 +6,12 @@ import { openInvoicePayment, markInvoicePaid } from "../lib/payment";
 import { posthog } from "../lib/posthog";
 import { SignDocSkeleton } from "../components/Skeleton";
 
+// The sign page is used by anonymous clients. It reaches the database only
+// through SECURITY DEFINER RPCs keyed by the sign token (see
+// supabase/2026-10-07_signing_security.sql), never by reading or updating the
+// documents table directly. Until that SQL is run, fall back to the old queries.
+const missingFn = (e) => !!e && (e.code === "PGRST202" || /could not find the function/i.test(e.message || ""));
+
 // ── Light theme palette (tasteskill-inspired) ──
 const C = {
   bg: "#F5F4F2",        // warm cream background
@@ -101,11 +107,14 @@ export default function SignPage() {
   useEffect(() => {
     const fetchDoc = async () => {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from("documents")
-        .select("*, clients(name, email, company)")
-        .eq("sign_token", token)
-        .single();
+      let { data, error: err } = await supabase.rpc("get_document_for_signing", { p_sign_token: token });
+      if (missingFn(err)) {
+        ({ data, error: err } = await supabase
+          .from("documents")
+          .select("*, clients(name, email, company)")
+          .eq("sign_token", token)
+          .single());
+      }
 
       if (err || !data) {
         setError("Document not found or link is invalid.");
@@ -123,14 +132,19 @@ export default function SignPage() {
         setDoc({ ...data, profiles: freelancer || null });
 
         if (!data.opened_at && data.status !== "signed" && data.status !== "paid") {
-          supabase.from("documents")
-            .update({ opened_at: new Date().toISOString() })
-            .eq("sign_token", token)
-            .then(() => {});
+          supabase.rpc("mark_document_opened", { doc_sign_token: token }).then(({ error }) => {
+            if (missingFn(error)) {
+              supabase.from("documents")
+                .update({ opened_at: new Date().toISOString() })
+                .eq("sign_token", token)
+                .then(() => {});
+            }
+          });
         }
 
         // Router State Reconstruction
-        if (data.status === "paid") setStep(data.intake_data ? "done" : "intake");
+        const intakeDone = !!(data.intake_responses || data.intake_data);
+        if (data.status === "paid" || data.status === "payment_pending") setStep(intakeDone ? "done" : "intake");
         else if (data.status === "signed") {
           setStep(data.amount > 0 ? "pay" : "intake");
         }
@@ -248,31 +262,24 @@ export default function SignPage() {
       const canvas = canvasRef.current;
       const signatureBase64 = canvas.toDataURL("image/png");
 
-      let publicUrl = null;
-      try {
-        const blob = await (await fetch(signatureBase64)).blob();
-        const fileName = `${doc.id}-${Date.now()}.png`;
-        const { error: upErr } = await supabase.storage
-          .from("signatures")
-          .upload(fileName, blob, { contentType: "image/png", upsert: true });
-        if (!upErr) {
-          const { data: urlData } = supabase.storage
-            .from("signatures")
-            .getPublicUrl(fileName);
-          publicUrl = urlData?.publicUrl || null;
-        }
-      } catch { /* backup storage trace ignored */ }
-
-      const { error: updateErr } = await supabase
-        .from("documents")
-        .update({
-          status: "signed",
-          signature_data: signatureBase64,
-          signature_url: publicUrl,
-          signed_at: new Date().toISOString(),
-          signer_name: name.trim(),
-        })
-        .eq("id", doc.id);
+      // The signature is stored only as base64 in documents.signature_data.
+      // It is no longer uploaded to the public "signatures" bucket.
+      let { error: updateErr } = await supabase.rpc("sign_document", {
+        p_sign_token: token,
+        p_signer_name: name.trim(),
+        p_signature_data: signatureBase64,
+      });
+      if (missingFn(updateErr)) {
+        ({ error: updateErr } = await supabase
+          .from("documents")
+          .update({
+            status: "signed",
+            signature_data: signatureBase64,
+            signed_at: new Date().toISOString(),
+            signer_name: name.trim(),
+          })
+          .eq("id", doc.id));
+      }
 
       if (updateErr) return setSignError("Signing failed: " + updateErr.message);
 
@@ -289,7 +296,6 @@ export default function SignPage() {
         ...prev,
         status: "signed",
         signature_data: signatureBase64,
-        signature_url: publicUrl,
       }));
       setStep(doc.amount > 0 ? "pay" : "intake");
 
@@ -329,7 +335,7 @@ export default function SignPage() {
       currency: doc.currency || "INR",
       razorpayKey: doc.profiles?.razorpay_key_id || null, // freelancer's own key
       onSuccess: async (response) => {
-        await markInvoicePaid(supabase, doc.id, response.razorpay_payment_id);
+        await markInvoicePaid(supabase, doc, response.razorpay_payment_id);
         if (doc.profiles?.email) {
           sendPaymentReceived({
             to: doc.profiles.email,
@@ -354,10 +360,13 @@ export default function SignPage() {
   const handleManualPayDone = async () => {
     setPaying(true);
     try {
-      await supabase
-        .from("documents")
-        .update({ status: "payment_pending", updated_at: new Date().toISOString() })
-        .eq("id", doc.id);
+      const { error } = await supabase.rpc("mark_payment_pending", { p_sign_token: token });
+      if (missingFn(error)) {
+        await supabase
+          .from("documents")
+          .update({ status: "payment_pending", updated_at: new Date().toISOString() })
+          .eq("id", doc.id);
+      }
       // Notify freelancer
       if (doc.profiles?.email) {
         sendPaymentReceived({
@@ -774,10 +783,13 @@ export default function SignPage() {
               setIntakeError("");
               const formData = new FormData(e.target);
               const responses = Object.fromEntries(formData.entries());
-              const { error: dbErr } = await supabase
-                .from("documents")
-                .update({ intake_responses: responses, intake_submitted_at: new Date().toISOString() })
-                .eq("id", doc.id);
+              let { error: dbErr } = await supabase.rpc("submit_intake", { p_sign_token: token, p_responses: responses });
+              if (missingFn(dbErr)) {
+                ({ error: dbErr } = await supabase
+                  .from("documents")
+                  .update({ intake_responses: responses, intake_submitted_at: new Date().toISOString() })
+                  .eq("id", doc.id));
+              }
               setIntakeSubmitting(false);
               if (dbErr) {
                 setIntakeError("Something went wrong. Please try again.");

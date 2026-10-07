@@ -148,16 +148,25 @@ export async function openInvoicePayment({ user, document, amount, currency = "I
 }
 
 // ── Mark Invoice as Paid in Supabase ─────────────────────────────────────────
-export async function markInvoicePaid(supabase, documentId, paymentId) {
+// Uses the token-scoped RPC (only the document in the link, only from the
+// signed / payment_pending states). Falls back to a direct update until
+// supabase/2026-10-07_signing_security.sql has been run.
+export async function markInvoicePaid(supabase, document, paymentId) {
   try {
-    const { error } = await supabase
-      .from("documents")
-      .update({
-        status: "paid",
-        razorpay_payment_id: paymentId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", documentId);
+    let { error } = await supabase.rpc("mark_paid_by_token", {
+      p_sign_token: document.sign_token,
+      p_payment_id: paymentId,
+    });
+    if (error && (error.code === "PGRST202" || /could not find the function/i.test(error.message || ""))) {
+      ({ error } = await supabase
+        .from("documents")
+        .update({
+          status: "paid",
+          razorpay_payment_id: paymentId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", document.id));
+    }
 
     if (error) {
       console.error("markInvoicePaid error:", error);
