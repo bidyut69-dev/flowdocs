@@ -19,7 +19,7 @@ dist-ssr
 .DS_Store
 *.suo
 *.ntvs*
-*.njsproj
+*.njsproja
 *.sln
 *.sw?
 
@@ -29,3 +29,4 @@ dist-ssr
 .env.production
 .env.*
 EOF
+.claude.md

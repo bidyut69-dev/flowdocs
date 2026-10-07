@@ -824,7 +824,7 @@ export default function Landing() {
           .stats-grid .stat-cell:nth-child(3) { border-left: none !important; }
           .nav-desktop { display: none !important; }
           .steps-pin { padding-top: 40px !important; }
-          .steps-track { width: auto !important; display: grid !important; grid-template-columns: repeat(2,1fr); }
+          .steps-track { width: auto !important; display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)); }
           .step-card { width: auto !important; }
           .steps-bar { display: none; }
           .bento > * { grid-column: span 3 !important; }
@@ -835,7 +835,7 @@ export default function Landing() {
           .hero-cards { height: 360px !important; }
           .hero-stage { transform: scale(.55); }
           .nav-login { display: none !important; }
-          .steps-track { grid-template-columns: 1fr; }
+          .steps-track { grid-template-columns: minmax(0,1fr); }
           .step-card { min-height: 0 !important; }
           .pricing-grid { grid-template-columns: 1fr !important; }
           .bento > * { grid-column: span 6 !important; }
@@ -861,7 +861,7 @@ function StepVisual({ i }) {
   );
   if (i === 1) return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, background: inkDeep, borderRadius: 10, padding: "10px 12px" }}>
-      <code style={{ flex: 1, fontFamily: fontMono, fontSize: 12, color: "#E5E5E5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <code style={{ flex: 1, minWidth: 0, fontFamily: fontMono, fontSize: 12, color: "#E5E5E5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         flowdocs.co.in/sign/<span style={{ color: goldSoft }}>acme-corp</span>
       </code>
       <span style={{ fontFamily: fontMono, fontSize: 10, color: "#A3A3A3", letterSpacing: ".1em" }}>COPY</span>

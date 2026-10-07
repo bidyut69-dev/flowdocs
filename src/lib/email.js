@@ -73,7 +73,10 @@ export async function sendSignedConfirmation({ to, ownerName, clientName, docTit
 export async function sendPaymentReceived({ to, ownerName, clientName, docTitle, amount, currency = "INR" }) {
   const symbols = { INR: "₹", USD: "$", EUR: "€", GBP: "£", AED: "AED ", CAD: "CA$", AUD: "A$", SGD: "S$" };
   const sym = symbols[currency] || "₹";
-  const fmtAmt = `${sym}${Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  // SignPage passes an already formatted string (e.g. "₹30,000"); Number() on it gives NaN.
+  const fmtAmt = typeof amount === "string"
+    ? amount
+    : `${sym}${Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
   return callEdge("payment_received", to, {
     ownerName,

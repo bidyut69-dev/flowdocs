@@ -1,40 +1,34 @@
 // ── Google Gemini AI Integration ─────────────────────────────────────
-// Free tier: 1500 requests/day, 15 requests/minute
-// Get key: aistudio.google.com → Get API Key
+// Uses Supabase Edge Function — GEMINI_API_KEY stays server-side
+// Edge Function: supabase/functions/ai-generate/index.ts
 
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+import { supabase } from "./supabase";
+
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-generate`;
 
 async function callGemini(prompt) {
-  if (!GEMINI_KEY) throw new Error("Gemini API key missing. Add VITE_GEMINI_API_KEY to .env");
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
+  const res = await fetch(EDGE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1500,
-      },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-      ],
-    }),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ prompt }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message || `API error ${res.status}`;
-    throw new Error(msg);
+    throw new Error(err?.error || `AI error ${res.status}`);
   }
 
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Empty response from AI");
-  return text.trim();
+  return data.text || "";
 }
+
 
 // ── AI Proposal Generator ─────────────────────────────────────────────
 export async function generateProposal({ projectTitle, clientName, projectType, budget, timeline, scope }) {

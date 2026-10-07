@@ -31,9 +31,12 @@ const FS = "'Manrope', 'Inter', system-ui, sans-serif";
 const FM = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
 
 // ── Step indicator ───────────────────────────────────────────────────────
+// The badge is only as wide as its circle and the label hangs centered below
+// it, so long labels ("Pay Deposit") don't push the circles out of line and
+// every connector line gets the same width.
 function StepBadge({ num, label, active, done }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+    <div style={{ position: "relative", width: 32, flexShrink: 0 }}>
       <div style={{
         width: 32, height: 32, borderRadius: "50%", display: "flex",
         alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600,
@@ -44,7 +47,7 @@ function StepBadge({ num, label, active, done }) {
       }}>
         {done ? "✓" : num}
       </div>
-      <span style={{ fontSize: 10, color: done ? C.green : active ? C.gold : C.dim, fontFamily: FM, letterSpacing: 0.5 }}>
+      <span style={{ position: "absolute", top: 36, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap", fontSize: 10, color: done ? C.green : active ? C.gold : C.dim, fontFamily: FM, letterSpacing: 0.5 }}>
         {label}
       </span>
     </div>
@@ -53,7 +56,7 @@ function StepBadge({ num, label, active, done }) {
 
 function StepLine({ done }) {
   return (
-    <div style={{ flex: 1, height: 2, background: done ? C.green : C.border, marginBottom: 20, transition: "background 0.4s" }} />
+    <div style={{ flex: 1, height: 2, margin: "0 6px", background: done ? C.green : C.border, transition: "background 0.4s" }} />
   );
 }
 
@@ -398,7 +401,7 @@ export default function SignPage() {
 
       {/* Step indicator */}
       {doc && step !== "done" && (
-        <div style={{ display: "flex", alignItems: "center", width: "100%", maxWidth: 460, marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", width: "100%", maxWidth: 460, marginBottom: 28, padding: "0 14px 20px", boxSizing: "border-box" }}>
           <StepBadge num="1" label="Review" active={step === "review"} done={stepNum > 1} />
           <StepLine done={stepNum > 1} />
           <StepBadge num="2" label="Sign" active={step === "sign"} done={stepNum > 2} />

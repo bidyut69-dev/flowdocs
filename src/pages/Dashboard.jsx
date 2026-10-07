@@ -9,7 +9,7 @@ import { DashboardShellSkeleton } from "../components/Skeleton";
 // ── Light theme palette (tasteskill-inspired) ──
 const C = {
   bg: "#F5F4F2",        // warm cream background
-  surface: "#0A0A0A",   // white card surface
+  surface: "#FFFFFF",   // white card surface
   surface2: "#EFEDE8",  // panel / inputs / internal
   border: "#E7E5E0",    // card borders
   gold: "#C8820F",      // readable gold on light
