@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react";
 import { supabase } from "../lib/supabase";
 import Preloader from "../components/Preloader";
 import { SkeletonStyles } from "../components/Skeleton";
+import { Check, EnvelopeSimple, LinkSimple, SlackLogo, Sparkle, WhatsappLogo } from "@phosphor-icons/react";
 
 gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP);
 
@@ -14,7 +15,10 @@ gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP);
 // Soft warm stone background with crisp white cards (tasteskill-inspired),
 // FlowDocs brand gold kept as the single accent across all pages.
 // Motion: GSAP ScrollTrigger + SplitText (gsap.com), spotlight/bento cards
-// and marquee (21st.dev), grain + pointer parallax depth (threeui).
+// and marquee (21st.dev), grain + CSS 3D pointer tilt on the document stack
+// (threeui-style depth, no WebGL so mobile stays fast).
+// Taste Skill rules apply: no em dashes, max 3 eyebrows, hero <= 4 elements,
+// no glows, one label per CTA intent, icons from Phosphor.
 const bg = "#F5F4F2";
 const bgAlt = "#EFEDE8";
 const card = "#FFFFFF";
@@ -29,9 +33,9 @@ const goldSoft = "#F5A623";
 const goldGlow = "#F5A62310";
 const stamp = "#1F6B46";
 
-const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
+const fontDisplay = "'Playfair Display', Georgia, serif";
 const fontSans = "'Manrope', 'Inter', system-ui, -apple-system, sans-serif";
-const fontMono = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
+const fontMono = "'IBM Plex Mono', ui-monospace, monospace";
 
 const MOTION = "(prefers-reduced-motion: no-preference)";
 const PRELOADER_KEY = "fd_preloader_seen";
@@ -44,29 +48,6 @@ function shouldShowPreloader() {
   } catch {
     return false;
   }
-}
-
-function Typewriter({ words }) {
-  const [i, setI] = useState(0);
-  const [ci, setCi] = useState(0);
-  const [del, setDel] = useState(false);
-  const [txt, setTxt] = useState("");
-  useEffect(() => {
-    const w = words[i];
-    const t = setTimeout(() => {
-      if (!del && ci <= w.length) { setTxt(w.slice(0, ci)); setCi(c => c + 1); }
-      else if (!del && ci > w.length) { setTimeout(() => setDel(true), 1600); }
-      else if (del && ci > 0) { setTxt(w.slice(0, ci)); setCi(c => c - 1); }
-      else { setDel(false); setI(x => (x + 1) % words.length); }
-    }, del ? 35 : 85);
-    return () => clearTimeout(t);
-  }, [ci, del, i, words]);
-  return (
-    <span style={{ color: gold, fontStyle: "italic", fontFamily: fontDisplay, fontWeight: 500 }}>
-      {txt}
-      <span style={{ display: "inline-block", width: 2, height: "0.9em", background: gold, marginLeft: 2, verticalAlign: "middle", animation: "blink 1s infinite" }} />
-    </span>
-  );
 }
 
 // Elastic magnetic pull toward the cursor (fine pointers only).
@@ -104,7 +85,7 @@ function trackSpotlight(e) {
 }
 
 const STEPS = [
-  { title: "Draft with AI", body: "Scope, amount, timeline — filled in automatically from one short brief." },
+  { title: "Draft with AI", body: "Scope, amount and timeline, filled in from one short brief." },
   { title: "Generate one link", body: "Contract, signature, and payment live on a single page. No PDFs. No downloads." },
   { title: "Send it anywhere", body: "Email, WhatsApp, Slack. Opens on any device. Nothing to install." },
   { title: "Signed and paid", body: "You're notified the second it happens. Money secured. Work begins." },
@@ -121,13 +102,13 @@ const PLANS = [
     features: ["3 documents / month", "eSignature with audit trail", "Basic templates", "Email support"] },
   { name: "Solo", tag: "for starters", price: "₹299", per: "/mo", blurb: "No limits, no FlowDocs branding.", cta: "Get Solo",
     features: ["Unlimited documents", "Unlimited eSignatures", "Remove FlowDocs branding", "5 templates", "1 GB storage", "Email support"] },
-  { name: "Pro", tag: "7-day trial", price: "₹750", per: "/mo", blurb: "Everything active freelancers need.", cta: "Start trial →", featured: true,
+  { name: "Pro", tag: "7-day trial", price: "₹750", per: "/mo", blurb: "Everything active freelancers need.", cta: "Start trial", featured: true,
     features: ["Unlimited documents", "eSignature with audit trail", "GST invoices", "Razorpay payments", "Auto reminders", "9 templates"] },
   { name: "Agency", tag: "for teams", price: "₹1,999", per: "/mo", blurb: "For studios running 10+ clients.", cta: "Contact sales", noNav: true,
     features: ["Everything in Pro", "5 team members", "White-label branding", "Client portal", "API access", "Dedicated support"] },
 ];
 
-// Inline SVG film grain (threeui-style texture), tiled over the page.
+// Inline SVG film grain, tiled over the page on a fixed, non-interactive layer.
 const GRAIN = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
 
 export default function Landing() {
@@ -138,13 +119,12 @@ export default function Landing() {
   const [revealed, setRevealed] = useState(() => !showPre);
   const [scrolled, setScrolled] = useState(false);
   const [foundingCount, setFoundingCount] = useState(3);
-  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
+  // Solid nav once scrolled. ScrollTrigger toggles state only when crossing
+  // the threshold (no scroll listener, no per-frame re-render).
+  useGSAP(() => {
+    ScrollTrigger.create({ start: 10, end: "max", onToggle: (self) => setScrolled(self.isActive) });
+  });
 
   useEffect(() => {
     supabase
@@ -157,7 +137,7 @@ export default function Landing() {
       });
   }, []);
 
-  // Fonts change text metrics — re-measure pins/triggers once they land.
+  // Fonts change text metrics, so re-measure pins/triggers once they land.
   useEffect(() => {
     document.fonts?.ready.then(() => ScrollTrigger.refresh());
   }, []);
@@ -191,8 +171,12 @@ export default function Landing() {
       // Resting rotation for the scattered cards (owned by GSAP so tweens compose).
       gsap.set(".hero-card", { rotation: (i, el) => Number(el.dataset.rot) });
 
-      // Pointer depth parallax on the card stack.
+      // Pointer depth: layers drift at different depths and the whole stack
+      // tilts in 3D (max ~6deg). Desktop mouse only.
       if (fine) {
+        const stage = root.current.querySelector(".hero-stage");
+        const rx = gsap.quickTo(stage, "rotationX", { duration: 1, ease: "power3.out" });
+        const ry = gsap.quickTo(stage, "rotationY", { duration: 1, ease: "power3.out" });
         const layers = gsap.utils.toArray(".hero-layer").map(el => ({
           d: Number(el.dataset.depth),
           x: gsap.quickTo(el, "x", { duration: 1, ease: "power3.out" }),
@@ -203,6 +187,7 @@ export default function Landing() {
           const nx = e.clientX / window.innerWidth - 0.5;
           const ny = e.clientY / window.innerHeight - 0.5;
           layers.forEach(l => { l.x(nx * 60 * l.d); l.y(ny * 46 * l.d); });
+          ry(nx * 10); rx(-ny * 8);
         };
         hero.addEventListener("pointermove", move);
         ctx.add(() => () => hero.removeEventListener("pointermove", move));
@@ -274,20 +259,10 @@ export default function Landing() {
         opacity: 1, stagger: 0.1, ease: "none",
         scrollTrigger: { trigger: ".cta-h2", start: "top 85%", end: "top 35%", scrub: true },
       });
-
-      // Ambient aurora drift.
-      gsap.to(".aurora-a", { xPercent: 18, yPercent: 12, duration: 9, ease: "sine.inOut", yoyo: true, repeat: -1 });
-      gsap.to(".aurora-b", { xPercent: -16, yPercent: -10, duration: 11, ease: "sine.inOut", yoyo: true, repeat: -1 });
     });
 
     return () => mm.revert();
   }, { scope: root });
-
-  const copyLink = () => {
-    navigator.clipboard?.writeText("flowdocs.co.in/sign/acme-corp");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  };
 
   const finishPreloader = () => {
     try { sessionStorage.setItem(PRELOADER_KEY, "1"); } catch { /* storage blocked */ }
@@ -299,23 +274,19 @@ export default function Landing() {
       <SkeletonStyles />
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-        @keyframes ping{75%,100%{transform:scale(2);opacity:0}}
         @keyframes marquee{to{transform:translateX(-50%)}}
-        @property --beam{syntax:"<angle>";initial-value:0deg;inherits:false}
-        @keyframes beam{to{--beam:360deg}}
         .mono{font-family:${fontMono};font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:${inkMid}}
-        .mono-sm{font-family:${fontMono};font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.14em;color:${inkFaint}}
-        .btn-dark{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:${ink};color:#fff;border:none;padding:14px 26px;border-radius:14px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:${fontSans};box-shadow:0 14px 30px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);transition:box-shadow .3s cubic-bezier(.22,1,.36,1),transform .3s cubic-bezier(.22,1,.36,1);outline:1px solid rgba(0,0,0,.3);outline-offset:-1px;overflow:hidden;isolation:isolate}
+        .mono-sm{font-family:${fontSans};font-size:12.5px;font-weight:500;letter-spacing:0;color:${inkMid}}
+        .btn-dark{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;background:${ink};color:#fff;border:none;padding:14px 26px;border-radius:14px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:${fontSans};box-shadow:0 6px 16px -10px rgba(20,18,12,.45),inset 0 1px 0 rgba(255,255,255,.14);transition:box-shadow .3s cubic-bezier(.22,1,.36,1),transform .3s cubic-bezier(.22,1,.36,1);outline:1px solid rgba(0,0,0,.3);outline-offset:-1px;overflow:hidden;isolation:isolate}
         .btn-dark::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);transform:translateX(-120%);transition:transform .8s cubic-bezier(.22,1,.36,1);z-index:-1}
         .btn-dark:hover::before{transform:translateX(120%)}
-        .btn-dark:hover{box-shadow:0 20px 40px -12px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.2)}
+        .btn-dark:hover{box-shadow:0 10px 22px -12px rgba(20,18,12,.55),inset 0 1px 0 rgba(255,255,255,.2)}
         .btn-dark:active{transform:scale(.97)}
         .btn-light{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#fff;color:${ink};border:1px solid ${line};padding:13px 24px;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:${fontSans};box-shadow:0 3px 10px -2px rgba(0,0,0,.04);transition:all .3s cubic-bezier(.22,1,.36,1)}
         .btn-light:hover{border-color:${inkFaint};box-shadow:0 10px 22px -6px rgba(0,0,0,.1)}
         .btn-light:active{transform:scale(.97)}
-        .btn-gold{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:${goldSoft};color:${ink};border:none;padding:14px 28px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:${fontSans};box-shadow:0 14px 30px -10px rgba(245,166,35,.5),inset 0 1px 0 rgba(255,255,255,.4);transition:all .3s cubic-bezier(.22,1,.36,1)}
-        .btn-gold:hover{transform:translateY(-1px);box-shadow:0 20px 42px -10px rgba(245,166,35,.6),inset 0 1px 0 rgba(255,255,255,.5)}
+        .btn-gold{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:${goldSoft};color:${ink};border:none;padding:14px 28px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:${fontSans};box-shadow:inset 0 1px 0 rgba(255,255,255,.4);transition:all .3s cubic-bezier(.22,1,.36,1)}
+        .btn-gold:hover{transform:translateY(-1px);filter:brightness(1.04)}
         .card{position:relative;background:${card};border:1px solid ${line};border-radius:20px;transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .5s cubic-bezier(.22,1,.36,1),border-color .5s}
         .card:hover{transform:translateY(-4px);border-color:#D4D1CA;box-shadow:0 24px 48px -28px rgba(15,15,15,.22),0 2px 6px -2px rgba(15,15,15,.06)}
         .spot::before,.spot::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .45s}
@@ -328,16 +299,15 @@ export default function Landing() {
         .nav-link:hover{color:${ink}}
         .nav-link::after{content:"";position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:0;height:1.5px;background:${ink};border-radius:2px;transition:width .5s cubic-bezier(.16,1,.3,1)}
         .nav-link:hover::after{width:100%}
+        .hero-stage{transform-style:preserve-3d}
         .hero-layer{position:absolute;will-change:transform}
         .hero-layer:hover{z-index:50 !important}
         .hero-card{background:${card};border:1px solid ${line};border-radius:16px;padding:18px;box-shadow:0 22px 50px -24px rgba(15,15,15,.25),0 2px 8px -2px rgba(15,15,15,.06);transition:box-shadow .55s cubic-bezier(.22,1,.36,1)}
         .hero-layer:hover .hero-card{box-shadow:0 46px 70px -20px rgba(15,15,15,.4)}
-        .dot-grid{background-image:radial-gradient(${ink}1F 1px,transparent 1px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,#000 30%,transparent 75%);mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,#000 30%,transparent 75%)}
         .marquee{display:flex;width:max-content;animation:marquee 38s linear infinite}
         .marquee-wrap:hover .marquee{animation-play-state:paused}
         .chip{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;margin-right:12px;background:${card};border:1px solid ${line};border-radius:100px;white-space:nowrap;font-size:13.5px;color:${inkMid};transition:border-color .3s,color .3s}
         .chip:hover{border-color:${inkFaint};color:${ink}}
-        .beam{position:relative;padding:1.5px;border-radius:30px;background:conic-gradient(from var(--beam),transparent 0 70%,${goldSoft} 82%,#fff 86%,transparent 92%),#262626;animation:beam 5s linear infinite}
         .steps-progress{transform:scaleX(0);transform-origin:left}
         .scroll-progress{transform:scaleX(0);transform-origin:left}
         ::selection{background:${goldSoft}40;color:${ink}}
@@ -347,7 +317,7 @@ export default function Landing() {
         ::-webkit-scrollbar-thumb:hover{background:${inkFaint}}
         a{color:inherit;text-decoration:none}
         @media (prefers-reduced-motion: reduce){
-          .marquee,.beam{animation:none}
+          .marquee{animation:none}
           .card:hover{transform:none}
         }
       `}</style>
@@ -375,84 +345,52 @@ export default function Landing() {
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button className="btn-light nav-login" style={{ padding: "9px 16px", fontSize: 13, borderRadius: 12 }} onClick={() => nav("/auth")}>Log in</button>
-            <button className="btn-dark" style={{ padding: "9px 18px", fontSize: 13, borderRadius: 12 }} onClick={() => nav("/auth")}>Start free →</button>
+            <button className="btn-dark" style={{ padding: "9px 18px", fontSize: 13, borderRadius: 12 }} onClick={() => nav("/auth")}>Start free</button>
           </div>
         </div>
       </nav>
 
       {/* HERO */}
-      <section id="top" className="hero" style={{ position: "relative", padding: "140px 28px 70px" }}>
-        <div className="dot-grid" aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
-        <div className="aurora-a" aria-hidden="true" style={{ position: "absolute", top: 80, left: "28%", width: 620, height: 420, borderRadius: "50%", background: `${goldSoft}1C`, filter: "blur(90px)", pointerEvents: "none" }} />
-        <div className="aurora-b" aria-hidden="true" style={{ position: "absolute", top: 260, right: "6%", width: 420, height: 360, borderRadius: "50%", background: `${stamp}10`, filter: "blur(90px)", pointerEvents: "none" }} />
+      <section id="top" className="hero" style={{ position: "relative", padding: "112px 28px 70px" }}>
 
         <div style={{ position: "relative", maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.1fr)", gap: 60, alignItems: "center" }} className="hero-grid">
           <div className="hero-copy">
             {/* eyebrow */}
             <div className="hero-eyebrow" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "7px 14px 7px 12px", background: card, border: `1px solid ${line}`, borderRadius: 100, marginBottom: 32, boxShadow: "0 2px 10px -2px rgba(0,0,0,.04)" }}>
-              <span style={{ position: "relative", width: 7, height: 7 }}>
-                <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: `${goldSoft}70`, animation: "ping 1.5s cubic-bezier(0,0,.2,1) infinite" }} />
-                <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: goldSoft }} />
-              </span>
-              <span className="mono" style={{ color: inkDeep, fontSize: 10.5 }}>For Indian Freelancers · Billing Globally</span>
+              <span className="mono" style={{ color: inkDeep, fontSize: 10.5 }}>For Indian freelancers billing globally</span>
             </div>
 
-            <h1 className="hero-h1" style={{ fontFamily: fontDisplay, fontSize: "clamp(44px,5.6vw,76px)", fontWeight: 500, lineHeight: 1.04, letterSpacing: "-1.5px", marginBottom: 24, color: ink }}>
-              Get paid<br />
-              <span style={{ fontStyle: "italic", fontWeight: 500, color: gold }}>before</span> the<br />
-              work begins.
+            <h1 className="hero-h1" style={{ fontFamily: fontDisplay, fontSize: "clamp(42px,5vw,68px)", fontWeight: 500, lineHeight: 1.06, letterSpacing: "-1.5px", marginBottom: 24, color: ink, maxWidth: "10.5em", textWrap: "balance" }}>
+              Get paid <span style={{ fontStyle: "italic", fontWeight: 500, color: gold }}>before</span> the work begins.
             </h1>
 
-            <p className="hero-fade" style={{ fontSize: 18.5, color: inkMid, lineHeight: 1.55, marginBottom: 10, maxWidth: 480, fontWeight: 400 }}>
-              Send one link to your <Typewriter words={["US client.", "UK agency.", "EU startup.", "Dubai founder."]} />
-            </p>
-            <p className="hero-fade" style={{ fontSize: 16, color: inkMid, lineHeight: 1.65, marginBottom: 36, maxWidth: 480 }}>
-              They sign the contract. They pay the deposit.{" "}
-              <span className="link-ul">You start the work — zero chasing.</span>
+            <p className="hero-fade" style={{ fontSize: 18.5, color: inkMid, lineHeight: 1.55, marginBottom: 36, maxWidth: 470, fontWeight: 400 }}>
+              Send one link. Your client signs the contract and pays the deposit on the same page.
             </p>
 
-            {/* copy-link block (terminal) */}
-            <div className="hero-fade" style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 14px 14px 18px", background: inkDeep, borderRadius: 16, maxWidth: 480, marginBottom: 28, boxShadow: "0 14px 30px -12px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06)", cursor: "pointer" }} onClick={copyLink}>
-              <span className="mono-sm" style={{ color: "#737373", fontSize: 10 }}>→</span>
-              <code style={{ flex: 1, fontFamily: fontMono, fontSize: 13, color: "#E5E5E5", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                flowdocs.co.in/sign/<span style={{ color: goldSoft }}>acme-corp</span>
-              </code>
-              <button style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.06)", color: "#fff", border: "1px solid rgba(255,255,255,.08)", padding: "7px 12px", borderRadius: 9, fontSize: 11.5, fontFamily: fontMono, fontWeight: 500, cursor: "pointer", textTransform: "uppercase", letterSpacing: ".1em" }}>
-                {copied ? <span style={{ color: "#4ADE80" }}>✓ Copied</span> : "Copy"}
-              </button>
-            </div>
-
-            <div className="hero-fade" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 32 }}>
-              <Magnetic><button className="btn-dark" onClick={() => nav("/auth")}>Start free — no card <span style={{ opacity: .6 }}>→</span></button></Magnetic>
+            <div className="hero-fade" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <Magnetic><button className="btn-dark" onClick={() => nav("/auth")}>Start free</button></Magnetic>
               <Magnetic strength={0.25}><button className="btn-light" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}>See how it works</button></Magnetic>
             </div>
 
-            <div className="hero-fade" style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              {["Free forever plan", "Audit trail included", "USD · EUR · GBP"].map((t, i) => (
-                <span key={i} className="mono-sm" style={{ display: "flex", alignItems: "center", gap: 6, color: inkMid }}>
-                  <span style={{ color: stamp, fontSize: 11 }}>✓</span>{t}
-                </span>
-              ))}
-            </div>
           </div>
 
-          {/* Scattered document cards — layers move with the pointer at different depths */}
+          {/* Document stack: the three things a client does on one link (review, sign, pay).
+              Layers drift at different depths and the stack tilts in 3D with the pointer. */}
           <div className="hero-cards" style={{ position: "relative", height: 540, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div className="hero-stage" style={{ position: "relative", width: 600, height: 540, flexShrink: 0 }}>
-              {/* contract card — back-left */}
+            <div className="hero-stage" style={{ position: "relative", width: 600, height: 540, flexShrink: 0, perspective: 1400 }}>
+              {/* contract card, back left */}
               <div className="hero-layer" data-depth="0.5" style={{ width: 300, left: 0, top: "6%" }}>
                 <div className="hero-card" data-rot="-5">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                    <span className="mono-sm" style={{ color: inkFaint }}>Contract · §001</span>
-                    <span style={{ fontSize: 9, fontFamily: fontMono, color: stamp, border: `1px solid ${stamp}30`, padding: "3px 7px", borderRadius: 100, letterSpacing: ".1em", textTransform: "uppercase" }}>✓ Signed</span>
+                    <span className="mono-sm" style={{ color: inkFaint }}>Contract</span>
+                    <span style={{ fontSize: 11, color: stamp, border: `1px solid ${stamp}30`, padding: "3px 8px", borderRadius: 100, display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={11} weight="bold" />Signed</span>
                   </div>
                   <div style={{ fontFamily: fontDisplay, fontSize: 18, fontWeight: 500, marginBottom: 4, letterSpacing: "-.3px" }}>Brand Identity Design</div>
                   <div style={{ fontSize: 12, color: inkMid, marginBottom: 14 }}>For Acme Corp · United States</div>
                   <div style={{ height: 1, background: line, marginBottom: 14 }} />
                   {["Logo + wordmark", "Brand guidelines PDF", "4 weeks delivery"].map((t, i) => (
-                    <div key={i} style={{ fontSize: 12, color: inkMid, marginBottom: 5, display: "flex", gap: 6 }}>
-                      <span style={{ color: inkFaint, fontFamily: fontMono, fontSize: 10 }}>0{i + 1}</span>{t}
-                    </div>
+                    <div key={i} style={{ fontSize: 12, color: inkMid, marginBottom: 5 }}>{t}</div>
                   ))}
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${line}`, display: "flex", justifyContent: "space-between" }}>
                     <span className="mono-sm">Total</span>
@@ -461,7 +399,7 @@ export default function Landing() {
                 </div>
               </div>
 
-              {/* payment card — top-right */}
+              {/* payment card, top right */}
               <div className="hero-layer" data-depth="0.8" style={{ width: 240, right: 0, top: 0 }}>
                 <div className="hero-card" data-rot="4">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -469,20 +407,17 @@ export default function Landing() {
                     <div style={{ width: 24, height: 24, borderRadius: 7, background: `${goldSoft}18`, display: "flex", alignItems: "center", justifyContent: "center", color: gold, fontSize: 12, fontWeight: 700 }}>$</div>
                   </div>
                   <div style={{ fontFamily: fontDisplay, fontSize: 30, fontWeight: 600, letterSpacing: "-.5px", marginBottom: 2 }}>$1,750</div>
-                  <div style={{ fontSize: 11.5, color: stamp, fontWeight: 500, marginBottom: 14 }}>↑ Received · 2 min ago</div>
-                  <div style={{ height: 4, background: lineSoft, borderRadius: 100, overflow: "hidden", marginBottom: 6 }}>
-                    <div style={{ width: "50%", height: "100%", background: `linear-gradient(90deg,${goldSoft},${gold})`, borderRadius: 100 }} />
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: inkFaint, fontFamily: fontMono }}>
-                    <span>50% paid</span><span>$1,750 due</span>
+                  <div style={{ fontSize: 11.5, color: stamp, fontWeight: 500, marginBottom: 14 }}>Received via Razorpay</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: inkMid, borderTop: `1px solid ${lineSoft}`, paddingTop: 10 }}>
+                    <span>Balance on delivery</span><span style={{ fontFamily: fontMono }}>$1,750</span>
                   </div>
                 </div>
               </div>
 
-              {/* signature card — center-front */}
+              {/* signature card, centre front */}
               <div className="hero-layer" data-depth="1.3" style={{ width: 260, left: "18%", top: "50%", zIndex: 10 }}>
                 <div className="hero-card" data-rot="2">
-                  <div className="mono-sm" style={{ marginBottom: 10, color: inkFaint }}>eSignature · verified</div>
+                  <div className="mono-sm" style={{ marginBottom: 10, color: inkFaint }}>eSignature</div>
                   <svg width="100%" height="70" viewBox="0 0 220 70" style={{ marginBottom: 10 }}>
                     <path className="hero-sig" d="M10,45 Q35,15 55,42 Q75,65 95,30 Q120,10 145,38 Q165,58 185,25 L205,40"
                       stroke={ink} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeDasharray="260" />
@@ -490,27 +425,13 @@ export default function Landing() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderTop: `1px solid ${line}`, paddingTop: 10 }}>
                     <div>
                       <div style={{ fontFamily: fontDisplay, fontSize: 14, fontWeight: 500 }}>Priya Sharma</div>
-                      <div className="mono-sm" style={{ fontSize: 9.5 }}>oct 06, 2026 · 14:32 IST</div>
+                      <div className="mono-sm" style={{ fontSize: 11 }}>6 Oct 2026, 2:32 pm IST</div>
                     </div>
-                    <div style={{ fontSize: 10, color: stamp, fontWeight: 600 }}>✓ Timestamped</div>
+                    <div style={{ fontSize: 11, color: stamp, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={11} weight="bold" />Timestamped</div>
                   </div>
                 </div>
               </div>
 
-              {/* ledger card — bottom-right */}
-              <div className="hero-layer" data-depth="0.65" style={{ width: 230, right: 0, bottom: "2%" }}>
-                <div className="hero-card" data-rot="-3">
-                  <div className="mono-sm" style={{ marginBottom: 12 }}>This month</div>
-                  <div style={{ fontFamily: fontDisplay, fontSize: 26, fontWeight: 600, letterSpacing: "-.5px" }}>$12,400</div>
-                  <div style={{ fontSize: 11, color: stamp, marginBottom: 14, fontWeight: 500 }}>↑ 34% vs last month</div>
-                  {[["Studio Berlin", "€2.2k"], ["TechBase UK", "£1.8k"], ["Acme (US)", "$3.5k"]].map(([n, a], i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderTop: i > 0 ? `1px solid ${lineSoft}` : "none", fontSize: 11.5 }}>
-                      <span style={{ color: inkMid }}>{n}</span>
-                      <span style={{ fontFamily: fontMono, fontWeight: 600, color: ink }}>{a}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -518,7 +439,7 @@ export default function Landing() {
 
       {/* CURRENCY MARQUEE */}
       <section aria-label="Supported currencies" style={{ padding: "10px 0 70px" }}>
-        <div className="mono-sm" style={{ textAlign: "center", marginBottom: 18 }}>Bill clients in 8 currencies</div>
+        <p style={{ textAlign: "center", marginBottom: 18, fontSize: 14, color: inkMid }}>Bill clients in 8 currencies</p>
         <div className="marquee-wrap" style={{ overflow: "hidden", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)", maskImage: "linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)" }}>
           <div className="marquee">
             {[0, 1].map(k => (
@@ -555,23 +476,18 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* HOW IT WORKS — pinned horizontal scroll on desktop */}
+      {/* HOW IT WORKS: pinned horizontal scroll on desktop */}
       <section id="how-it-works" className="steps-pin" style={{ padding: "110px 28px 60px" }}>
         <div style={{ maxWidth: 1200, width: "100%", margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 20, marginBottom: 40 }}>
-            <div>
-              <div className="mono" style={{ marginBottom: 14 }}>§ 01 · How it works</div>
-              <h2 data-split style={{ fontFamily: fontDisplay, fontSize: "clamp(34px,4.6vw,54px)", fontWeight: 500, letterSpacing: "-1px", lineHeight: 1.08, maxWidth: 640 }}>
-                Four clauses. <span style={{ fontStyle: "italic", color: gold }}>One</span> agreement.
-              </h2>
-            </div>
-            <div style={{ maxWidth: 320 }}>
-              <p style={{ fontSize: 15.5, color: inkMid, lineHeight: 1.6, marginBottom: 16 }}>
-                From draft to deposit, without a single back-and-forth email.
-              </p>
-              <div className="steps-bar" style={{ height: 2, background: line, borderRadius: 2, overflow: "hidden" }}>
-                <div className="steps-progress" style={{ height: "100%", background: ink }} />
-              </div>
+          <div style={{ marginBottom: 40, maxWidth: 640 }}>
+            <h2 data-split style={{ fontFamily: fontDisplay, fontSize: "clamp(34px,4.6vw,54px)", fontWeight: 500, letterSpacing: "-1px", lineHeight: 1.08 }}>
+              Four clauses. <span style={{ fontStyle: "italic", color: gold }}>One</span> agreement.
+            </h2>
+            <p style={{ fontSize: 16, color: inkMid, lineHeight: 1.6, marginTop: 14 }}>
+              From draft to deposit, without a single back-and-forth email.
+            </p>
+            <div className="steps-bar" style={{ height: 2, background: line, borderRadius: 2, overflow: "hidden", marginTop: 22, maxWidth: 320 }}>
+              <div className="steps-progress" style={{ height: "100%", background: ink }} />
             </div>
           </div>
 
@@ -579,10 +495,7 @@ export default function Landing() {
             <div className="steps-track" style={{ display: "flex", gap: 18, width: "max-content" }}>
               {STEPS.map((s, i) => (
                 <div key={i} className="step-card card" data-reveal style={{ width: 440, minHeight: 360, padding: 30, display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span className="step-num" style={{ fontFamily: fontDisplay, fontSize: 64, fontWeight: 500, lineHeight: 1, color: gold, letterSpacing: "-2px" }}>0{i + 1}</span>
-                    <span className="mono-sm">Step {i + 1} / {STEPS.length}</span>
-                  </div>
+                  <span className="step-num" style={{ fontFamily: fontDisplay, fontSize: 56, fontWeight: 500, lineHeight: 1, color: gold, letterSpacing: "-1px" }}>§{i + 1}</span>
                   <div style={{ fontFamily: fontDisplay, fontSize: 26, fontWeight: 500, letterSpacing: "-.4px", color: ink, marginTop: 6 }}>{s.title}</div>
                   <div style={{ fontSize: 14.5, color: inkMid, lineHeight: 1.65, maxWidth: 360 }}>{s.body}</div>
                   <div style={{ marginTop: "auto", background: bg, border: `1px solid ${lineSoft}`, borderRadius: 14, padding: 16 }}>
@@ -595,11 +508,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FEATURES — bento with spotlight borders */}
+      {/* FEATURES: bento with spotlight borders */}
       <section id="features" style={{ padding: "60px 28px 110px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ marginBottom: 44 }}>
-            <div className="mono" style={{ marginBottom: 14 }}>§ 02 · Features</div>
             <h2 data-split style={{ fontFamily: fontDisplay, fontSize: "clamp(34px,4.6vw,54px)", fontWeight: 500, letterSpacing: "-1px", lineHeight: 1.08, maxWidth: 720 }}>
               Everything between <span style={{ fontStyle: "italic", color: gold }}>yes</span> and paid.
             </h2>
@@ -615,28 +527,37 @@ export default function Landing() {
                 <line x1="10" y1="80" x2="290" y2="80" stroke={line} strokeDasharray="4 4" />
               </svg>
             </div>
-            <div data-reveal className="card spot" style={{ gridColumn: "span 2", padding: 30, minHeight: 260 }}>
+            <div data-reveal className="card spot b-tall" style={{ gridColumn: "span 2", gridRow: "span 2", padding: 30, minHeight: 260, background: bgAlt, display: "flex", flexDirection: "column" }}>
               <div className="mono-sm" style={{ marginBottom: 12, color: gold }}>AI drafting</div>
-              <div style={{ fontFamily: fontDisplay, fontSize: 22, fontWeight: 500, letterSpacing: "-.3px", marginBottom: 18 }}>One brief in. A full contract out.</div>
-              {/* skeleton lines doubling as "AI is writing" */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {[100, 86, 94, 60].map((w, i) => <div key={i} className="sk" style={{ width: `${w}%`, height: 9, borderRadius: 6 }} />)}
+              <div style={{ fontFamily: fontDisplay, fontSize: 22, fontWeight: 500, letterSpacing: "-.3px", marginBottom: 10 }}>One brief in. A full contract out.</div>
+              <p style={{ fontSize: 13.5, color: inkMid, lineHeight: 1.6, marginBottom: 20 }}>Describe the job in a line. Scope, milestones and payment terms come back ready to edit.</p>
+              {/* brief in, skeleton lines doubling as "AI is writing" */}
+              <div style={{ marginTop: "auto", background: card, border: `1px solid ${line}`, borderRadius: 14, padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontSize: 12.5, color: inkMid }}>
+                  <Sparkle size={14} weight="fill" color={gold} aria-hidden="true" />
+                  "Website for a Pune bakery, ₹40k, 3 weeks"
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                  {[100, 86, 94, 72, 88, 60].map((w, i) => <div key={i} className="sk" style={{ width: `${w}%`, height: 9, borderRadius: 6 }} />)}
+                </div>
               </div>
             </div>
-            <div data-reveal className="card spot" style={{ gridColumn: "span 2", padding: 30, minHeight: 220 }}>
+            <div data-reveal className="card spot" style={{ gridColumn: "span 2", padding: 30, minHeight: 220, background: `${goldSoft}14`, borderColor: `${goldSoft}40` }}>
               <div className="mono-sm" style={{ marginBottom: 12, color: gold }}>Razorpay</div>
               <div style={{ fontFamily: fontDisplay, fontSize: 22, fontWeight: 500, letterSpacing: "-.3px", marginBottom: 10 }}>Deposits collected on the same page.</div>
-              <p style={{ fontSize: 13.5, color: inkMid, lineHeight: 1.6 }}>Your client pays right after signing — no separate invoice to chase.</p>
+              <p style={{ fontSize: 13.5, color: inkMid, lineHeight: 1.6 }}>Your client pays right after signing. No separate invoice to chase.</p>
             </div>
             <div data-reveal className="card spot" style={{ gridColumn: "span 2", padding: 30, minHeight: 220 }}>
               <div className="mono-sm" style={{ marginBottom: 12, color: gold }}>GST invoices</div>
               <div style={{ fontFamily: fontDisplay, fontSize: 22, fontWeight: 500, letterSpacing: "-.3px", marginBottom: 10 }}>Compliant invoices, one click.</div>
               <p style={{ fontSize: 13.5, color: inkMid, lineHeight: 1.6 }}>GSTIN plus CGST/SGST or IGST lines, calculated for you.</p>
             </div>
-            <div data-reveal className="card spot" style={{ gridColumn: "span 2", padding: 30, minHeight: 220 }}>
-              <div className="mono-sm" style={{ marginBottom: 12, color: gold }}>Auto reminders</div>
-              <div style={{ fontFamily: fontDisplay, fontSize: 22, fontWeight: 500, letterSpacing: "-.3px", marginBottom: 10 }}>We chase. You don't.</div>
-              <p style={{ fontSize: 13.5, color: inkMid, lineHeight: 1.6 }}>Follow-ups go out when a proposal sits unopened or unsigned.</p>
+            <div data-reveal className="card spot b-full" style={{ gridColumn: "span 6", padding: "28px 30px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap", background: inkDeep, borderColor: inkDeep, color: "#F5F4F2" }}>
+              <div>
+                <div className="mono-sm" style={{ marginBottom: 10, color: goldSoft }}>Auto reminders</div>
+                <div style={{ fontFamily: fontDisplay, fontSize: 26, fontWeight: 500, letterSpacing: "-.4px" }}>We chase. You don't.</div>
+              </div>
+              <p style={{ fontSize: 14, color: "#C9C6BF", lineHeight: 1.6, maxWidth: 420 }}>Follow-ups go out when a proposal sits unopened or unsigned, so you never have to send the awkward email.</p>
             </div>
           </div>
         </div>
@@ -646,7 +567,6 @@ export default function Landing() {
       <section id="pricing" style={{ padding: "0 28px 110px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div className="mono" style={{ marginBottom: 14 }}>§ 03 · Pricing</div>
             <h2 data-split style={{ fontFamily: fontDisplay, fontSize: "clamp(34px,4.6vw,54px)", fontWeight: 500, letterSpacing: "-1px", lineHeight: 1.08, marginBottom: 16 }}>
               Simple terms, <span style={{ fontStyle: "italic", color: gold }}>no</span> fine print.
             </h2>
@@ -675,7 +595,7 @@ export default function Landing() {
                   <div style={{ flex: 1 }}>
                     {p.features.map((f, i) => (
                       <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", fontSize: 13.5, color: inkMid }}>
-                        <span style={{ color: stamp, fontWeight: 700 }}>✓</span>{f}
+                        <Check size={15} weight="bold" color={stamp} aria-hidden="true" style={{ flexShrink: 0 }} />{f}
                       </div>
                     ))}
                   </div>
@@ -687,20 +607,16 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FOUNDING MEMBERS — rotating beam border */}
+      {/* FOUNDING MEMBERS */}
       <section id="founding" style={{ padding: "0 28px 110px" }}>
         <div data-reveal style={{ maxWidth: 620, margin: "0 auto" }}>
-          <div className="beam" style={{ boxShadow: "0 40px 80px -30px rgba(0,0,0,.5)" }}>
-            <div style={{ position: "relative", background: inkDeep, borderRadius: 28.5, padding: "48px 44px", textAlign: "center", overflow: "hidden" }} className="founding-inner">
-              <div style={{ position: "absolute", top: -120, left: "50%", transform: "translateX(-50%)", width: 480, height: 320, borderRadius: "50%", background: `${goldSoft}22`, filter: "blur(80px)", pointerEvents: "none" }} />
+          <div>
+            <div style={{ position: "relative", background: inkDeep, border: "1px solid #2A2A2A", borderRadius: 28, padding: "48px 44px", textAlign: "center", overflow: "hidden" }} className="founding-inner">
 
               <div style={{ position: "relative" }}>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px 6px 10px", background: "rgba(245,166,35,.1)", border: `1px solid ${goldSoft}30`, borderRadius: 100, marginBottom: 22 }}>
-                  <span style={{ position: "relative", width: 6, height: 6 }}>
-                    <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: `${goldSoft}70`, animation: "ping 1.5s cubic-bezier(0,0,.2,1) infinite" }} />
-                    <span style={{ position: "absolute", inset: 0, borderRadius: "50%", background: goldSoft }} />
-                  </span>
-                  <span style={{ fontFamily: fontMono, fontSize: 10.5, color: goldSoft, fontWeight: 600, letterSpacing: ".14em", textTransform: "uppercase" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: goldSoft }} aria-hidden="true" />
+                  <span style={{ fontSize: 12.5, color: goldSoft, fontWeight: 600 }}>
                     Only {20 - foundingCount} spots left
                   </span>
                 </div>
@@ -720,25 +636,19 @@ export default function Landing() {
                 <div className="founding-feats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px", textAlign: "left", marginBottom: 32, padding: "0 10px" }}>
                   {["Unlimited documents", "eSignature with audit trail", "GST invoices", "Razorpay payments", "Auto reminders", "9 templates"].map((f, i) => (
                     <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#D4D4D4" }}>
-                      <span style={{ color: goldSoft, fontWeight: 700 }}>✓</span>{f}
+                      <Check size={14} weight="bold" color={goldSoft} aria-hidden="true" style={{ flexShrink: 0 }} />{f}
                     </div>
                   ))}
                 </div>
 
-                <div style={{ marginBottom: 28 }}>
-                  <div style={{ width: "100%", height: 6, background: "#262626", borderRadius: 100, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${Math.min((foundingCount / 20) * 100, 100)}%`, background: `linear-gradient(90deg,${goldSoft},${gold})`, borderRadius: 100, boxShadow: `0 0 12px ${goldSoft}80`, transition: "width 1.2s cubic-bezier(.22,1,.36,1)" }} />
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, fontFamily: fontMono, color: "#A3A3A3", letterSpacing: ".1em", textTransform: "uppercase" }}>
-                    <span><strong style={{ color: "#fff" }}>{foundingCount}</strong> / 20 claimed</span>
-                    <span>{20 - foundingCount} remaining</span>
-                  </div>
-                </div>
+                <p style={{ marginBottom: 24, fontSize: 13, color: "#A3A3A3" }}>
+                  <strong style={{ color: "#F5F4F2", fontFamily: fontMono }}>{foundingCount}</strong> of 20 founding spots claimed
+                </p>
 
                 <button className="btn-gold" style={{ width: "100%", padding: "16px" }} onClick={() => nav("/auth")}>
-                  Claim my founding spot →
+                  Claim my founding spot
                 </button>
-                <p style={{ fontSize: 11.5, color: "#737373", marginTop: 14, fontFamily: fontMono, letterSpacing: ".1em", textTransform: "uppercase" }}>No credit card · Cancel anytime</p>
+                <p style={{ fontSize: 12.5, color: "#8A8A8A", marginTop: 14 }}>No credit card. Cancel anytime.</p>
               </div>
             </div>
           </div>
@@ -748,22 +658,18 @@ export default function Landing() {
       {/* FINAL CTA */}
       <section style={{ padding: "0 28px 100px" }}>
         <div data-reveal style={{ maxWidth: 1200, margin: "0 auto", background: card, border: `1px solid ${line}`, borderRadius: 28, padding: "90px 32px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-          <div className="dot-grid" aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
-          <div style={{ position: "absolute", top: -200, left: "50%", transform: "translateX(-50%)", width: 600, height: 400, borderRadius: "50%", background: `${goldSoft}15`, filter: "blur(90px)", pointerEvents: "none" }} />
           <div style={{ position: "relative" }}>
-            <div className="mono" style={{ marginBottom: 20 }}>§ 04 · Ready</div>
             <h2 className="cta-h2" style={{ fontFamily: fontDisplay, fontSize: "clamp(40px,7vw,84px)", fontWeight: 500, letterSpacing: "-2px", lineHeight: 1.02, marginBottom: 22, color: ink }}>
               Send one link.<br />
               <span style={{ fontStyle: "italic", color: gold }}>Signed. Paid. Done.</span>
             </h2>
             <p style={{ fontSize: 16, color: inkMid, maxWidth: 460, margin: "0 auto 36px", lineHeight: 1.6 }}>
-              Indian freelancers use FlowDocs to close international clients — without the back-and-forth.
+              Built for Indian freelancers closing international clients, without the back-and-forth.
             </p>
             <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-              <Magnetic><button className="btn-dark" style={{ padding: "16px 32px", fontSize: 15 }} onClick={() => nav("/auth")}>Start free, no card →</button></Magnetic>
+              <Magnetic><button className="btn-dark" style={{ padding: "16px 32px", fontSize: 15 }} onClick={() => nav("/auth")}>Start free</button></Magnetic>
               <Magnetic strength={0.25}><button className="btn-light" style={{ padding: "15px 28px", fontSize: 14 }} onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}>See pricing</button></Magnetic>
             </div>
-            <div className="mono-sm" style={{ marginTop: 24, color: inkFaint }}>flowdocs.co.in</div>
           </div>
         </div>
       </section>
@@ -809,7 +715,7 @@ export default function Landing() {
             Flow<span style={{ fontStyle: "italic" }}>Docs</span>
           </div>
           <div style={{ paddingTop: 24, borderTop: `1px solid ${line}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-            <div className="mono-sm">© {new Date().getFullYear()} FlowDocs · Built in India</div>
+            <div className="mono-sm">© {new Date().getFullYear()} FlowDocs, built in India</div>
             <div className="mono-sm">Made for freelancers, by Bidyut</div>
           </div>
         </div>
@@ -828,7 +734,8 @@ export default function Landing() {
           .step-card { width: auto !important; }
           .steps-bar { display: none; }
           .bento > * { grid-column: span 3 !important; }
-          .bento > .b-wide { grid-column: span 6 !important; }
+          .bento > .b-wide, .bento > .b-full { grid-column: span 6 !important; }
+          .bento > .b-tall { grid-row: auto !important; }
         }
         @media (max-width: 560px) {
           .hero { padding-top: 116px !important; }
@@ -853,7 +760,7 @@ function StepVisual({ i }) {
   if (i === 0) return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ width: 18, height: 18, borderRadius: 6, background: ink, color: goldSoft, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>✦</span>
+        <span style={{ width: 18, height: 18, borderRadius: 6, background: ink, color: goldSoft, display: "flex", alignItems: "center", justifyContent: "center" }}><Sparkle size={11} weight="fill" /></span>
         <span style={{ fontSize: 12.5, color: inkMid }}>"Logo for Acme, $3.5k, 4 weeks"</span>
       </div>
       {[100, 82, 92].map((w, k) => <div key={k} className="sk" style={{ width: `${w}%`, height: 8, borderRadius: 6, marginBottom: 7 }} />)}
@@ -864,13 +771,18 @@ function StepVisual({ i }) {
       <code style={{ flex: 1, minWidth: 0, fontFamily: fontMono, fontSize: 12, color: "#E5E5E5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         flowdocs.co.in/sign/<span style={{ color: goldSoft }}>acme-corp</span>
       </code>
-      <span style={{ fontFamily: fontMono, fontSize: 10, color: "#A3A3A3", letterSpacing: ".1em" }}>COPY</span>
+      <span style={{ fontSize: 11, color: "#A3A3A3" }}>Copy</span>
     </div>
   );
   if (i === 2) return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      {["✉ Email", "◍ WhatsApp", "# Slack", "↗ Any link"].map(t => (
-        <span key={t} style={{ fontSize: 12, padding: "7px 12px", borderRadius: 100, background: card, border: `1px solid ${line}`, color: inkMid }}>{t}</span>
+      {[
+        [<EnvelopeSimple size={14} aria-hidden="true" />, "Email"],
+        [<WhatsappLogo size={14} aria-hidden="true" />, "WhatsApp"],
+        [<SlackLogo size={14} aria-hidden="true" />, "Slack"],
+        [<LinkSimple size={14} aria-hidden="true" />, "Any link"],
+      ].map(([icon, t]) => (
+        <span key={t} style={{ fontSize: 12, padding: "7px 12px", borderRadius: 100, background: card, border: `1px solid ${line}`, color: inkMid, display: "inline-flex", alignItems: "center", gap: 6 }}>{icon}{t}</span>
       ))}
     </div>
   );
@@ -880,7 +792,7 @@ function StepVisual({ i }) {
         <div style={{ fontFamily: fontDisplay, fontSize: 24, fontWeight: 600, letterSpacing: "-.5px" }}>$1,750</div>
         <div style={{ fontSize: 11.5, color: stamp, fontWeight: 500 }}>Deposit received</div>
       </div>
-      <span style={{ fontFamily: fontMono, fontSize: 10, color: stamp, border: `1.5px solid ${stamp}`, padding: "6px 10px", borderRadius: 8, letterSpacing: ".14em", textTransform: "uppercase", transform: "rotate(-6deg)", fontWeight: 600 }}>✓ Signed</span>
+      <span style={{ fontSize: 12, color: stamp, border: `1.5px solid ${stamp}`, padding: "6px 10px", borderRadius: 8, transform: "rotate(-6deg)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={12} weight="bold" />Signed</span>
     </div>
   );
 }
