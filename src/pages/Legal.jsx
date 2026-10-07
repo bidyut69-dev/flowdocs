@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
 const bg = "#F5F4F2";
-const bgAlt = "#EFEDE8";
 const card = "#FFFFFF";
 const ink = "#0A0A0A";
 const inkMid = "#525252";

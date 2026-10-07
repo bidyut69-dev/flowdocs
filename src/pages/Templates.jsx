@@ -2,11 +2,9 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { PROPOSAL_TEMPLATES } from "../lib/templates";
 
-const bg = "#F5F4F2";
 const bgAlt = "#EFEDE8";
 const card = "#FFFFFF";
 const ink = "#0A0A0A";
-const inkDeep = "#151515";
 const inkMid = "#525252";
 const inkFaint = "#A3A3A3";
 const line = "#E7E5E0";

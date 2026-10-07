@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { generateProposal, generateContract, generateInvoiceItems, generateFollowUpEmail, generateNDA } from "../lib/ai";
 
-const bg = "#F5F4F2";
 const bgAlt = "#EFEDE8";
 const card = "#FFFFFF";
 const ink = "#0A0A0A";

@@ -4,14 +4,11 @@ import { supabase } from "../lib/supabase";
 
 // ── Palette ──────────────────────────────────────────────────────────────
 const bg = "#F5F4F2";
-const bgAlt = "#EFEDE8";
 const card = "#FFFFFF";
 const ink = "#0A0A0A";
-const inkDeep = "#151515";
 const inkMid = "#525252";
 const inkFaint = "#A3A3A3";
 const line = "#E7E5E0";
-const lineSoft = "#EFEDE8";
 const gold = "#C8820F";
 const goldSoft = "#F5A623";
 const stamp = "#1F6B46";

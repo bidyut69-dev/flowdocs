@@ -14,7 +14,6 @@ const line = "#E7E5E0";
 const lineSoft = "#EFEDE8";
 const gold = "#C8820F";
 const goldSoft = "#F5A623";
-const goldGlow = "#F5A62315";
 const stamp = "#1F6B46";
 const stampDim = "#1F6B4615";
 const red = "#B3432B";

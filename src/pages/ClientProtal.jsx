@@ -10,7 +10,6 @@ const bg = "#F5F4F2";
 const bgAlt = "#EFEDE8";
 const card = "#FFFFFF";
 const ink = "#0A0A0A";
-const inkDeep = "#151515";
 const inkMid = "#525252";
 const inkFaint = "#A3A3A3";
 const line = "#E7E5E0";
@@ -22,8 +21,6 @@ const stamp = "#1F6B46";
 const stampDim = "#1F6B4615";
 const red = "#B3432B";
 const redDim = "#B3432B15";
-const blue = "#2563EB";
-const blueDim = "#2563EB15";
 
 const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
 const fontSans = "'Manrope', 'Inter', system-ui, sans-serif";
