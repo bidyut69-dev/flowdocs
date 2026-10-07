@@ -231,7 +231,7 @@ export default function AIDocModal({ profile, onGenerated, onClose }) {
               {!import.meta.env.VITE_GEMINI_API_KEY && (
                 <div style={{ background: goldGlow, border: `1px solid ${goldSoft}40`, borderRadius: 12, padding: "11px 15px", fontSize: 12.5, color: gold, marginTop: 16, display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.5 }}>
                   <span style={{ fontSize: 15 }}>⚠️</span>
-                  <div>Add <strong style={{ fontFamily: fontMono, fontWeight: 600 }}>VITE_GEMINI_API_KEY</strong> to .env — free key at aistudio.google.com</div>
+                  <div>Add <strong style={{ fontFamily: fontMono, fontWeight: 600 }}>VITE_GEMINI_API_KEY</strong> to .env. Get a free key at aistudio.google.com</div>
                 </div>
               )}
 

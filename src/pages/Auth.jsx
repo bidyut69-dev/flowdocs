@@ -143,7 +143,7 @@ export default function Auth() {
             {mode === "login" ? <>Welcome <span style={{ fontStyle: "italic", color: gold }}>back</span></> : <>Get started <span style={{ fontStyle: "italic", color: gold }}>free</span></>}
           </h1>
           <p style={{ fontSize: 14, color: inkMid, marginBottom: 28, lineHeight: 1.5 }}>
-            {mode === "login" ? "Sign in to your FlowDocs workspace." : "Create your account — no credit card needed."}
+            {mode === "login" ? "Sign in to your FlowDocs workspace." : "Create your account. No credit card needed."}
           </p>
 
           {msg && (

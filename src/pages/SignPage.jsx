@@ -496,7 +496,7 @@ export default function SignPage() {
           borderRadius: 14, padding: "14px", fontSize: 15, fontWeight: 600,
           cursor: "pointer", fontFamily: FS,
         }}>
-          I've Read This — Proceed to Sign →
+          I've read it, continue to sign
         </button>
         <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14 }}>
           {["🔒 SSL Secured", "📋 IT Act 2000", "⚡ Powered by FlowDocs"].map((t, i) => (
@@ -631,7 +631,7 @@ export default function SignPage() {
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
           <div style={{ fontFamily: FD, fontSize: 22, fontWeight: 500, color: C.green, marginBottom: 6 }}>Document Signed!</div>
-          <div style={{ fontSize: 14, color: C.mid }}>One last step — pay your deposit to confirm the project.</div>
+          <div style={{ fontSize: 14, color: C.mid }}>One last step: pay your deposit to confirm the project.</div>
         </div>
 
         {depositCard}
@@ -742,7 +742,7 @@ export default function SignPage() {
                   <span style={{ width: 16, height: 16, border: `2px solid ${C.dim}`, borderTopColor: C.green, borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
                   Please wait...
                 </>
-              ) : "✅ I've Paid — Notify Freelancer"}
+              ) : "✅ I've paid, notify the freelancer"}
             </button>
             <div style={{ textAlign: "center", fontSize: 11, color: C.dim, marginBottom: 4 }}>
               Freelancer will verify and confirm your payment.
@@ -751,7 +751,7 @@ export default function SignPage() {
         )}
 
         <button onClick={skipPay} style={{ width: "100%", background: "transparent", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", padding: "8px", fontFamily: FS }}>
-          Skip for now — I'll pay later
+          Skip for now, I'll pay later
         </button>
       </div>
     );

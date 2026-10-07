@@ -279,7 +279,7 @@ export default function UpgradeModal({ session, profile, onClose, onUpgraded }) 
                   transition: "all .3s cubic-bezier(.22,1,.36,1)",
                 }}
               >
-                {loading ? "Opening payment…" : `Upgrade to ${plan.label} — ${getLabel()} →`}
+                {loading ? "Opening payment…" : `Upgrade to ${plan.label}: ${getLabel()}`}
               </button>
 
               <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 16, flexWrap: "wrap" }}>

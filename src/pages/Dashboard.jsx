@@ -226,7 +226,7 @@ export default function Dashboard({ session }) {
 
   // ── NEW: Share Client Portal ────────────────────────────────────────
   const shareClientPortal = (client) => {
-    if (!client?.email) return showToast("Client email nahi hai — portal share nahi ho sakta", false);
+    if (!client?.email) return showToast("Client email nahi hai, portal share nahi ho sakta", false);
     const url = `${APP_URL}/portal/${session.user.id}/${encodeURIComponent(client.email)}`;
     navigator.clipboard.writeText(url);
     showToast("✓ Client portal link copied!");
@@ -321,11 +321,11 @@ export default function Dashboard({ session }) {
           amount: doc.amount ? fmtCur(doc.amount, doc.currency || "INR") : null,
         });
         if (emailOk) showToast("✓ Email sent to " + client.email + "!");
-        else { navigator.clipboard.writeText(signingUrl).catch(() => {}); showToast("⚠️ Email failed — link copied!", false); }
-      } catch { navigator.clipboard.writeText(signingUrl).catch(() => {}); showToast("⚠️ Email error — link copied!", false); }
+        else { navigator.clipboard.writeText(signingUrl).catch(() => {}); showToast("⚠️ Email failed. Link copied!", false); }
+      } catch { navigator.clipboard.writeText(signingUrl).catch(() => {}); showToast("⚠️ Email error. Link copied!", false); }
     } else {
       navigator.clipboard.writeText(signingUrl).catch(() => {});
-      showToast("✓ No email on client — signing link copied!");
+      showToast("✓ No email on client. Signing link copied!");
     }
   };
 
@@ -364,7 +364,7 @@ export default function Dashboard({ session }) {
 
   const markPaid = async (doc) => {
     const client = clients.find(c => c.id === doc.client_id) || doc.clients;
-    const confirmed = window.confirm(`Mark this invoice as PAID?\n\n"${doc.title}"\nClient: ${client?.name || "—"}\nAmount: ${fmtCur(doc.amount, doc.currency || "INR")}\n\nThis cannot be undone easily.`);
+    const confirmed = window.confirm(`Mark this invoice as PAID?\n\n"${doc.title}"\nClient: ${client?.name || "-"}\nAmount: ${fmtCur(doc.amount, doc.currency || "INR")}\n\nThis cannot be undone easily.`);
     if (!confirmed) return;
     const { error } = await supabase.from("documents").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", doc.id);
     if (!error) {
@@ -401,7 +401,7 @@ export default function Dashboard({ session }) {
     pending.forEach(doc => {
       const client = clients.find(c => c.id === doc.client_id) || doc.clients;
       const url = `${APP_URL}/sign/${doc.sign_token}`;
-      const msg = encodeURIComponent(`Hi ${client?.name || "there"},\n\nJust a reminder — your ${doc.type} is waiting for action:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 ${url}\n\nPowered by FlowDocs`);
+      const msg = encodeURIComponent(`Hi ${client?.name || "there"},\n\nJust a reminder: your ${doc.type} is waiting for action:\n\n📄 *${doc.title}*${doc.amount ? `\n💰 ${fmtCur(doc.amount, doc.currency || "INR")}` : ""}\n\n👉 ${url}\n\nPowered by FlowDocs`);
       window.open(`https://wa.me/?text=${msg}`, "_blank");
     });
     showToast(`✓ Opened ${pending.length} WhatsApp reminder(s)!`);
@@ -737,7 +737,7 @@ export default function Dashboard({ session }) {
                 </div>
               ) : (
                 <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.client_id} onChange={e => setDocForm({ ...docForm, client_id: e.target.value })}>
-                  <option value="">— Select Client —</option>
+                  <option value="">Select client</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</option>)}
                   <option value="__new__">+ Add New Client...</option>
                 </select>
@@ -751,7 +751,7 @@ export default function Dashboard({ session }) {
             <div>
               <label style={label}>Currency</label>
               <select style={{ ...input, color: C.text, background: C.surface2 }} value={docForm.currency} onChange={e => setDocForm({ ...docForm, currency: e.target.value })}>
-                {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (<option key={code} value={code}>{symbol} {code} — {currName}</option>))}
+                {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (<option key={code} value={code}>{symbol} {code} · {currName}</option>))}
               </select>
             </div>
           </div>
@@ -889,7 +889,7 @@ export default function Dashboard({ session }) {
             <div>
               <label style={label}>State</label>
               <select style={{ ...input, color: C.text, background: C.surface2 }} value={clientForm.state} onChange={e => setClientForm({ ...clientForm, state: e.target.value })}>
-                <option value="">— Select State —</option>
+                <option value="">Select state</option>
                 {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -973,7 +973,7 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                   <td style={{ padding: "14px 16px" }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: C.text, cursor: "pointer" }} onClick={() => onEdit?.(doc)}>{doc.title}</div>
                     <div style={{ fontSize: 12, color: C.dim, marginTop: 2 }}>
-                      {client?.name || "—"}
+                      {client?.name || "-"}
                       {doc.invoice_number && <span style={{ marginLeft: 6, fontSize: 10, color: C.gold, fontFamily: FM }}>{doc.invoice_number}</span>}
                       {doc.recurring_active && <span style={{ marginLeft: 6, fontSize: 9, background: C.purpleDim, color: C.purple, padding: "1px 6px", borderRadius: 10 }}>🔄 {doc.recurring_frequency}</span>}
                     </div>
@@ -986,7 +986,7 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                     </span>
                   </td>
                   <td style={{ padding: "14px 16px" }}>
-                    <span style={{ fontFamily: FM, fontSize: 13, color: C.text }}>{doc.amount ? fmtCur(doc.amount, cur) : "—"}</span>
+                    <span style={{ fontFamily: FM, fontSize: 13, color: C.text }}>{doc.amount ? fmtCur(doc.amount, cur) : "-"}</span>
                     {doc.tax_type && doc.tax_type !== "none" && <div style={{ fontSize: 9, color: C.dim, fontFamily: FM }}>+{doc.tax_type === "cgst_sgst" ? "GST" : "IGST"} {doc.tax_rate}%</div>}
                   </td>
                   <td style={{ padding: "14px 16px" }}>
@@ -998,7 +998,7 @@ function DocsTable({ docs, clients, profile, onSend, onDownload, onCopyLink, onW
                       {doc.status === "draft" && (
                         (clients.find(c => c.id === doc.client_id) || doc.clients)?.email
                           ? <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.gold, borderColor: C.gold, background: C.goldDim }} onClick={() => onSend(doc)} title="Send via Email">📧 Email</button>
-                          : <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.dim, borderColor: C.border }} onClick={() => onSend(doc)} title="No email — link will be copied">Send ↗</button>
+                          : <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: C.dim, borderColor: C.border }} onClick={() => onSend(doc)} title="No email, link will be copied">Send ↗</button>
                       )}
                       {doc.status === "pending" && (clients.find(c => c.id === doc.client_id) || doc.clients)?.email && (
                         <button style={{ ...btn("ghost"), fontSize: 11.5, padding: "5px 10px", color: "#60A5FA", borderColor: "#60A5FA", background: "#60A5FA18" }} onClick={() => onSend(doc)} title="Send reminder email">📧 Remind</button>
@@ -1190,7 +1190,7 @@ function AnalyticsPage({ documents, profile, monthlyRevenue, clientRevenue }) {
           <div style={{ marginTop: 20, padding: 12, background: C.surface2, borderRadius: 8 }}>
             <div style={{ fontSize: 11, color: C.dim, fontFamily: FM, marginBottom: 6 }}>COLLECTION RATE</div>
             <div style={{ fontFamily: FD, fontSize: 28, fontWeight: 600, color: totalBilled > 0 ? C.green : C.dim }}>
-              {totalBilled > 0 ? `${((totalPaid / totalBilled) * 100).toFixed(0)}%` : "—"}
+              {totalBilled > 0 ? `${((totalPaid / totalBilled) * 100).toFixed(0)}%` : "-"}
             </div>
           </div>
         </div>
@@ -1231,7 +1231,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
         </div>
         <label style={label}>Default Currency</label>
         <select style={{ ...input, color: C.text }} value={form.default_currency} onChange={e => setForm({ ...form, default_currency: e.target.value })}>
-          {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (<option key={code} value={code}>{symbol} {code} — {currName}</option>))}
+          {Object.entries(CURRENCIES).map(([code, { name: currName, symbol }]) => (<option key={code} value={code}>{symbol} {code} · {currName}</option>))}
         </select>
         <label style={label}>Address</label>
         <textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
@@ -1245,7 +1245,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
         </div>
         <label style={label}>State (Place of Supply)</label>
         <select style={{ ...input, color: C.text }} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })}>
-          <option value="">— Select State —</option>
+          <option value="">Select state</option>
           {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
@@ -1274,7 +1274,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
           )}
         </div>
         <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>
-          Allow clients to pay via Razorpay — Cards, UPI, Net Banking, and Wallets. Payments go directly to your Razorpay account.
+          Allow clients to pay via Razorpay: cards, UPI, net banking and wallets. Payments go directly to your Razorpay account.
         </div>
         <label style={{ ...label, marginTop: 0 }}>Razorpay Key ID</label>
         <input
@@ -1288,7 +1288,7 @@ function SettingsPage({ profile, onUpdate, showToast, session }) {
         </div>
         {form.razorpay_key_id && !form.razorpay_key_id.startsWith("rzp_") && (
           <div style={{ marginTop: 8, fontSize: 12, color: "#f59e0b", background: "#f59e0b15", border: "1px solid #f59e0b40", borderRadius: 11, padding: "8px 12px" }}>
-            ⚠️ Key ID should start with "rzp_live_" (production) or "rzp_test_" (test mode) — please double-check.
+            ⚠️ Key ID should start with "rzp_live_" (production) or "rzp_test_" (test mode). Please double-check.
           </div>
         )}
       </div>

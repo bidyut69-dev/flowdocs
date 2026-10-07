@@ -34,7 +34,7 @@ const TEMPLATES = {
 Scope of Work:
 • Custom homepage design (desktop + mobile)
 • Up to 5 inner pages (About, Services, Contact, Portfolio, Blog)
-• Responsive design — looks perfect on all devices
+• Responsive design that works on phones, tablets and desktops
 • Contact form integration
 • Basic SEO setup (meta tags, sitemap)
 • 2 rounds of revisions included
@@ -43,7 +43,7 @@ Timeline: 3-4 weeks from project kickoff
 
 What I need from you:
 • Brand assets (logo, colors, fonts if available)
-• Content (text, images) — or I can help with this
+• Content (text, images), or I can help with this
 • Reference websites you like
 
 Payment Terms:
@@ -65,7 +65,7 @@ Deliverables:
 Timeline: 1-2 weeks
 
 Process:
-1. Discovery call (30 min) — understand your brand
+1. Discovery call (30 min) to understand your brand
 2. Initial concepts delivered in 5 days
 3. Revisions & refinements
 4. Final delivery
@@ -254,7 +254,7 @@ export default function Onboarding({ session, profile, onComplete }) {
           <span style={{ fontFamily: fontDisplay, fontSize: 20, fontWeight: 600, letterSpacing: "-.3px" }}>FlowDocs</span>
         </div>
         <div style={{ textAlign: "center", fontSize: 14, color: inkMid, marginBottom: 32, fontFamily: fontSans }}>
-          Welcome, <span style={{ color: ink, fontWeight: 600 }}>{profile?.name?.split(" ")[0] || "there"}</span> — let's send your first proposal.
+          Welcome, <span style={{ color: ink, fontWeight: 600 }}>{profile?.name?.split(" ")[0] || "there"}</span>. Let's send your first proposal.
         </div>
 
         {/* Progress */}
@@ -294,7 +294,7 @@ export default function Onboarding({ session, profile, onComplete }) {
               Pick a <span style={{ fontStyle: "italic", color: gold }}>template</span>
             </h2>
             <p style={{ fontSize: 14, color: inkMid, marginBottom: 24, lineHeight: 1.55 }}>
-              Pre-filled and ready to send — edit after if needed.
+              Pre-filled and ready to send. Edit it later if needed.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {Object.entries(TEMPLATES).map(([key, t]) => {
@@ -321,7 +321,7 @@ export default function Onboarding({ session, profile, onComplete }) {
               Continue →
             </button>
             <button onClick={async () => { await onComplete(); nav("/dashboard"); }} style={{ width: "100%", marginTop: 12, background: "none", border: "none", color: inkMid, fontSize: 13, cursor: "pointer", fontFamily: fontSans, textDecoration: "underline", textDecorationColor: `${line}`, textUnderlineOffset: 4, padding: 8 }}>
-              Skip — go to dashboard
+              Skip, go to dashboard
             </button>
           </div>
         )}
@@ -333,7 +333,7 @@ export default function Onboarding({ session, profile, onComplete }) {
             <h2 style={{ fontFamily: fontDisplay, fontSize: 30, fontWeight: 500, letterSpacing: "-.5px", color: ink, lineHeight: 1.1, marginBottom: 10 }}>
               Who is this <span style={{ fontStyle: "italic", color: gold }}>for?</span>
             </h2>
-            <p style={{ fontSize: 14, color: inkMid, marginBottom: 24, lineHeight: 1.55 }}>Just a name is enough — email is optional.</p>
+            <p style={{ fontSize: 14, color: inkMid, marginBottom: 24, lineHeight: 1.55 }}>Just a name is enough. Email is optional.</p>
 
             <div style={{ marginBottom: 16 }}>
               <label style={lbl}>Client Name *</label>
@@ -368,7 +368,7 @@ export default function Onboarding({ session, profile, onComplete }) {
             <h2 style={{ fontFamily: fontDisplay, fontSize: 30, fontWeight: 500, letterSpacing: "-.5px", color: ink, lineHeight: 1.1, marginBottom: 10 }}>
               Set your <span style={{ fontStyle: "italic", color: gold }}>price</span>
             </h2>
-            <p style={{ fontSize: 14, color: inkMid, marginBottom: 24, lineHeight: 1.55 }}>Pre-filled from template — change if needed.</p>
+            <p style={{ fontSize: 14, color: inkMid, marginBottom: 24, lineHeight: 1.55 }}>Pre-filled from the template. Change it if needed.</p>
 
             <div style={{ background: bgAlt, border: `1px solid ${line}`, borderRadius: 14, padding: "16px 20px", marginBottom: 22 }}>
               <div style={{ fontFamily: fontMono, fontSize: 10, color: inkMid, letterSpacing: ".14em", textTransform: "uppercase", marginBottom: 4 }}>Sending to</div>
@@ -410,7 +410,7 @@ export default function Onboarding({ session, profile, onComplete }) {
                 Proposal <span style={{ fontStyle: "italic", color: gold }}>ready</span>
               </h2>
               <p style={{ fontSize: 14, color: inkMid, lineHeight: 1.65, marginBottom: 28, maxWidth: 420, margin: "0 auto 28px" }}>
-                Your proposal for <strong style={{ color: ink, fontWeight: 600 }}>{clientName}</strong> is live. Share the link — no account needed to sign.
+                Your proposal for <strong style={{ color: ink, fontWeight: 600 }}>{clientName}</strong> is live. Share the link. Your client does not need an account to sign.
               </p>
 
               <div style={{ background: inkDeep, borderRadius: 14, padding: "14px 18px", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, boxShadow: "0 14px 30px -12px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06)" }}>
