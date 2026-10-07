@@ -46,10 +46,13 @@ const trackCta = (cta, location) => posthog?.capture("cta_clicked", { cta, locat
 const trackPlan = (plan) => posthog?.capture("pricing_cta_clicked", { plan });
 const PRELOADER_KEY = "fd_preloader_seen";
 
-// Show the preloader once per browser session, never for reduced motion.
+// Show the preloader once per browser session on desktop only. Never on
+// phones (it delays the first readable paint on slow networks) and never
+// for reduced motion.
 function shouldShowPreloader() {
   try {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return false;
+    if (!window.matchMedia?.("(min-width: 961px)").matches) return false;
     return sessionStorage.getItem(PRELOADER_KEY) !== "1";
   } catch {
     return false;
@@ -160,12 +163,16 @@ export default function Landing() {
       if (!motion) return;
 
       // ── Hero intro (paused until the preloader lifts) ──
-      const heading = SplitText.create(".hero-h1", { type: "words", mask: "words" });
+      // Hero text animates on desktop only. On phones it paints immediately,
+      // because it is the largest contentful paint and every fade-in delays it.
       const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.out" } });
-      tl.from(".hero-eyebrow", { y: 16, opacity: 0, duration: 0.9 })
-        .from(heading.words, { yPercent: 110, duration: 1.2, stagger: 0.06 }, "<.05")
-        .from(".hero-fade", { y: 22, opacity: 0, duration: 1, stagger: 0.08 }, "<.35")
-        .from(".hero-card", {
+      if (desktop) {
+        const heading = SplitText.create(".hero-h1", { type: "words", mask: "words" });
+        tl.from(".hero-eyebrow", { y: 16, opacity: 0, duration: 0.9 })
+          .from(heading.words, { yPercent: 110, duration: 1.2, stagger: 0.06 }, "<.05")
+          .from(".hero-fade", { y: 22, opacity: 0, duration: 1, stagger: 0.08 }, "<.35");
+      }
+      tl.from(".hero-card", {
           y: 140, opacity: 0, scale: 0.9,
           rotation: (i, el) => Number(el.dataset.rot) * 4,
           duration: 1.4, stagger: 0.1,

@@ -9,7 +9,11 @@ import { posthog } from "./lib/posthog";
 // Lazy-loaded pages — each becomes its own JS chunk, only fetched when visited.
 // This keeps the Landing page bundle small (no Dashboard/PDF/heavy-vendor code
 // gets pulled in just to show the marketing page).
-const Landing = lazy(() => import("./pages/Landing"));
+// Start fetching the Landing chunk immediately on "/" instead of waiting for
+// the session check to finish (saves a round trip on first visit).
+const loadLanding = () => import("./pages/Landing");
+if (typeof window !== "undefined" && window.location.pathname === "/") loadLanding();
+const Landing = lazy(loadLanding);
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const SignPage = lazy(() => import("./pages/SignPage"));

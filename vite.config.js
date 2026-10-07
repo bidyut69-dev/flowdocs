@@ -1,57 +1,33 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// Package name from a module id, e.g. ".../node_modules/@supabase/auth-js/dist/x.js"
+// -> "@supabase/auth-js". Whole-name matching (not substrings) keeps unrelated
+// modules out of the wrong chunk.
+function pkgName(id) {
+  const parts = id.split(/[\\/]node_modules[\\/]/).pop().split(/[\\/]/);
+  return parts[0].startsWith("@") ? `${parts[0]}/${parts[1]}` : parts[0];
+}
+
+const REACT = new Set(["react", "react-dom", "scheduler", "react-router", "react-router-dom"]);
+
 export default defineConfig({
   plugins: [react()],
   build: {
-    chunkSizeWarningLimit: 900, // pdf chunk is intentionally large (jsPDF + html2canvas)
-    // Prevent Vite from eagerly preloading route-specific heavy chunks
-    // (pdf, vendor) on every page. Without this, <link rel="modulepreload">
-    // tags get injected in index.html for ALL reachable chunks, defeating
-    // the point of React.lazy()-based route splitting — the Landing page
-    // would otherwise still fetch Dashboard-only bundles like jsPDF upfront.
-    modulePreload: {
-      resolveDependencies: (filename, deps) => {
-        return deps.filter(
-          (dep) => !dep.includes("pdf") && !dep.includes("html2canvas") && !dep.includes("vendor-")
-        );
-      },
-    },
+    chunkSizeWarningLimit: 900, // jsPDF chunk is large but only loads on demand
     rollupOptions: {
       output: {
+        // Deliberately small. No catch-all "vendor" bucket and no manual "pdf"
+        // group: forcing jsPDF and its deps into one chunk made Rolldown put
+        // Vite's preload helper inside it, so every lazy route (Landing too)
+        // downloaded all of jsPDF. Anything not listed stays with the route
+        // that imports it, and jsPDF only loads via import("../lib/pdf").
         manualChunks(id) {
+          if (id.includes("vite/preload-helper")) return "preload-helper";
           if (!id.includes("node_modules")) return;
-
-          // Shared by every route (App.jsx needs these unconditionally).
-          if (id.includes("react-router") || id.includes("/react/") || id.includes("/react-dom/")) {
-            return "react-vendor";
-          }
-          if (id.includes("@supabase")) return "supabase";
-          if (id.includes("posthog")) return "posthog";
-          if (id.includes("@vercel/analytics")) return "analytics";
-          if (id.includes("razorpay")) return "razorpay";
-          if (id.includes("@emotion") || id.includes("framer-motion")) return "ui";
-
-          // jsPDF pulls in html2canvas + dompurify (+ possibly canvg) as
-          // real dependencies for its image/HTML rendering features.
-          // ALL of them must live in the SAME chunk as jspdf itself —
-          // splitting them apart is what caused the facade-import leak
-          // into react-vendor last time.
-          if (
-            id.includes("jspdf") ||
-            id.includes("html2canvas") ||
-            id.includes("dompurify") ||
-            id.includes("canvg") ||
-            id.includes("rgbcolor") ||
-            id.includes("svg-pathdata") ||
-            id.includes("raf") ||
-            id.includes("css-line-break") ||
-            id.includes("text-segmentation")
-          ) {
-            return "pdf";
-          }
-
-          return "vendor";
+          const name = pkgName(id);
+          if (REACT.has(name)) return "react-vendor";
+          if (name.startsWith("@supabase/")) return "supabase";
         },
       },
     },
