@@ -5,6 +5,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { useGSAP } from "@gsap/react";
 import { supabase } from "../lib/supabase";
+import { posthog } from "../lib/posthog";
 import Preloader from "../components/Preloader";
 import { SkeletonStyles } from "../components/Skeleton";
 import { Check, EnvelopeSimple, LinkSimple, SlackLogo, Sparkle, WhatsappLogo } from "@phosphor-icons/react";
@@ -38,6 +39,11 @@ const fontSans = "'Manrope', 'Inter', system-ui, -apple-system, sans-serif";
 const fontMono = "'IBM Plex Mono', ui-monospace, monospace";
 
 const MOTION = "(prefers-reduced-motion: no-preference)";
+
+// Same event names and props as the pre-redesign Landing, so PostHog
+// funnels and insights keep working.
+const trackCta = (cta, location) => posthog?.capture("cta_clicked", { cta, location });
+const trackPlan = (plan) => posthog?.capture("pricing_cta_clicked", { plan });
 const PRELOADER_KEY = "fd_preloader_seen";
 
 // Show the preloader once per browser session, never for reduced motion.
@@ -344,8 +350,8 @@ export default function Landing() {
             <a className="nav-link" href="#founding">Founding</a>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button className="btn-light nav-login" style={{ padding: "9px 16px", fontSize: 13, borderRadius: 12 }} onClick={() => nav("/auth")}>Log in</button>
-            <button className="btn-dark" style={{ padding: "9px 18px", fontSize: 13, borderRadius: 12 }} onClick={() => nav("/auth")}>Start free</button>
+            <button className="btn-light nav-login" style={{ padding: "9px 16px", fontSize: 13, borderRadius: 12 }} onClick={() => { trackCta("login", "header"); nav("/auth"); }}>Log in</button>
+            <button className="btn-dark" style={{ padding: "9px 18px", fontSize: 13, borderRadius: 12 }} onClick={() => { trackCta("start_free", "header"); nav("/auth"); }}>Start free</button>
           </div>
         </div>
       </nav>
@@ -369,8 +375,8 @@ export default function Landing() {
             </p>
 
             <div className="hero-fade" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Magnetic><button className="btn-dark" onClick={() => nav("/auth")}>Start free</button></Magnetic>
-              <Magnetic strength={0.25}><button className="btn-light" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}>See how it works</button></Magnetic>
+              <Magnetic><button className="btn-dark" onClick={() => { trackCta("start_free", "hero"); nav("/auth"); }}>Start free</button></Magnetic>
+              <Magnetic strength={0.25}><button className="btn-light" onClick={() => { trackCta("how_it_works", "hero"); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }}>See how it works</button></Magnetic>
             </div>
 
           </div>
@@ -599,7 +605,11 @@ export default function Landing() {
                       </div>
                     ))}
                   </div>
-                  <button className={p.featured ? "btn-dark" : "btn-light"} style={{ width: "100%", marginTop: 24, position: "relative", zIndex: 1 }} onClick={p.noNav ? () => { window.location.href = "mailto:support@flowdocs.co.in?subject=FlowDocs%20Agency%20plan"; } : () => nav("/auth")}>{p.cta}</button>
+                  <button className={p.featured ? "btn-dark" : "btn-light"} style={{ width: "100%", marginTop: 24, position: "relative", zIndex: 1 }} onClick={() => {
+                    trackPlan(p.name.toLowerCase());
+                    if (p.noNav) window.location.href = "mailto:support@flowdocs.co.in?subject=FlowDocs%20Agency%20plan";
+                    else nav("/auth");
+                  }}>{p.cta}</button>
                 </div>
               </div>
             ))}
@@ -645,7 +655,7 @@ export default function Landing() {
                   <strong style={{ color: "#F5F4F2", fontFamily: fontMono }}>{foundingCount}</strong> of 20 founding spots claimed
                 </p>
 
-                <button className="btn-gold" style={{ width: "100%", padding: "16px" }} onClick={() => nav("/auth")}>
+                <button className="btn-gold" style={{ width: "100%", padding: "16px" }} onClick={() => { trackCta("claim_founding", "founding"); nav("/auth"); }}>
                   Claim my founding spot
                 </button>
                 <p style={{ fontSize: 12.5, color: "#8A8A8A", marginTop: 14 }}>No credit card. Cancel anytime.</p>
@@ -667,8 +677,8 @@ export default function Landing() {
               Built for Indian freelancers closing international clients, without the back-and-forth.
             </p>
             <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-              <Magnetic><button className="btn-dark" style={{ padding: "16px 32px", fontSize: 15 }} onClick={() => nav("/auth")}>Start free</button></Magnetic>
-              <Magnetic strength={0.25}><button className="btn-light" style={{ padding: "15px 28px", fontSize: 14 }} onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}>See pricing</button></Magnetic>
+              <Magnetic><button className="btn-dark" style={{ padding: "16px 32px", fontSize: 15 }} onClick={() => { trackCta("start_free", "final_cta"); nav("/auth"); }}>Start free</button></Magnetic>
+              <Magnetic strength={0.25}><button className="btn-light" style={{ padding: "15px 28px", fontSize: 14 }} onClick={() => { trackCta("see_pricing", "final_cta"); document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" }); }}>See pricing</button></Magnetic>
             </div>
           </div>
         </div>
