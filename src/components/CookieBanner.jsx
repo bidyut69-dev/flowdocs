@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { applyAnalyticsConsent } from "../lib/posthog";
 
-const bg = "#F5F4F2";
 const card = "#FFFFFF";
 const ink = "#0A0A0A";
 const inkMid = "#525252";
@@ -10,26 +10,40 @@ const lineSoft = "#EFEDE8";
 const gold = "#C8820F";
 const goldSoft = "#F5A623";
 
-const fontDisplay = "'Playfair Display', 'Fraunces', Georgia, serif";
+const fontDisplay = "'Playfair Display', Georgia, serif";
 const fontSans = "'Manrope', 'Inter', system-ui, sans-serif";
-const fontMono = "'IBM Plex Mono', 'DM Mono', ui-monospace, monospace";
+
+// Shown after a short delay so it never competes with the first paint or the
+// hero CTA. Compact: a corner card on desktop, a slim bar on phones.
+const SHOW_AFTER_MS = 3500;
+
+function readConsent() {
+  try {
+    return localStorage.getItem("fd_cookie_consent");
+  } catch {
+    return "essential"; // storage blocked: treat as essential, never nag
+  }
+}
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [analytics, setAnalytics] = useState(true);
 
   useEffect(() => {
-    const consent = localStorage.getItem("fd_cookie_consent");
-    if (!consent) setTimeout(() => setVisible(true), 1500);
+    if (readConsent()) return;
+    const t = setTimeout(() => setVisible(true), SHOW_AFTER_MS);
+    return () => clearTimeout(t);
   }, []);
 
-  const accept = (all = true) => {
-    localStorage.setItem("fd_cookie_consent", all ? "all" : "essential");
-    localStorage.setItem("fd_cookie_date", new Date().toISOString());
+  const save = (all) => {
+    const value = all ? "all" : "essential";
+    try {
+      localStorage.setItem("fd_cookie_consent", value);
+      localStorage.setItem("fd_cookie_date", new Date().toISOString());
+    } catch { /* storage blocked: consent applies for this visit only */ }
+    applyAnalyticsConsent(value);
     setVisible(false);
-    if (all && typeof window !== "undefined") {
-      window.fd_analytics_enabled = true;
-    }
   };
 
   if (!visible) return null;
@@ -37,77 +51,71 @@ export default function CookieBanner() {
   return (
     <>
       <style>{`
-        @keyframes slideUpBanner {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+        @keyframes cbIn { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+        .cb-wrap{position:fixed;z-index:99999;left:16px;bottom:16px;width:360px;max-width:calc(100vw - 32px);animation:cbIn .4s cubic-bezier(.22,1,.36,1)}
+        .cb-card{background:${card};border:1px solid ${line};border-radius:16px;box-shadow:0 16px 40px -20px rgba(15,15,15,.3);padding:16px}
+        .cb-row{display:flex;gap:8px;margin-top:12px}
+        .cb-primary{flex:1;background:${ink};color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:${fontSans}}
+        .cb-ghost{flex:1;background:${card};color:${ink};border:1px solid ${line};border-radius:10px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:${fontSans}}
+        .cb-primary:active,.cb-ghost:active{transform:scale(.98)}
+        .cb-link{background:none;border:none;padding:0;color:${gold};font-weight:600;font-size:12.5px;cursor:pointer;font-family:${fontSans};text-decoration:underline;text-decoration-color:${goldSoft}60;text-underline-offset:3px}
+        @media (max-width: 560px){
+          .cb-wrap{left:0;right:0;bottom:0;width:auto;max-width:none}
+          .cb-card{border-radius:14px 14px 0 0;border-left:none;border-right:none;border-bottom:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+          .cb-compact{display:flex;align-items:center;gap:10px}
+          .cb-compact .cb-row{margin-top:0;flex-shrink:0}
+          .cb-compact .cb-primary,.cb-compact .cb-ghost{flex:none;padding:8px 12px;font-size:12.5px}
         }
-        .cb-primary{background:${ink};color:#fff;border:none;border-radius:12px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:${fontSans};box-shadow:0 10px 22px -10px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14);outline:1px solid rgba(0,0,0,.3);outline-offset:-1px;transition:all .3s cubic-bezier(.22,1,.36,1)}
-        .cb-primary:hover{transform:translateY(-1px)}
-        .cb-ghost{background:${card};color:${ink};border:1px solid ${line};border-radius:12px;padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer;font-family:${fontSans};transition:all .3s cubic-bezier(.22,1,.36,1)}
-        .cb-ghost:hover{border-color:${inkFaint};transform:translateY(-1px)}
+        @media (prefers-reduced-motion: reduce){ .cb-wrap{animation:none} }
       `}</style>
-      <div style={{
-        position: "fixed", bottom: 16, left: 16, right: 16, zIndex: 99999,
-        animation: "slideUpBanner 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
-        display: "flex", justifyContent: "center", pointerEvents: "none",
-      }}>
-        <div style={{
-          maxWidth: 920, width: "100%", background: card,
-          border: `1px solid ${line}`, borderRadius: 20,
-          boxShadow: "0 24px 60px -20px rgba(15,15,15,.25)",
-          padding: showDetail ? "22px 24px" : "16px 20px",
-          pointerEvents: "auto",
-        }}>
+      <div className="cb-wrap" role="dialog" aria-live="polite" aria-label="Cookie preferences">
+        <div className="cb-card">
           {!showDetail ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 280 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${goldSoft}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🍪</div>
-                <div>
-                  <div style={{ fontSize: 13.5, color: ink, fontFamily: fontSans, lineHeight: 1.5, fontWeight: 500 }}>
-                    We use cookies to improve your experience.
-                  </div>
-                  <div style={{ fontSize: 12.5, color: inkMid, marginTop: 2 }}>
-                    <span style={{ color: gold, cursor: "pointer", fontWeight: 600, textDecoration: "underline", textDecorationColor: `${goldSoft}60`, textUnderlineOffset: 3 }} onClick={() => setShowDetail(true)}>Manage preferences</span>
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button className="cb-ghost" onClick={() => accept(false)}>Essential only</button>
-                <button className="cb-primary" onClick={() => accept(true)}>Accept all</button>
+            <div className="cb-compact">
+              <p style={{ fontSize: 13, color: ink, fontFamily: fontSans, lineHeight: 1.5, flex: 1, margin: 0 }}>
+                Analytics cookies help us improve FlowDocs.{" "}
+                <button className="cb-link" onClick={() => setShowDetail(true)}>Choose</button>
+              </p>
+              <div className="cb-row">
+                <button className="cb-ghost" onClick={() => save(false)}>Essential only</button>
+                <button className="cb-primary" onClick={() => save(true)}>Accept</button>
               </div>
             </div>
           ) : (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-                <div>
-                  <div style={{ fontFamily: fontMono, fontSize: 10.5, color: inkMid, fontWeight: 500, letterSpacing: ".16em", textTransform: "uppercase", marginBottom: 6 }}>§ Cookie preferences</div>
-                  <div style={{ fontFamily: fontDisplay, fontSize: 22, fontWeight: 500, letterSpacing: "-.3px", color: ink }}>Choose what you share</div>
-                </div>
-                <button onClick={() => setShowDetail(false)} style={{ background: lineSoft, border: "none", color: inkMid, cursor: "pointer", fontSize: 16, width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: fontDisplay, fontSize: 18, fontWeight: 500, color: ink }}>Cookie preferences</div>
+                <button onClick={() => setShowDetail(false)} aria-label="Back" style={{ background: lineSoft, border: "none", color: inkMid, cursor: "pointer", fontSize: 16, width: 28, height: 28, borderRadius: "50%" }}>×</button>
               </div>
               {[
-                { name: "Essential", desc: "Required for login, security, and basic functionality.", locked: true },
-                { name: "Analytics", desc: "Helps us understand how you use FlowDocs (PostHog / Google Analytics).", locked: false },
-                { name: "Preferences", desc: "Remembers your settings and UI preferences.", locked: false },
-              ].map((cookie, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "14px 0", borderBottom: i < 2 ? `1px solid ${lineSoft}` : "none" }}>
-                  <div style={{ flex: 1, paddingRight: 16 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13.5, color: ink, marginBottom: 4 }}>{cookie.name}</div>
-                    <div style={{ fontSize: 12.5, color: inkMid, lineHeight: 1.5 }}>{cookie.desc}</div>
+                { key: "essential", name: "Essential", desc: "Login, security and the signing flow. Always on." },
+                { key: "analytics", name: "Analytics", desc: "PostHog usage stats and session replay, so we can fix confusing screens." },
+              ].map((c, i) => (
+                <div key={c.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i ? `1px solid ${lineSoft}` : "none" }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: ink }}>{c.name}</div>
+                    <div style={{ fontSize: 12, color: inkMid, lineHeight: 1.5, marginTop: 2 }}>{c.desc}</div>
                   </div>
-                  {cookie.locked ? (
-                    <span style={{ fontSize: 10, color: inkMid, fontFamily: fontMono, letterSpacing: ".14em", textTransform: "uppercase", background: lineSoft, padding: "4px 10px", borderRadius: 100, flexShrink: 0 }}>Always on</span>
+                  {c.key === "essential" ? (
+                    <span style={{ fontSize: 11.5, color: inkMid, background: lineSoft, padding: "4px 10px", borderRadius: 100, flexShrink: 0 }}>On</span>
                   ) : (
-                    <div style={{ width: 40, height: 22, background: goldSoft, borderRadius: 100, cursor: "pointer", flexShrink: 0, position: "relative", boxShadow: `0 4px 10px -4px ${goldSoft}80` }}>
-                      <div style={{ position: "absolute", right: 2, top: 2, width: 18, height: 18, background: "#fff", borderRadius: "50%", boxShadow: "0 2px 4px rgba(0,0,0,.2)" }} />
-                    </div>
+                    <button
+                      role="switch"
+                      aria-checked={analytics}
+                      aria-label="Analytics cookies"
+                      onClick={() => setAnalytics(a => !a)}
+                      style={{ width: 40, height: 22, flexShrink: 0, border: "none", borderRadius: 100, cursor: "pointer", position: "relative", background: analytics ? goldSoft : line, transition: "background .2s" }}
+                    >
+                      <span style={{ position: "absolute", top: 2, left: analytics ? 20 : 2, width: 18, height: 18, background: "#fff", borderRadius: "50%", boxShadow: "0 1px 3px rgba(0,0,0,.2)", transition: "left .2s" }} />
+                    </button>
                   )}
                 </div>
               ))}
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
-                <button className="cb-ghost" onClick={() => accept(false)}>Save preferences</button>
-                <button className="cb-primary" onClick={() => accept(true)}>Accept all</button>
+              <div className="cb-row">
+                <button className="cb-ghost" onClick={() => save(analytics)}>Save</button>
+                <button className="cb-primary" onClick={() => save(true)}>Accept all</button>
               </div>
+              <div style={{ fontSize: 11.5, color: inkFaint, marginTop: 10 }}>You can change this any time by clearing site data.</div>
             </div>
           )}
         </div>
