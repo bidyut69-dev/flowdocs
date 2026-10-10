@@ -15,6 +15,8 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#F5A623" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FlowDocs" />
+    <meta property="og:locale" content="en_IN" />
     <meta property="og:url" content="https://flowdocs.co.in" />
     <meta property="og:title" content="FlowDocs | One Link. Signed Contract. Paid Deposit." />
     <meta property="og:description" content="Send a proposal in 2 minutes. Get it signed in seconds. Start free." />
@@ -23,16 +25,219 @@
     <meta name="twitter:title" content="FlowDocs | One Link. Signed Contract. Paid Deposit." />
     <meta name="twitter:image" content="https://flowdocs.co.in/android-chrome-512x512.png" />
     <meta name="robots" content="index, follow" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"FlowDocs","url":"https://flowdocs.co.in","applicationCategory":"BusinessApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+
+    <!-- Structured data. Keep the FAQPage text identical to the FAQ inside #root below. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://flowdocs.co.in/#organization",
+      "name": "FlowDocs",
+      "url": "https://flowdocs.co.in",
+      "logo": "https://flowdocs.co.in/android-chrome-512x512.png",
+      "description": "FlowDocs (flowdocs.co.in) — contract signing and deposit collection in one link, built for Indian freelancers.",
+      "disambiguatingDescription": "FlowDocs at flowdocs.co.in is an India-focused contract and deposit tool for freelancers. It is not affiliated with other products or companies that use the name FlowDocs.",
+      "email": "support@flowdocs.co.in",
+      "areaServed": { "@type": "Country", "name": "India" },
+      "founder": { "@type": "Person", "name": "Bidyut" },
+      "sameAs": [
+        "TODO_LINKEDIN_URL",
+        "TODO_YOUTUBE_URL",
+        "TODO_UNEED_URL",
+        "TODO_PRODUCTHUNT_URL"
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://flowdocs.co.in/#website",
+      "name": "FlowDocs",
+      "url": "https://flowdocs.co.in",
+      "publisher": { "@id": "https://flowdocs.co.in/#organization" }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "FlowDocs",
+      "url": "https://flowdocs.co.in",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "description": "FlowDocs (flowdocs.co.in) — contract signing and deposit collection in one link, built for Indian freelancers.",
+      "publisher": { "@id": "https://flowdocs.co.in/#organization" },
+      "offers": [
+        { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "INR", "description": "3 documents per month, eSignature with audit trail, basic templates, email support." },
+        { "@type": "Offer", "name": "Solo", "price": "299", "priceCurrency": "INR", "description": "Per month. Unlimited documents and eSignatures, no FlowDocs branding, 5 templates, 1 GB storage, email support." },
+        { "@type": "Offer", "name": "Pro", "price": "750", "priceCurrency": "INR", "description": "Per month, 7-day trial. Unlimited documents, eSignature with audit trail, GST invoices, Razorpay payments, auto reminders, 9 templates." },
+        { "@type": "Offer", "name": "Agency", "price": "1999", "priceCurrency": "INR", "description": "Per month. Everything in Pro, 5 team members, white-label branding, client portal, API access, dedicated support." }
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is FlowDocs?",
+          "acceptedAnswer": { "@type": "Answer", "text": "FlowDocs (flowdocs.co.in) — contract signing and deposit collection in one link, built for Indian freelancers. You draft a contract or proposal, send one link, and your client reviews it, signs it and pays the deposit on the same page." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is FlowDocs the same as other products named FlowDocs?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. FlowDocs at flowdocs.co.in is an India-focused tool for freelancers and is not affiliated with other products, apps or companies that use the name FlowDocs." }
+        },
+        {
+          "@type": "Question",
+          "name": "How do Indian freelancers get a contract signed and collect an advance payment together?",
+          "acceptedAnswer": { "@type": "Answer", "text": "With FlowDocs, they send one link: the client opens it on any device, reviews the contract, signs it and pays the deposit right after signing, so there is no separate invoice to chase. The freelancer is notified when the contract is signed and paid." }
+        },
+        {
+          "@type": "Question",
+          "name": "Are FlowDocs e-signatures legally valid in India?",
+          "acceptedAnswer": { "@type": "Answer", "text": "India recognises electronic signatures under the Information Technology Act, 2000, and FlowDocs captures each signature with the signer's explicit consent. Every signature is timestamped and an audit trail PDF is kept with the signed document. Some document types, such as wills and property sale deeds, are excluded from electronic signing under the Act." }
+        },
+        {
+          "@type": "Question",
+          "name": "Which payment methods are supported?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Clients pay through Razorpay with UPI, cards, net banking or wallets when the freelancer has connected Razorpay. Without Razorpay, the sign page shows the freelancer's UPI ID and bank transfer details, and the freelancer confirms the payment." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there a free plan?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The Free plan costs ₹0 and includes 3 documents per month, eSignature with audit trail, basic templates and email support, with no card needed." }
+        },
+        {
+          "@type": "Question",
+          "name": "How is FlowDocs different from Bonsai, HoneyBook or DocuSign?",
+          "acceptedAnswer": { "@type": "Answer", "text": "FlowDocs is built for India: plans are priced in INR, deposits are collected through Razorpay with UPI, GST invoices are built in, and the signed contract and the deposit happen in one link." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I bill international clients?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. FlowDocs lets you bill clients in 8 currencies: USD, GBP, EUR, AED, CAD, AUD, SGD and INR." }
+        }
+      ]
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Fonts load without blocking the first paint (text shows in the fallback font, then swaps). -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" /></noscript>
-    <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #F5F4F2; color: #0A0A0A; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }</style>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #F5F4F2; color: #0A0A0A; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      /* Static page content: readable without JavaScript, replaced when React mounts. */
+      .seo { max-width: 720px; margin: 0 auto; padding: 40px 16px 56px; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; color: #525252; }
+      .seo h1, .seo h2, .seo h3 { font-family: Georgia, serif; font-weight: 500; color: #0A0A0A; line-height: 1.2; }
+      .seo h1 { font-size: 34px; margin-bottom: 16px; }
+      .seo h2 { font-size: 24px; margin: 40px 0 12px; }
+      .seo h3 { font-size: 17px; margin: 20px 0 4px; }
+      .seo p, .seo ul, .seo ol { margin-bottom: 12px; }
+      .seo ul, .seo ol { padding-left: 22px; }
+      .seo a { color: #C8820F; }
+      .seo footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #E7E5E0; font-size: 14px; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Crawlable copy of the landing page for bots that do not run JavaScript.
+           It must say the same things as src/pages/Landing.jsx. React replaces it on mount. -->
+      <div class="seo">
+        <header>
+          <h1>FlowDocs — One Link. Signed Contract. Paid Deposit.</h1>
+          <p>FlowDocs (flowdocs.co.in) — contract signing and deposit collection in one link, built for Indian freelancers. Get paid before the work begins: send one link, and your client signs the contract and pays the deposit on the same page. Free to start, no card needed.</p>
+          <p><a href="/auth">Start free</a></p>
+        </header>
+
+        <main>
+          <section>
+            <h2>How it works</h2>
+            <ol>
+              <li><strong>Draft with AI.</strong> Scope, amount and timeline, filled in from one short brief.</li>
+              <li><strong>Generate one link.</strong> Contract, signature and payment live on a single page. No PDFs. No downloads.</li>
+              <li><strong>Send it anywhere.</strong> Email, WhatsApp, Slack. Opens on any device. Nothing to install.</li>
+              <li><strong>Signed and paid.</strong> Your client signs and pays the deposit on the same page. You're notified the second it happens. Work begins.</li>
+            </ol>
+          </section>
+
+          <section>
+            <h2>Features</h2>
+            <ul>
+              <li><strong>eSignature with audit trail.</strong> Signed on any phone. Every signature is timestamped, and an audit trail PDF is kept with the signed document.</li>
+              <li><strong>AI drafting.</strong> Describe the job in a line. Scope, milestones and payment terms come back ready to edit.</li>
+              <li><strong>Deposits through Razorpay.</strong> Your client pays right after signing, on the same page. No separate invoice to chase.</li>
+              <li><strong>GST invoices.</strong> GSTIN plus CGST/SGST or IGST lines, calculated for you.</li>
+              <li><strong>Auto reminders.</strong> Follow-ups go out when a proposal sits unopened or unsigned, so you never have to send the awkward email.</li>
+              <li><strong>8 currencies.</strong> Bill clients in USD, GBP, EUR, AED, CAD, AUD, SGD and INR.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Who it's for</h2>
+            <p>FlowDocs is for Indian freelancers who work with direct clients, in India and abroad: designers, developers, video editors, writers, marketers and consultants. If you have ever started work on a promise and then chased the client for a signature or an advance, FlowDocs puts both on one link.</p>
+          </section>
+
+          <section>
+            <h2>Pricing</h2>
+            <p>Start free. Upgrade when the volume justifies it.</p>
+            <h3>Free: ₹0, forever</h3>
+            <p>3 documents / month, eSignature with audit trail, basic templates, email support. No card needed.</p>
+            <h3>Solo: ₹299/month</h3>
+            <p>Unlimited documents, unlimited eSignatures, remove FlowDocs branding, 5 templates, 1 GB storage, email support.</p>
+            <h3>Pro: ₹750/month, 7-day trial</h3>
+            <p>Unlimited documents, eSignature with audit trail, GST invoices, Razorpay payments, auto reminders, 9 templates.</p>
+            <h3>Agency: ₹1,999/month</h3>
+            <p>Everything in Pro, 5 team members, white-label branding, client portal, API access, dedicated support.</p>
+          </section>
+
+          <section>
+            <h2>Frequently asked questions</h2>
+            <h3>What is FlowDocs?</h3>
+            <p>FlowDocs (flowdocs.co.in) — contract signing and deposit collection in one link, built for Indian freelancers. You draft a contract or proposal, send one link, and your client reviews it, signs it and pays the deposit on the same page.</p>
+            <h3>Is FlowDocs the same as other products named FlowDocs?</h3>
+            <p>No. FlowDocs at flowdocs.co.in is an India-focused tool for freelancers and is not affiliated with other products, apps or companies that use the name FlowDocs.</p>
+            <h3>How do Indian freelancers get a contract signed and collect an advance payment together?</h3>
+            <p>With FlowDocs, they send one link: the client opens it on any device, reviews the contract, signs it and pays the deposit right after signing, so there is no separate invoice to chase. The freelancer is notified when the contract is signed and paid.</p>
+            <h3>Are FlowDocs e-signatures legally valid in India?</h3>
+            <p>India recognises electronic signatures under the Information Technology Act, 2000, and FlowDocs captures each signature with the signer's explicit consent. Every signature is timestamped and an audit trail PDF is kept with the signed document. Some document types, such as wills and property sale deeds, are excluded from electronic signing under the Act.</p>
+            <h3>Which payment methods are supported?</h3>
+            <p>Clients pay through Razorpay with UPI, cards, net banking or wallets when the freelancer has connected Razorpay. Without Razorpay, the sign page shows the freelancer's UPI ID and bank transfer details, and the freelancer confirms the payment.</p>
+            <h3>Is there a free plan?</h3>
+            <p>Yes. The Free plan costs ₹0 and includes 3 documents per month, eSignature with audit trail, basic templates and email support, with no card needed.</p>
+            <h3>How is FlowDocs different from Bonsai, HoneyBook or DocuSign?</h3>
+            <p>FlowDocs is built for India: plans are priced in INR, deposits are collected through Razorpay with UPI, GST invoices are built in, and the signed contract and the deposit happen in one link.</p>
+            <h3>Can I bill international clients?</h3>
+            <p>Yes. FlowDocs lets you bill clients in 8 currencies: USD, GBP, EUR, AED, CAD, AUD, SGD and INR.</p>
+          </section>
+        </main>
+
+        <footer>
+          <p>© FlowDocs, built in India. <a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of service</a> · <a href="mailto:support@flowdocs.co.in">support@flowdocs.co.in</a></p>
+        </footer>
+      </div>
+    </div>
+    <script>
+      // The marketing copy above belongs to "/" only. On every other route (sign
+      // links, dashboard, auth) and for signed-in users, clear it before the first
+      // paint so nobody sees the landing text flash while the app loads.
+      (function () {
+        var signedIn = false;
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf("sb-") === 0 && k.slice(-11) === "-auth-token") { signedIn = true; break; }
+          }
+        } catch (e) { /* storage blocked */ }
+        if (location.pathname !== "/" || signedIn) document.getElementById("root").innerHTML = "";
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -30,3 +30,4 @@ dist-ssr
 .env.*
 EOF
 .claude.md
+.flowdocs-geo-task.md

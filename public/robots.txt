@@ -10,4 +10,139 @@ Disallow: /sign/
 Disallow: /reset-password
 Disallow: /forgot-password
 
+# AI and answer-engine crawlers. A bot that matches its own group ignores the
+# "*" group above, so every group repeats the same rules.
+
+User-agent: GPTBot
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: Perplexity-User
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: Claude-SearchBot
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: Claude-User
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: Google-Extended
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: Bingbot
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: DeepSeekBot
+Allow: /
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+Allow: /llms.txt
+Disallow: /dashboard
+Disallow: /sign/
+Disallow: /reset-password
+Disallow: /forgot-password
+
 Sitemap: https://flowdocs.co.in/sitemap.xml

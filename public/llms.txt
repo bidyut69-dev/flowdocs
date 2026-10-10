@@ -1,0 +1,29 @@
+# FlowDocs
+
+> FlowDocs (flowdocs.co.in) — contract signing and deposit collection in one link, built for Indian freelancers.
+
+Freelancers often start work on a verbal yes, then get ghosted or pulled into renegotiation before any money arrives. With FlowDocs, the freelancer drafts a contract or proposal (with AI help), sends one link by email, WhatsApp or Slack, and the client reviews it, signs it and pays the deposit on the same page. It is built for Indian freelancers working with direct clients in India and abroad: plans are priced in INR, deposits are collected through Razorpay (UPI, cards, net banking, wallets), GST invoices are built in, and clients can be billed in 8 currencies (USD, GBP, EUR, AED, CAD, AUD, SGD, INR).
+
+Not affiliated with other products using the name "FlowDocs".
+
+## Key pages
+- [Home](https://flowdocs.co.in): product overview, features, pricing, FAQ
+- [Sign up](https://flowdocs.co.in/auth): create a free account
+- [Privacy Policy](https://flowdocs.co.in/privacy)
+- [Terms of Service](https://flowdocs.co.in/terms)
+
+## Features
+- eSignature with audit trail: every signature is timestamped, and an audit trail PDF is kept with the signed document
+- AI drafting: scope, milestones and payment terms from a one-line brief
+- Deposits through Razorpay, paid by the client right after signing on the same page
+- GST invoices with GSTIN and CGST/SGST or IGST lines
+- Auto reminders when a proposal sits unopened or unsigned
+
+## Pricing
+- Free — ₹0: 3 documents/month, eSignature with audit trail, basic templates, email support
+- Solo — ₹299/month: unlimited documents and eSignatures, no FlowDocs branding, 5 templates, 1 GB storage, email support
+- Pro — ₹750/month (7-day trial): unlimited documents, eSignature with audit trail, GST invoices, Razorpay payments, auto reminders, 9 templates
+- Agency — ₹1,999/month: everything in Pro, 5 team members, white-label branding, client portal, API access, dedicated support
+
+## Contact
+- support@flowdocs.co.in
